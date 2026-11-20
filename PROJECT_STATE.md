@@ -113,11 +113,22 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 20 de noviembre de 2026 (507): la cuota de la refinanciación, paso 2 de 2
+
+- **El hogar:** «Ya la he abierto y cuadra, haz el paso 2». La migración del paso 1 ya llevó la cuota a sus datos (`scenarioSettings.reunifiedDebt`, en la nube).
+- **Publicado de antes:** «Published availability» 379 (workflow_dispatch, 5ff282fb) en verde.
+- **Paso 2** (este PR): fuera de `app.js` `LEGACY_REUNIFIED_DEBT` (el importe de siempre y la regla por el nombre de la entidad), `migrateReunifiedDebtSetting` y sus dos llamadas (al arrancar y en `refreshFromPersistedState`). Sin el dato del hogar ni el de la demo, no hay cuota ni plan unificado: no se inventa nada.
+- **Lo que queda y conviene saber:**
+  - restaurar una copia anterior al 19/11 deja la refinanciación sin cuota (la previsión vuelve a lo que diga la partida del plan): se vuelve a poner en Deuda › Contratos › «La cuota de la refinanciación reunificada»;
+  - el nombre de esa entidad sigue en el código, sin importe, en las reglas que reconocen conceptos del banco y en el identificador del plan reunificado; no es una cifra del hogar y no se ha tocado.
+- **Pruebas:** `tests/refinanciacion-datos.test.cjs` (4: la prueba de la migración se cambia por la de que no vuelvan ni el importe, ni la regla por etiqueta, ni la migración, y de que sin dato no hay cuota); versión de `app.js` (`20261120refi2`) en 28 pruebas.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6.801/6.801. Batería completa en local: 465 de 467 a la primera; los 2 que cayeron (WP-37, el esqueleto de una vista que tarda, y SVD-2, el aviso del simulador al cambiar la TAE en Contratos) son de tiempos y pasaron al repetirlos (2/2, y SVD-2 tres veces seguidas 3/3).
+
 ## Cierre de sesión — 20 de noviembre de 2026 (506): despliegues de #644, #645 y #646
 
 - **«Verify and deploy Pages» 1482** (main 19ace754, #645) en verde, Safari incluido: publica también #644 (DAT-07 y DEC-12), cuyo despliegue 1480 cayó por una caída de Chromium (SEGV) en XDA-04; en la 1482 esa prueba pasó.
 - **1484** (main 5ff282fb, #646, la cuota de la refinanciación a los datos del hogar, paso 1) en verde. «Published availability» 377 y 378 en verde sobre 5ff282fb; la 379, lanzada.
-- **Esperando al hogar:** abrir la app una vez (con la nube) para que la cuota de la refinanciación pase a sus datos, y confirmarlo; entonces, el paso 2 (borrar `LEGACY_REUNIFIED_DEBT` del código).
+- **Esperando al hogar:** abrir la app una vez (con la nube) para que la cuota de la refinanciación pase a sus datos, y confirmarlo; entonces, el paso 2 (borrar `LEGACY_REUNIFIED_DEBT` del código). Confirmado el 20/11: el paso 2, en la 507.
 
 ## Cierre de sesión — 19 de noviembre de 2026 (505): la cuota de la refinanciación sale del código (paso 1 de 2); #644 y #645 fusionados
 
