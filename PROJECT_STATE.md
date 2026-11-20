@@ -113,6 +113,15 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 20 de noviembre de 2026 (509): DEC-38, paso 1 (reflujo a 320 px); #648 fusionado
+
+- **Publicado de antes:** #648 (DEC-14 y DEC-39) fusionado con su CI en verde (main 1c7cfe07); su despliegue, en la siguiente entrada.
+- **DEC-38, medido el 20/11** con la misma comprobación del CI (`tools/check-mobile-overflow.mjs`, la demo, todas las pantallas y sus pestañas): la app usa tamaños fijos en px, así que el texto grande del sistema no les afecta y lo que cuenta es el zoom de la página, que estrecha el ancho útil. A **320 px** (WCAG 1.4.10; un móvil de 390 px con el zoom al 120 %) se salían **2** pantallas; a **260 px** (al 150 %), **12**; a **195 px** (al 200 %), **43**.
+- **Paso 1 (este PR):** las dos de 320 px, solo con CSS y solo por debajo de 360 px (por encima nada cambia): el simulador «nueva vida» (las etiquetas de mes del cono, `.pv4-cone-labels`, se encogen y se recortan) y Análisis (el segmentado de la ventana con sus dos descargas pasa a dos líneas). La comprobación del CI mira ahora también **320 px**: 68 visitas sin nada cortado.
+- **Lo que queda de DEC-38:** a 260 px, entre las doce, **Movimientos**, Plan › partidas y Deuda › Comparar y Préstamo; el resto son «Versiones anteriores» pendientes de D-N15 (arreglarlas puede ser trabajo perdido). A 195 px es trabajo de varias sesiones.
+- **Pruebas:** `tests/dec38-reflujo-320.test.cjs` (1) y el anchos de `t9-recorte-pantalla`; versiones de `styles.css` y `design-tokens.css` a `20261120dec38`.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6.810/6.810 (+1). Batería completa en local: **468/468** (24,6 min).
+
 ## Cierre de sesión — 20 de noviembre de 2026 (508): DEC-14 y DEC-39; lo que queda de la décima, con lo que necesita decisión
 
 - **El hogar:** «Sigue con todo lo que puedas que no depende de nosotros». Lo que queda de la décima auditoría (§5 y §6), separado en lo que se puede hacer sin decisión y lo que no.

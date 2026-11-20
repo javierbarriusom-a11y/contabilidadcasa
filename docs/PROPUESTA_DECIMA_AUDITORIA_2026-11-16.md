@@ -547,6 +547,10 @@ que entra en las pruebas de Clasificar y Movimientos. *Por qué:* §1.5 y P-C. S
   todas las pantallas («Sin conexión · los datos son los de este dispositivo», y con la nube, que lo cambiado se sube al volver)
   y los botones de la nube apagados con «Necesita conexión a internet»; al volver, como estaban, y el guardado pendiente se
   intenta ya (`sin-conexion-ui.js`). No cambia datos.
+- **DEC-38**, paso 1 (20/11/2026, PROJECT_STATE 509): medido con la comprobación del CI, a 320 px (WCAG 1.4.10) se salían 2
+  pantallas, a 260 px (390 px al 150 %) 12 y a 195 px (al 200 %) 43. Arregladas las dos de 320 px (solo CSS, solo por debajo
+  de 360 px) y 320 px en el CI. Queda 260 px: Movimientos, Plan › partidas, Deuda › Comparar y Préstamo y ocho de «Versiones
+  anteriores».
 - **DEC-16** (un solo contador para el repaso) no se ha hecho: sustituye cuatro tarjetas por una y eso cambia lo que se ve en
   Movimientos y en el repaso; mejor con D-N17 contestada.
 

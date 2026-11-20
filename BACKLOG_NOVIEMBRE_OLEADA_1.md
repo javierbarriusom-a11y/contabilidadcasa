@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**20/11/2026 · DEC-38, paso 1: nada se sale de la pantalla a 320 px (WCAG 1.4.10).** Medido: a 320 px se salían 2 pantallas, a 260 px (móvil con zoom al 150 %) 12 y a 195 px (al 200 %) 43. Arregladas las de 320 px y vigiladas en el CI; las de 260 px, después (PROJECT_STATE 509).
+
 **20/11/2026 · DEC-39: la app dice cuándo está sin conexión.** Bajo el chip de la nube, en todas las pantallas: «Sin conexión · los datos son los de este dispositivo»; los botones de la nube, apagados con su porqué; al volver, como estaban (PROJECT_STATE 508).
 
 **20/11/2026 · DEC-14: el recibo de cada mes se propone por su importe y su día («sigue con todo lo que puedas que no depende de nosotros»).** En Clasificar, un recibo cuyo concepto cambia entero cada mes recibe propuesta si en dos meses distintos o más ya llevasteis a una partida un movimiento con el mismo importe (± 10 %) hacia el mismo día (± 3); confianza media y el porqué. Solo propone (PROJECT_STATE 508).
