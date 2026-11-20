@@ -538,6 +538,11 @@ que entra en las pruebas de Clasificar y Movimientos. *Por qué:* §1.5 y P-C. S
   «Ver la previsión» (Plan › Previsión); el ratio de deuda, «Ver la ruta de la deuda»; la cartera, «Rebalancear en Inversión» o
   «Ver la cartera»; las decisiones vencidas, «Revisar las decisiones» (Ajustes). Y sin «Vence el»: la fecha de la regla es
   cuándo revisarla, no un plazo. No cambia ninguna cifra.
+- **DEC-14**, el recibo de cada mes por su importe y su día (20/11/2026, «sigue con todo lo que puedas que no depende de
+  nosotros», PROJECT_STATE 508): en Clasificar, sin reglas, nombre ni palabras en común, la partida a la que ya fueron en dos
+  meses distintos o más movimientos con importe ± 10 % y a ± 3 días del mismo día del mes, con confianza media y el porqué
+  («Se carga cada mes hacia el día 5 por unos 42 €…»); con empate, nada. Solo propone; la regla guardada no mira el día.
+  Falta validarlo con la huella del banco del hogar (DEC-13), que es lo que la propuesta pedía antes.
 - **DEC-16** (un solo contador para el repaso) no se ha hecho: sustituye cuatro tarjetas por una y eso cambia lo que se ve en
   Movimientos y en el repaso; mejor con D-N17 contestada.
 
