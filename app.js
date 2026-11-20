@@ -4411,6 +4411,7 @@ function setupViewNavigation() {
     setMobileNavOpen(false);
     setActiveView(viewFromHash(), { focus: true });
     openCaptureLinkFromHash();
+    globalThis.repasoV2DesdeEnlace?.(); // DEC-22: «#home?abrir=repaso», el enlace del aviso del domingo
   });
   setActiveView(viewFromHash(), { focus: false, announce: false });
 }
@@ -32007,6 +32008,8 @@ async function init() {
   await setupSupabaseSync();
   // WP-25: tras la nube (no registrar sobre un estado que va a cambiar) y tras «load» (antes, Chrome quita el foco).
   if (document.readyState === "complete") openCaptureLinkFromHash(); else window.addEventListener("load", () => openCaptureLinkFromHash(), { once: true });
+  // DEC-22: lo mismo para el enlace del aviso del domingo del calendario, que abre el repaso semanal (views/repaso-v2.js).
+  if (document.readyState === "complete") globalThis.repasoV2DesdeEnlace?.(); else window.addEventListener("load", () => globalThis.repasoV2DesdeEnlace?.(), { once: true });
   freezeLiquidityForecast(); // WP-12: también tras la nube, y la última de init (liquidity-backtest-ui.js)
 }
 

@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**20/11/2026 · DEC-22: el aviso del domingo del calendario abre la app en el repaso semanal.** Hay que descargar otra vez los recordatorios en Ajustes para tenerlo (PROJECT_STATE 511).
+
 **20/11/2026 · DEC-38, paso 2: con el zoom del móvil al 150 % nada se sale de la pantalla** salvo cinco de «Versiones anteriores» pendientes de D-N15; el CI lo vigila a 260 px (PROJECT_STATE 510).
 
 **20/11/2026 · DEC-38, paso 1: nada se sale de la pantalla a 320 px (WCAG 1.4.10).** Medido: a 320 px se salían 2 pantallas, a 260 px (móvil con zoom al 150 %) 12 y a 195 px (al 200 %) 43. Arregladas las de 320 px y vigiladas en el CI; las de 260 px, después (PROJECT_STATE 509).

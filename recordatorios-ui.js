@@ -42,7 +42,8 @@ function recordatoriosInput(settings, today) {
     forecast: globalThis.hoyV2AvisosCalendario?.(today) || [],
     // SVD-4 (deuda-simulador-puente.js): el día en que una entidad dijo que contestaría a una propuesta de acuerdo.
     proposals: globalThis.svdPropuestasCalendario?.(today) || [],
-    options: { kinds: settings.kinds, bigChargeMin: settings.bigChargeMin },
+    // DEC-22: la dirección desde la que se descarga el fichero, para que el aviso del domingo abra la app en el repaso. Sin datos del hogar.
+    options: { kinds: settings.kinds, bigChargeMin: settings.bigChargeMin, appUrl: globalThis.location?.href || "" },
   };
 }
 

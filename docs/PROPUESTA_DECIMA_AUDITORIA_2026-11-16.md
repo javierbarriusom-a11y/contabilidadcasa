@@ -554,6 +554,11 @@ que entra en las pruebas de Clasificar y Movimientos. *Por qué:* §1.5 y P-C. S
 - **DEC-38**, paso 2 (20/11/2026, PROJECT_STATE 510): a 260 px (zoom al 150 %) ninguna pantalla se sale salvo cinco de
   «Versiones anteriores» pendientes de D-N15, y el CI lo vigila. La causa común eran columnas de rejilla que no se dejaban
   estrechar (`minmax(0, 1fr)`). Queda 195 px (zoom al 200 %), que es trabajo de varias sesiones.
+- **DEC-22**, el aviso del domingo abre el repaso (20/11/2026, PROJECT_STATE 511): el `.ics` de los recordatorios lleva en
+  el detalle y en el campo URL de cada aviso del repaso la dirección de la app con `#home?abrir=repaso`; al abrirlo, el repaso
+  sale encima de Hoy y la marca se quita de la dirección. Sin importes ni datos en el enlace; el título no cambia. Medido en
+  Uso de la app («Repaso desde el calendario»). El hogar tiene que descargar el fichero otra vez: el mismo identificador por
+  fecha hace que importarlo actualice los avisos ya puestos.
 - **DEC-16** (un solo contador para el repaso) no se ha hecho: sustituye cuatro tarjetas por una y eso cambia lo que se ve en
   Movimientos y en el repaso; mejor con D-N17 contestada.
 

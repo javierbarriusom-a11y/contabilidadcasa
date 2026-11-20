@@ -66,6 +66,8 @@
     { id: "importar-v2", nombre: "Importar en tres pasos", accion: ["extracto importado", "extractos importados"], descarte: ["vez al asistente de siempre", "veces al asistente de siempre"], deshecho: ["lote deshecho", "lotes deshechos"] },
     { id: "clasificar-v2", nombre: "Clasificar por lotes", accion: ["regla aceptada", "reglas aceptadas"], descarte: ["grupo saltado", "grupos saltados"], deshecho: ["regla deshecha", "reglas deshechas"] },
     { id: "repaso-v2", nombre: "Repaso semanal", accion: ["repaso terminado", "repasos terminados"], descarte: ["repaso a medias", "repasos a medias"], deshecho: null },
+    // DEC-22: el aviso del domingo del calendario abre el repaso. Cada apertura desde ese enlace es una acción.
+    { id: "repaso-enlace", nombre: "Repaso desde el calendario", accion: ["repaso empezado desde el aviso", "repasos empezados desde el aviso"], descarte: null, deshecho: null },
     { id: "cierre-v2", nombre: "Cierre nuevo", accion: ["acción o firma", "acciones o firmas"], descarte: ["vez «el cierre paso a paso»", "veces «el cierre paso a paso»"], deshecho: null },
     { id: "prevision-v2", nombre: "Previsión nueva", accion: ["horizonte cambiado o ida a otra pantalla", "horizontes cambiados o idas a otra pantalla"], descarte: ["vez «Ver todo el detalle»", "veces «Ver todo el detalle»"], deshecho: null },
     { id: "simulador-v2", nombre: "Simulador de deuda nuevo", accion: ["estrategia guardada o acuerdo marcado", "estrategias guardadas o acuerdos marcados"], descarte: ["vez «Ver el simulador anterior»", "veces «Ver el simulador anterior»"], deshecho: null },

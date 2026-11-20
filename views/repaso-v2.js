@@ -569,4 +569,21 @@ function repasoV2Open(opener = null) {
   repasoV2Mostrar();
 }
 
+// DEC-22: el aviso del domingo del calendario (canonical-reminders.js) abre «#home?abrir=repaso». La marca se quita de la dirección
+// (recargar no vuelve a abrirlo) y el repaso se abre encima de Hoy, como desde su entrada, con lo pendiente contado en cada paso.
+// Con el diseño de siempre no hay repaso: se queda en Hoy y lo dice. Cada apertura desde el enlace cuenta en el medidor («repaso-enlace»).
+function repasoV2DesdeEnlace() {
+  if (!globalThis.FinanceCanonicalReminders?.reviewLinkRequested(location.hash)) return false;
+  history.replaceState(null, "", `${location.pathname}${location.search}#home`);
+  globalThis.FinanceMedidor?.anotar("repaso-enlace", "accion");
+  if (!repasoV2Active() || !qs("repasoV2")) {
+    if (typeof announceStatus === "function") announceStatus("El repaso semanal está en el diseño nuevo. Desde aquí, empieza por Registrar › Saldos.");
+    return false;
+  }
+  if (qs("repasoV2").open) return true;
+  repasoV2Open(qs("hoyV2")?.querySelector("[data-hoy-v2-repaso]") || null);
+  return true;
+}
+
 globalThis.repasoV2Open = repasoV2Open;
+globalThis.repasoV2DesdeEnlace = repasoV2DesdeEnlace;

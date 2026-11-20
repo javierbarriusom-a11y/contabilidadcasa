@@ -17,6 +17,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-20-repaso-desde-calendario",
+      fecha: "2026-11-20",
+      texto: "El aviso del domingo en el calendario abre la app en el repaso semanal. Descargad otra vez los recordatorios en Ajustes para tenerlo.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-11-20-sin-conexion",
       fecha: "2026-11-20",
       texto: "Sin conexión, la app lo dice bajo el chip de la nube: los datos son los de este dispositivo. Lo que necesita la nube espera.",
