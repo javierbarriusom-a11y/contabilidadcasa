@@ -559,6 +559,12 @@ que entra en las pruebas de Clasificar y Movimientos. *Por qué:* §1.5 y P-C. S
   sale encima de Hoy y la marca se quita de la dirección. Sin importes ni datos en el enlace; el título no cambia. Medido en
   Uso de la app («Repaso desde el calendario»). El hogar tiene que descargar el fichero otra vez: el mismo identificador por
   fecha hace que importarlo actualice los avisos ya puestos.
+- **DEC-23**, «Hecho esta semana» (20/11/2026, PROJECT_STATE 513; activo desde el 30/11 como el cambio de Hoy de esa semana):
+  con el repaso de la semana hecho, en el hueco de su entrada, «Repaso hecho el martes» con los grupos clasificados en ese
+  repaso, el % del gasto con partida (la cifra de DEC-18) y la racha. Tinte claro, sin botón; lo que no se sabe no se dice. No
+  añade titular. **Me aparto en una cosa:** «12 grupos clasificados» se cuenta como los grupos sin partida que hay de menos al
+  terminar el repaso frente a al abrirlo; si durante el repaso se importa un extracto con conceptos nuevos, se queda corto (nunca
+  de más).
 - **DEC-16** (un solo contador para el repaso) no se ha hecho: sustituye cuatro tarjetas por una y eso cambia lo que se ve en
   Movimientos y en el repaso; mejor con D-N17 contestada.
 

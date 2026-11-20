@@ -81,7 +81,10 @@ test("la app: la descarga pasa la dirección; al cargar y al cambiar el «#», e
 
 test("versiones y Novedades: el fichero hay que descargarlo otra vez para tener el enlace", () => {
   const html = read("index.html");
-  ["canonical-reminders.js", "recordatorios-ui.js", "views/repaso-v2.js", "medidor-utilidad.js", "app.js", "novedades.js"].forEach((file) => {
+  // views/repaso-v2.js siguió a 20261120dec23 con DEC-23 (los grupos clasificados de cada repaso).
+  assert.match(html, /<script defer src="views\/repaso-v2\.js\?v=20261120dec2[23]"><\/script>/);
+  assert.match(html, /<script defer src="novedades\.js\?v=20261120dec2[23]"><\/script>/);
+  ["canonical-reminders.js", "recordatorios-ui.js", "medidor-utilidad.js", "app.js"].forEach((file) => {
     assert.match(html, new RegExp(`<script defer src="${file.replace(/[./]/g, (c) => `\\${c}`)}\\?v=20261120dec22"></script>`), file);
   });
   const novedad = require("../novedades.js").find((entry) => entry.id === "2026-11-20-repaso-desde-calendario");

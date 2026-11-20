@@ -276,6 +276,16 @@ function repasoV2PasoVino() {
   };
 }
 
+// DEC-23: los grupos sin partida que hay ahora (null si no se pueden contar), para saber cuántos se clasificaron en el repaso.
+function repasoV2ContarGrupos() {
+  try {
+    const grupos = repasoV2GruposSinPartida();
+    return Array.isArray(grupos) ? grupos.length : null;
+  } catch {
+    return null;
+  }
+}
+
 function repasoV2PasoBandeja() {
   const grupos = repasoV2GruposSinPartida();
   const movimientos = grupos.reduce((sum, group) => sum + group.rows.length, 0);
@@ -397,7 +407,9 @@ function repasoV2Avanzar() {
 function repasoV2Terminado() {
   repasoV2.final = (Date.now() - repasoV2.inicio) / 1000;
   const store = repasoV2Leer();
-  store.runs.push({ date: repasoV2Hoy(), seconds: Math.round(repasoV2.final), saldos: Boolean(repasoV2.hecho.saldos), importado: Boolean(repasoV2.hecho.importado) });
+  // DEC-23: cuántos grupos sin partida menos hay que al abrirlo (solo el número), para «Hecho esta semana» en Hoy.
+  const clasificados = Number.isInteger(repasoV2.gruposAntes) ? Math.max(0, repasoV2.gruposAntes - repasoV2ContarGrupos()) : null;
+  store.runs.push({ date: repasoV2Hoy(), seconds: Math.round(repasoV2.final), saldos: Boolean(repasoV2.hecho.saldos), importado: Boolean(repasoV2.hecho.importado), ...(clasificados === null ? {} : { clasificados }) });
   repasoV2Guardar(store);
   globalThis.FinanceMedidor?.anotar("repaso-v2", "accion", { segundos: repasoV2.final });
 }
@@ -564,7 +576,7 @@ function repasoV2Mostrar() {
 function repasoV2Open(opener = null) {
   if (!repasoV2Active()) return;
   qs("repasoV2Volver")?.remove();
-  repasoV2 = { paso: 0, inicio: Date.now(), inicioPaso: Date.now(), respuestas: {}, escritos: {}, hecho: {}, fuera: false, opener };
+  repasoV2 = { paso: 0, inicio: Date.now(), inicioPaso: Date.now(), respuestas: {}, escritos: {}, hecho: {}, fuera: false, opener, gruposAntes: repasoV2ContarGrupos() };
   globalThis.FinanceMedidor?.anotar("repaso-v2", "vista"); // XGO-02
   repasoV2Mostrar();
 }

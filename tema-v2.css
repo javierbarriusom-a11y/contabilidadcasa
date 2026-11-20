@@ -774,6 +774,33 @@
   color: var(--e19-warning);
 }
 
+/* DEC-23 · «Hecho esta semana»: el repaso de la semana ya hecho, en el hueco de su entrada. Es una conclusión, no una acción:
+   tarjeta teñida con la cifra en tinta y sin botón (decisión 1 de docs/rediseno/ESTADO.md). */
+:root[data-tema="v2"] .hoy-v2-hecho {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--e19-accent-soft-border);
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-accent-soft);
+  color: var(--e19-ink);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+:root[data-tema="v2"] .hoy-v2-hecho > span:last-child {
+  flex: 1;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .hoy-v2-hecho-marca {
+  flex: none;
+  font-weight: 700;
+  color: var(--e19-accent);
+}
+
 :root[data-tema="v2"] .hoy-v2-waiting {
   margin-top: 0;
   color: var(--e19-muted);

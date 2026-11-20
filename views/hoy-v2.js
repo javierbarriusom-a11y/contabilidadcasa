@@ -415,7 +415,8 @@ function hoyV2Repaso(hoy = isoLocalDate(new Date())) {
   if (hoy < HOY_V2_REPASO_DESDE || typeof globalThis.repasoV2Open !== "function") return "";
   const resumen = globalThis.FinanceRepaso?.resumen?.();
   const ultimo = resumen?.ultimo;
-  if (ultimo && globalThis.FinanceRepaso?.mismaSemana?.(ultimo.date, hoy)) return "";
+  // DEC-23: hecho esta semana, a partir de su semana, la línea «Hecho esta semana» ocupa su sitio (sin botón).
+  if (ultimo && globalThis.FinanceRepaso?.mismaSemana?.(ultimo.date, hoy)) return typeof hoyV2RepasoHecho === "function" ? hoyV2RepasoHecho(resumen, hoy) : "";
   const dias = ultimo ? Math.round((new Date(`${hoy}T12:00:00`) - new Date(`${ultimo.date}T12:00:00`)) / 86400000) : null;
   const detalle = ultimo
     ? `El último, hace ${dias} ${dias === 1 ? "día" : "días"}, en ${Math.max(1, Math.round(ultimo.seconds / 60))} min.`
@@ -425,6 +426,36 @@ function hoyV2Repaso(hoy = isoLocalDate(new Date())) {
     <span><strong>Repaso de esta semana · unos 5 min</strong><br>${escapeHtml(detalle)}</span>
     <span aria-hidden="true">›</span>
   </button>`;
+}
+
+// DEC-23 (décima auditoría §4.4; el cambio de Hoy de la semana del 30/11/2026, uno por semana): con el repaso de esta semana hecho,
+// en el hueco de su entrada, una línea de conclusión hasta el domingo: «Repaso hecho el martes» y, debajo, lo que se sabe de él
+// (grupos clasificados en ese repaso, % del gasto con partida de los últimos 90 días, la misma cifra que la bandeja, y la racha).
+// Tinte claro y sin botón (ESTADO.md §3, decisión 1): no pide nada. Sin repaso esta semana, la entrada de siempre. Puerta de fecha.
+const HOY_V2_HECHO_DESDE = "2026-11-30";
+const HOY_V2_DIAS_SEMANA = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+
+function hoyV2RepasoHecho(resumen, hoy = isoLocalDate(new Date())) {
+  const ultimo = resumen?.ultimo;
+  if (hoy < HOY_V2_HECHO_DESDE || !ultimo || !/^\d{4}-\d{2}-\d{2}$/.test(String(ultimo.date))) return "";
+  const [y, m, d] = ultimo.date.split("-").map(Number);
+  const cuando = ultimo.date === hoy ? "hoy" : `el ${HOY_V2_DIAS_SEMANA[new Date(y, m - 1, d, 12).getDay()]}`;
+  const clasificados = Number(ultimo.clasificados);
+  let meta = null;
+  try {
+    meta = typeof clasV2Meta === "function" ? clasV2Meta() : null;
+  } catch {
+    meta = null;
+  }
+  const partes = [
+    Number.isInteger(clasificados) && clasificados > 0 ? `${clasificados} ${clasificados === 1 ? "grupo clasificado" : "grupos clasificados"}` : "",
+    Number.isFinite(meta?.pct) ? `${meta.pct} % del gasto con partida` : "",
+    resumen.racha > 1 ? `${resumen.racha} semanas seguidas` : "",
+  ].filter(Boolean);
+  return `<div class="hoy-v2-hecho" data-hoy-v2-hecho>
+    <span class="hoy-v2-hecho-marca" aria-hidden="true">✓</span>
+    <span><strong>Repaso hecho ${cuando}</strong>${partes.length ? `<br>${escapeHtml(partes.join(" · "))}` : ""}</span>
+  </div>`;
 }
 
 // «+ Apuntar gasto» abre exactamente lo mismo que «+ Registrar gasto» de la Hoy de siempre (la hoja de compras

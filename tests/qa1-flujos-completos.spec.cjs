@@ -8916,6 +8916,55 @@ test.describe("Hoy, cambio 2 · entrada al Repaso semanal (v2)", () => {
   }
 });
 
+// DEC-23 (décima auditoría §4.4; el cambio de Hoy de la semana del 30/11/2026): con el repaso de esta semana hecho, Hoy lo dice
+// en el hueco de su entrada hasta el domingo, sin botón; el lunes siguiente vuelve la entrada. Antes del 30/11, como hasta ahora.
+test.describe("DEC-23 · «Hecho esta semana» en Hoy", () => {
+  const conRepaso = async (page, fecha, runs) => {
+    await page.clock.install({ time: fecha });
+    await page.goto("/index.html#home");
+    await page.evaluate((lista) => localStorage.setItem(storageKey("repaso-semanal"), JSON.stringify({ runs: lista })), runs);
+    await page.reload();
+    await expect(page.locator("#hoyV2 .hoy-v2-header")).toBeVisible({ timeout: 20000 });
+  };
+
+  test("antes del 30/11 no sale (cada cambio de Hoy tiene su semana)", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await conRepaso(page, new Date(2026, 10, 25, 10, 0, 0), [{ date: "2026-11-24", seconds: 260, saldos: true, importado: false, clasificados: 4 }]);
+    await expect(page.locator("#hoyV2 [data-hoy-v2-hecho]")).toHaveCount(0);
+    await expect(page.locator("#hoyV2 [data-hoy-v2-repaso]")).toHaveCount(0);
+  });
+
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`con el repaso hecho, la línea sin botón en su hueco y, la semana siguiente, la entrada; a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      const runs = [
+        { date: "2026-11-24", seconds: 300, saldos: true, importado: false },
+        { date: "2026-12-01", seconds: 260, saldos: true, importado: true, clasificados: 4 },
+      ];
+      await conRepaso(page, new Date(2026, 11, 2, 10, 0, 0), runs); // miércoles 2/12
+      const linea = page.locator("#hoyV2 [data-hoy-v2-hecho]");
+      await expect(linea).toContainText("Repaso hecho el martes");
+      await expect(linea).toContainText("4 grupos clasificados");
+      // El % es la cifra de la bandeja (DEC-18): sale si la hay; en la demo, a 2/12, no hay gasto importado en 90 días y no se dice.
+      const meta = await page.evaluate(() => clasV2Meta());
+      if (meta) await expect(linea).toContainText(`${meta.pct} % del gasto con partida`);
+      else await expect(linea).not.toContainText("%");
+      await expect(linea).toContainText("2 semanas seguidas");
+      await expect(linea.locator("button, a")).toHaveCount(0);
+      await expect(page.locator("#hoyV2 [data-hoy-v2-repaso]")).toHaveCount(0);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      // El lunes siguiente, la semana empieza sin repaso: vuelve la entrada.
+      await page.clock.setSystemTime(new Date(2026, 11, 7, 10, 0, 0));
+      await page.reload();
+      await expect(page.locator("#hoyV2 [data-hoy-v2-repaso]")).toBeVisible({ timeout: 20000 });
+      await expect(linea).toHaveCount(0);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 // DEC-22 (décima auditoría, 20/11/2026): el aviso del domingo del calendario lleva «#home?abrir=repaso». Abre la app con el repaso
 // encima de Hoy, la marca sale de la dirección (recargar no lo vuelve a abrir) y cuenta en el medidor. Con el diseño de siempre no hay
 // repaso: se queda en Hoy sin errores.
