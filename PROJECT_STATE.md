@@ -113,6 +113,19 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 20 de noviembre de 2026 (508): DEC-14 y DEC-39; lo que queda de la décima, con lo que necesita decisión
+
+- **El hogar:** «Sigue con todo lo que puedas que no depende de nosotros». Lo que queda de la décima auditoría (§5 y §6), separado en lo que se puede hacer sin decisión y lo que no.
+- **DEC-14** (Clasificar): sin reglas del comercio, nombre de partida ni palabras en común (o si CLA-03 solo da confianza baja), la propuesta puede venir del calendario: `canonical-pattern-rules.js`, `recurring`, la partida a la que ya fueron en dos meses distintos o más movimientos del mismo signo con importe ± 10 % (mínimo 1 €) y a ± 3 días del mismo día del mes (con la vuelta del cambio de mes). Confianza media como mucho y el porqué («Se carga cada mes hacia el día 5 por unos 42 €; en 2 meses distintos lo llevasteis a esta partida»); con empate, nada. Solo propone: la regla guardada no mira el día. Falta validarla con la huella del banco del hogar (DEC-13).
+- **DEC-39** (todas las pantallas): sin red, una línea ámbar bajo el chip de la nube («Sin conexión · los datos son los de este dispositivo. Lo que cambiéis se guarda aquí», y con sesión, «…y se subirá a la nube al volver la conexión») y los botones de la nube apagados con «Necesita conexión a internet»; al volver, como estaban (solo enciende los que apagó él) y, con sesión, se intenta ya el guardado pendiente (la cola lo reintenta sola cada 10 s y la bandeja durable sobrevive a una recarga). `sin-conexion-ui.js`; app.js lo repinta al cambiar el chip.
+- **No hecho, y por qué:**
+  - **DEC-21** (un nombre para cada colchón): unas 800 apariciones de «colchón», «reserva protegida», «reserva operativa», «suelo» y «fondo de emergencia», que no son sinónimos sino conceptos distintos (el suelo de la política, la reserva operativa de Ajustes, el objetivo en meses). Elegir qué palabra es qué es una decisión de vocabulario del hogar, no un barrido.
+  - **DEC-03** (una insignia de procedencia): fundiría tres indicadores que dicen cosas distintas (real/simulación/decisión aplicada, dónde se guardan los datos y «Saldos estimados» de Hoy); quitaría «Simulación» de esas pantallas y cambia Hoy fuera de su cambio semanal. Se consulta.
+  - **DEC-17** (deshacer una tanda días después): con extractos nuevos de por medio, los reales hay que recalcularlos sin tocar los meses firmados; riesgo de cifras. Más adelante, con su diseño.
+  - **DEC-38** (texto al 200 %): la app usa tamaños fijos en px; el texto grande del sistema no les afecta y lo que cuenta es el zoom de página (≈ 195 px de ancho a 390 px). Primero medir.
+- **Pruebas:** `tests/dec14-recibo-importe-dia.test.cjs` (4), `tests/dec39-sin-conexion.test.cjs` (3), una de integración en `redis-a5-clasificar` y la e2e «DEC-39 · Sin conexión» (red cortada de verdad). Versiones: `app.js` y `styles.css` a `20261120dec39`, `novedades.js`, `canonical-pattern-rules.js` y `views/clasificar-v2.js`. Dos líneas de Novedades.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` 6.809/6.809 (+8). Batería completa en local: 467/467 con DEC-14 solo y **468/468** con DEC-39 (25,4 min).
+
 ## Cierre de sesión — 20 de noviembre de 2026 (507): la cuota de la refinanciación, paso 2 de 2
 
 - **El hogar:** «Ya la he abierto y cuadra, haz el paso 2». La migración del paso 1 ya llevó la cuota a sus datos (`scenarioSettings.reunifiedDebt`, en la nube).
