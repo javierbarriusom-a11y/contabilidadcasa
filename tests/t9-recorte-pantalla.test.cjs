@@ -14,7 +14,7 @@ const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 
 test("la comprobación de contenido cortado existe y cubre móvil, tableta y portátil", () => {
   const tool = read("tools/check-mobile-overflow.mjs");
-  assert.match(tool, /const WIDTHS = \[360, 768, 1280\];/);
+  assert.match(tool, /const WIDTHS = \[320, 360, 768, 1280\];/, "320 px: WCAG 1.4.10 (DEC-38)");
   assert.match(tool, /section\.view-section\[id\]/, "debería recorrer todas las pantallas, no una lista fija");
 });
 
