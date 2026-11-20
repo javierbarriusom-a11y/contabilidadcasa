@@ -125,7 +125,7 @@ test("integración · el motor se carga antes que Clasificar y app.js, y va en l
   // La ficha pasó a 20261119dat07 con «Dividir en varias partidas» (DAT-07).
   assert.ok(html.includes("ficha-movimiento-ui.js?v=20261119dat07"));
   // Clasificar pasó a 20261118dec18 con la meta del 95 % en la bandeja (DEC-18, clasV2Meta).
-  assert.ok(html.includes("views/clasificar-v2.js?v=20261118dec18"));
+  assert.ok(html.includes("views/clasificar-v2.js?v=20261120dec14"));
 });
 
 test("CLA-03 · propone la partida del movimiento ya clasificado que más se parece, y dice cuánto se fía", () => {
@@ -145,7 +145,7 @@ test("CLA-03 · propone la partida del movimiento ya clasificado que más se par
   assert.equal(P.nearest({ date: "2026-11-05", amount: -9, movement: "TPV 4455 12", details: "" }, clasificados), null, "sin palabras que identifiquen no hay parecido");
   assert.equal(P.nearest(nuevo, []), null);
   const clas = read("views/clasificar-v2.js");
-  assert.match(clas, /if \(!byName\.length\) return clasV2Parecido\(group\);/, "solo cuando no hay reglas del comercio ni nombre de partida: no pisa las señales de siempre");
+  assert.match(clas, /if \(!byName\.length\) \{\n {4}\/\/ CLA-03[^\n]*\n {4}const parecido = clasV2Parecido\(group\);/, "solo cuando no hay reglas del comercio ni nombre de partida: no pisa las señales de siempre");
 });
 
 test("integración · todas las reglas por palabras se ven y se quitan en Movimientos, plegadas de entrada", () => {

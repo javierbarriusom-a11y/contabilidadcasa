@@ -182,7 +182,12 @@ function clasV2Proposal(group) {
     if (count >= 2 && !byName.length) return { row, confidence: "alta", reason: `Ya tienes ${rules} de «${shown}» a esta partida.` };
     return { row, confidence: "media", reason: `Ya tienes ${rules} de «${shown}» a esta partida${byName.length ? `, aunque el concepto nombra «${displayLabelForRow(byName[0])}»` : ""}.` };
   }
-  if (!byName.length) return clasV2Parecido(group);
+  if (!byName.length) {
+    // CLA-03 si comparte palabras con lo ya clasificado; si no, o si eso solo da confianza baja, DEC-14 (importe y día).
+    const parecido = clasV2Parecido(group);
+    if (parecido?.confidence === "media") return parecido;
+    return clasV2Recurrente(group) || parecido;
+  }
   const top = normalizedText(displayLabelForRow(byName[0]));
   if (byName.slice(1).every((partida) => top.includes(normalizedText(displayLabelForRow(partida))))) {
     return { row: byName[0], confidence: "media", reason: "El nombre de la partida está en el concepto." };
@@ -224,6 +229,21 @@ function clasV2Parecido(group) {
     ? `Se parece a movimientos de varias partidas por «${palabras}»; esta es la que más.`
     : `Ya clasificasteis aquí ${cuantos} con «${palabras}»${hit.alike ? " y un importe parecido" : ""}.`;
   return { row, confidence: hit.confidence, reason };
+}
+
+// DEC-14 (20/11/2026): el recibo de cada mes con el mismo importe y hacia el mismo día, aunque el concepto cambie entero
+// (canonical-pattern-rules.js, recurring). La partida a la que ya fue en dos meses distintos o más; si encajan varias, nada.
+// Confianza media como mucho: es una coincidencia de calendario, no una regla del hogar.
+function clasV2Recurrente(group) {
+  const motor = globalThis.FinanceCanonicalPatternRules;
+  if (!motor?.recurring) return null;
+  const latest = [...group.rows].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
+  const hit = motor.recurring(latest, clasV2Clasificados());
+  if (!hit || hit.tie) return null;
+  const row = planningRowBySeriesKey(group.kind, hit.rowKey);
+  if (!row) return null;
+  const verbo = group.kind === "income" ? "Llega" : "Se carga";
+  return { row, confidence: "media", reason: `${verbo} cada mes hacia el día ${hit.day} por unos ${money(hit.amount, true)}; en ${hit.months} meses distintos lo llevasteis a esta partida.` };
 }
 
 // XDA-05 (14/11/2026): de qué tipo es un grupo sin propuesta, para que el medidor diga qué señal le falta a la propuesta.

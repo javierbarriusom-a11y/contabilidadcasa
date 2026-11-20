@@ -17,6 +17,17 @@
       href: "#home",
     },
     {
+      id: "2026-11-20-sin-conexion",
+      fecha: "2026-11-20",
+      texto: "Sin conexión, la app lo dice bajo el chip de la nube: los datos son los de este dispositivo. Lo que necesita la nube espera.",
+    },
+    {
+      id: "2026-11-20-recibo-por-dia",
+      fecha: "2026-11-20",
+      texto: "Clasificar: un recibo cuyo concepto cambia cada mes recibe propuesta por su importe y su día, si ya lo llevasteis a una partida.",
+      href: "#movements",
+    },
+    {
       id: "2026-11-19-esperados-solos",
       fecha: "2026-11-19",
       texto: "Al importar un extracto, los cobros y cargos esperados que ya están en él se confirman solos; la bandeja lo dice, con «No era esto».",

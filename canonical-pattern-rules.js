@@ -20,9 +20,10 @@
  * viajan con la copia de seguridad y con la sincronización sin almacén nuevo. Ganan a la coincidencia de nombre, pero
  * pierden ante una regla del concepto exacto o un ajuste de «solo este movimiento» (app.js, mappingForMovement).
  *
- * Lo que NO hace, a propósito: no mira el día del mes, la periodicidad ni la cuenta (CLA-01 los nombraba). Un recibo se
- * adelanta por un festivo y el mismo emisor cobra en varias cuentas; con el importe basta para distinguir, y lo que no
- * encaja sigue saliendo en la bandeja para clasificarlo a mano. Motor puro: sin DOM, red ni almacenamiento.
+ * Lo que NO hace, a propósito: las reglas no miran el día del mes, la periodicidad ni la cuenta (CLA-01 los nombraba). Un
+ * recibo se adelanta por un festivo y el mismo emisor cobra en varias cuentas; con el importe basta para distinguir, y lo
+ * que no encaja sigue saliendo en la bandeja para clasificarlo a mano. El día y la periodicidad sí sirven para PROPONER
+ * (DEC-14, `recurring`): nunca se guardan como regla. Motor puro: sin DOM, red ni almacenamiento.
  */
 (function attachCanonicalPatternRules(root, factory) {
   const api = factory();
@@ -221,5 +222,56 @@
     return { rowKey: top.rowKey, shared: [...new Set(top.shared)], alike: top.alike, count: top.count, tie, confidence };
   }
 
-  return { SCHEMA_ID, PREFIX, TOLERANCE, MIN_EUROS, MAX_WORDS, words, rowWords, typeOf, cleanWords, candidateWords, amountProfile, keyFor, build, isPatternKey, rulesOf, matches, best, preview, nearest };
+  const RECURRING_DAYS = 3;
+  const RECURRING_MONTHS = 2;
+
+  // Día del mes (1-31) y mes («2026-10») de una fecha «AAAA-MM-DD»; null si no lo es.
+  function dayAndMonth(date) {
+    const match = /^(\d{4}-\d{2})-(\d{2})/.exec(String(date || ""));
+    return match ? { month: match[1], day: Number(match[2]) } : null;
+  }
+
+  // Días entre dos días del mes, dando la vuelta al cambio de mes (el 30 y el 1 están a 1-2 días, no a 29).
+  function dayDistance(a, b) {
+    const diff = Math.abs(a - b);
+    return Math.min(diff, 31 - diff);
+  }
+
+  /**
+   * DEC-14 (décima auditoría §4.3; 20/11/2026, «sigue con todo lo que puedas que no depende de nosotros») · el recibo que
+   * llega cada mes con el mismo importe y hacia el mismo día, aunque el concepto cambie entero (otra referencia, otro
+   * texto del banco). La partida a la que el hogar ya llevó, en dos meses distintos o más, un movimiento del mismo signo
+   * con importe ± 10 % (mínimo 1 €) y a ± 3 días del mismo día del mes. Solo propone, y como mucho con confianza media: es
+   * una coincidencia de calendario, no una regla del hogar. Si encajan dos partidas o más, empate (la pantalla no propone).
+   * @param {Record<string, any>} row el movimiento sin partida (el más reciente del grupo)
+   * @param {Array<{ row: Record<string, any>, rowKey: string }>} classified movimientos con partida
+   * @returns {{ rowKey: string, months: number, day: number, amount: number, tie: boolean, confidence: "media" | "baja" } | null}
+   */
+  function recurring(row, classified, { tolerance = TOLERANCE, days = RECURRING_DAYS, minMonths = RECURRING_MONTHS } = {}) {
+    const when = dayAndMonth(row?.date);
+    const amount = Math.abs(Number(row?.amount));
+    if (!when || !(amount > 0)) return null;
+    const kind = kindOf(row.amount);
+    const margin = Math.max(amount * tolerance, MIN_EUROS);
+    const byRow = new Map();
+    (classified || []).forEach((item) => {
+      if (!item?.rowKey || !item.row || kindOf(item.row.amount) !== kind) return;
+      const other = dayAndMonth(item.row.date);
+      const otherAmount = Math.abs(Number(item.row.amount));
+      if (!other || other.month === when.month || !(otherAmount > 0)) return;
+      if (Math.abs(otherAmount - amount) > margin || dayDistance(other.day, when.day) > days) return;
+      const entry = byRow.get(item.rowKey) || { rowKey: item.rowKey, months: new Set(), daysSeen: [], amounts: [] };
+      entry.months.add(other.month);
+      entry.daysSeen.push(other.day);
+      entry.amounts.push(otherAmount);
+      byRow.set(item.rowKey, entry);
+    });
+    const ranked = [...byRow.values()].filter((entry) => entry.months.size >= minMonths).sort((a, b) => b.months.size - a.months.size);
+    const top = ranked[0];
+    if (!top) return null;
+    const tie = ranked.length > 1;
+    return { rowKey: top.rowKey, months: top.months.size, day: Math.round(median(top.daysSeen)), amount: median(top.amounts), tie, confidence: tie ? "baja" : "media" };
+  }
+
+  return { SCHEMA_ID, PREFIX, TOLERANCE, MIN_EUROS, MAX_WORDS, RECURRING_DAYS, RECURRING_MONTHS, words, rowWords, typeOf, cleanWords, candidateWords, amountProfile, keyFor, build, isPatternKey, rulesOf, matches, best, preview, nearest, recurring };
 });

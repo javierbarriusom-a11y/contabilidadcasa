@@ -371,3 +371,17 @@ test("XDA-05: gasto importado con partida en los últimos 90 días, por lo bajo;
   assert.match(dialog.innerHTML, /<p class="clas-v2-meta clas-v2-cobertura">Gasto importado con partida \(últimos 90 días\): \d+ % · objetivo 95 %\.<\/p>/, "lo dice al acabar la tanda");
   assert.equal(context.globalThis.clasificarV2CoberturaFrase, context.clasificarV2CoberturaFrase, "lo leen el informe y «Funciones en prueba»");
 });
+
+test("DEC-14 · sin reglas, nombre ni palabras en común: el recibo de cada mes por su importe y su día, con confianza media", () => {
+  const anteriores = [tx("2026-08-03", "RECIBO 77812 FICTICIO", -50), tx("2026-09-01", "ADEUDO REF 99120", -51)];
+  const mappings = Object.fromEntries(anteriores.map((row) => [`expense|${row.movement.toLowerCase()}|`, regla("hogar")]));
+  const { context } = sandbox({ transactions: anteriores, mappings });
+  context.globalThis.FinanceCanonicalPatternRules = require("../canonical-pattern-rules.js");
+  const a = context.clasV2Proposal(grupo("CARGO 55501 QWZ"));
+  assert.deepEqual([a.row.id, a.confidence], ["hogar", "media"]);
+  assert.equal(a.reason, "Se carga cada mes hacia el día 2 por unos 50,50 €; en 2 meses distintos lo llevasteis a esta partida.");
+  // Sin el motor (o sin dos meses), lo de siempre: sin propuesta.
+  const solo = sandbox({ transactions: anteriores.slice(0, 1), mappings });
+  solo.context.globalThis.FinanceCanonicalPatternRules = require("../canonical-pattern-rules.js");
+  assert.equal(solo.context.clasV2Proposal(grupo("CARGO 55501 QWZ")), null);
+});
