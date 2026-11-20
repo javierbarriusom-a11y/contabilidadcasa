@@ -113,6 +113,14 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 20 de noviembre de 2026 (512): despliegue 1494; #651 fusionado; #652 cerrado; traspaso del 20/11
+
+- **Publicado de antes:** «Verify and deploy Pages» **1494** (main 57c8b88c: #649 y #650, DEC-38 pasos 1 y 2) en verde, publicado a las 20:23 UTC. La «Published availability» programada **382** (20:09) corrió antes de publicarse, así que se lanzó otra a mano: **383** (20:31), en verde. #651 (DEC-22) fusionado con su CI en verde a la primera (ejecución 1495, 71 min, Safari incluido), squash con la cabeza 1e9f6542 comprobada: main **56a1875a**. Su despliegue, **1497**, en curso al cerrar esta entrada.
+- **#652 cerrado sin fusionar** (decisión del hogar, 20/11): otra conversación, la de `claude/awesome-newton-8i898z`, hizo DEC-22 en paralelo y abrió #652 a las 20:24 con otro mecanismo (`?abrir=repaso#home` en la búsqueda, sin medirlo aparte). Con #651 ya en `main` chocaba y habría dejado dos maneras de abrir el repaso. Se le avisó para que no lo reabra. De #652 se aprovecha solo su traspaso público.
+- **Traspaso:** `docs/traspasos/2026-11-20_traspaso.md` (el de #652, corregido: #650 al tercer CI, DEC-22 por #651 con su mecanismo, #652 cerrado), y el backlog §1 apunta a él. Lección anotada en sus próximos pasos: una sola conversación por rama y por entrega; antes de empezar, mirar los PR abiertos.
+- **Pendiente del hogar:** cuando acabe el 1497, volver a descargar los recordatorios en Ajustes › «Recordatorios en el calendario del móvil» e importarlos en el móvil (actualiza los avisos ya puestos; no los duplica).
+- **Validación:** solo documentación: `npm test` **6.818/6.818**, incluida la prueba de privacidad que recorre todo el repositorio (también el traspaso).
+
 ## Cierre de sesión — 20 de noviembre de 2026 (511): DEC-22, el aviso del domingo abre el repaso; #650 fusionado
 
 - **Publicado de antes:** #650 (DEC-38, paso 2) fusionado con su CI en verde al tercer intento (ejecución 1493, 51 min; `test:mobile-overflow` en verde a 320 y 260 px con las fuentes del CI), squash con la cabeza 37b07938 comprobada: main 57c8b88c. El despliegue de #649 (**1491**) quedó **cancelado** al fusionar #650, sustituido por el **1494** (main 57c8b88c), que lleva #649 y #650 y estaba en curso al cerrar esta entrada; hasta que acabe, el sitio sigue con #648. La «Published availability» **381** (en verde) se lanzó a mano antes de que terminara el 1491, así que no cubre ni #649 ni #650.
