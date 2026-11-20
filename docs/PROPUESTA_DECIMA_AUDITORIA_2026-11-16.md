@@ -551,6 +551,9 @@ que entra en las pruebas de Clasificar y Movimientos. *Por qué:* §1.5 y P-C. S
   pantallas, a 260 px (390 px al 150 %) 12 y a 195 px (al 200 %) 43. Arregladas las dos de 320 px (solo CSS, solo por debajo
   de 360 px) y 320 px en el CI. Queda 260 px: Movimientos, Plan › partidas, Deuda › Comparar y Préstamo y ocho de «Versiones
   anteriores».
+- **DEC-38**, paso 2 (20/11/2026, PROJECT_STATE 510): a 260 px (zoom al 150 %) ninguna pantalla se sale salvo cinco de
+  «Versiones anteriores» pendientes de D-N15, y el CI lo vigila. La causa común eran columnas de rejilla que no se dejaban
+  estrechar (`minmax(0, 1fr)`). Queda 195 px (zoom al 200 %), que es trabajo de varias sesiones.
 - **DEC-16** (un solo contador para el repaso) no se ha hecho: sustituye cuatro tarjetas por una y eso cambia lo que se ve en
   Movimientos y en el repaso; mejor con D-N17 contestada.
 

@@ -20,7 +20,11 @@ if (!fs.existsSync(path.join(dist, "index.html"))) {
 }
 
 // DEC-38 (20/11/2026): 320 px es el ancho de WCAG 1.4.10 (reflujo), el de un móvil de 390 px con el zoom de la página al 120 %.
-const WIDTHS = [320, 360, 768, 1280];
+const WIDTHS = [260, 320, 360, 768, 1280];
+// DEC-38 · paso 2 (20/11/2026): 260 px es un móvil de 390 px con el zoom de la página al 150 %. Estas cinco pantallas de
+// «Versiones anteriores» todavía se salen a ese ancho y no se arreglan mientras el hogar decide si se retiran (D-N15); en
+// los demás anchos se miran como todas. Al retirar una, se quita de aquí; al arreglarla, también.
+const PENDIENTES_A_260 = new Set(["executive-advisor", "mapa-calor", "debt-liquidation-plan", "savings-agent", "virtual-advisor"]);
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".json": "application/json", ".webmanifest": "application/manifest+json" };
 
 const server = http.createServer((request, response) => {
@@ -82,6 +86,7 @@ try {
     await page.waitForTimeout(1500);
     const ids = await page.evaluate(() => [...document.querySelectorAll("section.view-section[id]")].map((section) => section.id));
     for (const id of ids) {
+      if (width === 260 && PENDIENTES_A_260.has(id)) continue;
       await page.evaluate((hash) => { location.hash = hash; }, `#${id}`);
       await page.waitForTimeout(500);
       visited += 1;
@@ -117,4 +122,4 @@ if (failures.length) {
   console.error(`Contenido cortado fuera de la pantalla (${failures.length}):\n  ${failures.join("\n  ")}`);
   throw new Error("Hay pantallas con contenido fuera del borde derecho — ver el detalle arriba.");
 }
-console.log(`Sin contenido cortado: ${visited} visitas (${WIDTHS.join("/")}px, todas las pantallas).`);
+console.log(`Sin contenido cortado: ${visited} visitas (${WIDTHS.join("/")}px, todas las pantallas; a 260 px, sin las ${PENDIENTES_A_260.size} de «Versiones anteriores» pendientes de D-N15).`);

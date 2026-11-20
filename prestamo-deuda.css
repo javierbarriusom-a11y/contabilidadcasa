@@ -10,6 +10,7 @@
 
 .pre-condiciones {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* DEC-38: los campos pueden estrecharse (móvil con zoom al 150 %, 260 px) */
   gap: 14px;
   position: sticky;
   top: 12px;
@@ -28,6 +29,7 @@
 
 .pre-par {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* DEC-38 */
   gap: 6px;
 }
 
@@ -575,5 +577,12 @@
     grid-column: 2;
     text-align: left;
     max-width: none;
+  }
+}
+
+/* DEC-38 (20/11/2026): por debajo de 360 px (móvil con zoom) la casilla del importe baja de línea bajo su pregunta. */
+@media (max-width: 359px) {
+  .pre-par-cabecera {
+    flex-wrap: wrap;
   }
 }

@@ -1424,6 +1424,7 @@ main {
 
 .panel-uso-lista li {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* DEC-38: la ficha puede estrecharse (móvil con zoom al 150 %, 260 px) */
   gap: 4px;
   padding: 10px 12px;
   border: 1px solid var(--line, rgba(19, 31, 38, 0.12));
@@ -2744,6 +2745,7 @@ main {
 .decision-left,
 .decision-right {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* DEC-38: la columna puede estrecharse (móvil con zoom, 250-260 px) */
   gap: 14px;
 }
 
@@ -4575,6 +4577,13 @@ svg {
 
 .month-picker {
   min-width: 190px;
+}
+
+/* DEC-38 (20/11/2026): por debajo de 360 px (móvil con zoom) el campo ocupa lo que hay, sin su mínimo de 190 px. */
+@media (max-width: 359px) {
+  .month-picker {
+    min-width: 0;
+  }
 }
 
 .expense-summary {
@@ -8693,6 +8702,7 @@ body {
 
 .debt-priority-plan {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* DEC-38: la lista puede estrecharse (móvil con zoom) */
   gap: 8px;
   margin-bottom: 12px;
 }
@@ -12696,6 +12706,18 @@ tbody tr:hover {
 
 .cargo-dia-sugerencia .cargo-dia-propuesta {
   min-height: 44px;
+}
+
+/* DEC-38 (20/11/2026): por debajo de 360 px el desplegable del día ocupa el ancho que hay, sin su mínimo de 12rem. */
+@media (max-width: 359px) {
+  .cargo-dia-item .panel-uso-cabecera {
+    flex-wrap: wrap;
+  }
+
+  .cargo-dia-control select {
+    min-width: 0;
+    width: 100%;
+  }
 }
 
 /* WP-24 (HOG-02): Plan › Partidas › asignación personal. Una ficha por persona, campos en rejilla que se apila

@@ -113,6 +113,13 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 20 de noviembre de 2026 (510): DEC-38, paso 2 (zoom al 150 %, 260 px)
+
+- **Qué:** a 260 px (un móvil de 390 px con el zoom de la página al 150 %) se salían 12 pantallas; ahora, ninguna fuera de cinco de «Versiones anteriores» (Asesor ejecutivo, Mapa de calor, Plan de liquidación de deuda, Agente de ahorro y Asesor virtual) que no se arreglan mientras el hogar decide si se retiran (D-N15). `tools/check-mobile-overflow.mjs` mira ahora 260 px en todas las demás (lista `PENDIENTES_A_260`: al retirar o arreglar una, se quita).
+- **La causa común:** columnas de rejilla que no se dejan estrechar por debajo de lo que mide su contenido (`display: grid` sin columnas, o con `1fr`, que es `minmax(auto, 1fr)`). Con `grid-template-columns: minmax(0, 1fr)` en Movimientos (`.mov-v2`), Deuda › Préstamo (`.pre-condiciones`, `.pre-par`), las fichas del panel de uso (`.panel-uso-lista li`), Deuda › Control (`.debt-priority-plan`), el simulador de proyectos (`.decision-right`), Ajustes › Laboratorio y los datos fiscales (y `min-inline-size: 0` en su `fieldset`, que si no nunca baja de su contenido). Además, por debajo de 360 px: «Importar» baja bajo el título de Movimientos, el día de cargo y el importe de Préstamo bajan de línea y `.month-picker` pierde su mínimo de 190 px.
+- **Margen para el CI:** sus fuentes miden algo más que las de la máquina de desarrollo (en el paso 1, el CI vio a 320 px lo que aquí salía a 300). Comprobado en local a 250 px sin nada cortado y a 240 px con solo dos restos (Registrar › Lote y Excel y una pastilla de «nueva vida»).
+- **Pruebas:** `tests/dec38-reflujo-320.test.cjs` (2: +1), `t9-recorte-pantalla`, y dos que fijaban el formato del sello de `fiscal-campana.css` y `tema-v2.css`. Sellos de `styles.css`, `design-tokens.css`, `tema-v2.css`, `fiscal-campana.css` y `prestamo-deuda.css` a `20261120dec38b`.
+
 ## Cierre de sesión — 20 de noviembre de 2026 (509): DEC-38, paso 1 (reflujo a 320 px); #648 fusionado
 
 - **Publicado de antes:** #648 (DEC-14 y DEC-39) fusionado con su CI en verde (main 1c7cfe07); su despliegue, en la siguiente entrada.
