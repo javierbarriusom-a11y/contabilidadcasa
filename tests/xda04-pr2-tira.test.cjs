@@ -161,7 +161,7 @@ test("cableado: Movimientos, el repaso, Importar, WP-36 y WP-41; estilos en el t
   reglas.forEach((r) => assert.match(r, /^:root\[data-tema="v2"\] /, r));
   const html = read("index.html");
   // tema-v2.css lo comparten todas las pantallas: su sello cambia con la siguiente entrega (FX-10 PR-3), así que aquí solo se exige uno del 16/11.
-  assert.match(html, /tema-v2\.css\?v=2026111[6-9][a-z0-9]+/);
+  assert.match(html, /tema-v2\.css\?v=202611(1[6-9]|[23]\d)[a-z0-9]+/);
   assert.match(html, /views\/movimientos-v2\.js\?v=20261119dat07/); // 15/11: DAT-05, los traspasos en la bandeja; 18/11: DEC-18, la meta del 95 %; 19/11: DAT-07, «Dividido en N partidas»
   // El repaso pasó a 20261118dec41 con el aviso de la copia de seguridad en su «Listo» (DEC-41).
   assert.match(html, /views\/repaso-v2\.js\?v=20261118dec41/);

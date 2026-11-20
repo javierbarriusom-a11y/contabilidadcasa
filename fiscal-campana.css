@@ -277,10 +277,12 @@
 
 .fc-datos-persona {
   margin: 0;
+  min-inline-size: 0; /* DEC-38: un fieldset no baja de su contenido sin esto (móvil con zoom) */
   padding: 12px 14px 14px;
   border: 1px solid var(--e19-border);
   border-radius: var(--e19-radius-sm);
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
 }
 
@@ -291,6 +293,7 @@
 
 .fc-datos-grupo {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* DEC-38 */
   gap: 10px;
 }
 

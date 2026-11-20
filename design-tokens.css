@@ -3862,7 +3862,7 @@
 
 .laboratorio-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); /* DEC-38: con menos de 220 px, una columna que cabe */
   gap: 10px;
 }
 
@@ -3957,7 +3957,7 @@
 
 @media (max-width: 880px) {
   .laboratorio-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr); /* DEC-38: «1fr» no deja bajar de lo que mide el contenido (móvil con zoom) */
   }
 }
 
