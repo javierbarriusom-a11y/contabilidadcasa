@@ -117,6 +117,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 
 - **El hogar:** «Ya la he abierto y cuadra, haz el paso 2». La migración del paso 1 ya llevó la cuota a sus datos (`scenarioSettings.reunifiedDebt`, en la nube).
 - **Publicado de antes:** «Published availability» 379 (workflow_dispatch, 5ff282fb) en verde.
+- **Publicado:** #647 fusionado (main a9c845ce) con su CI en verde; «Verify and deploy Pages» **1486** en verde y «Published availability» **380** (workflow_dispatch, a9c845ce) en verde.
 - **Paso 2** (este PR): fuera de `app.js` `LEGACY_REUNIFIED_DEBT` (el importe de siempre y la regla por el nombre de la entidad), `migrateReunifiedDebtSetting` y sus dos llamadas (al arrancar y en `refreshFromPersistedState`). Sin el dato del hogar ni el de la demo, no hay cuota ni plan unificado: no se inventa nada.
 - **Lo que queda y conviene saber:**
   - restaurar una copia anterior al 19/11 deja la refinanciación sin cuota (la previsión vuelve a lo que diga la partida del plan): se vuelve a poner en Deuda › Contratos › «La cuota de la refinanciación reunificada»;
