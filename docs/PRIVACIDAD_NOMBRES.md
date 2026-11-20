@@ -110,9 +110,10 @@ problema siga creciendo, pero quien mire el historial lo verá. Hay tres salidas
 - **Lo que una prueba de texto no ve:** las referencias de diseño en PNG y el PDF de Claude Design (`docs/rediseno/referencias/png/`)
   pueden enseñar nombres dentro de la imagen; no se han reescrito. Y el historial de git: solo D-N24 (repositorio privado) lo quita.
 - **El importe de la refinanciación (19/11/2026, el hogar: «Saca el importe de la refinanciación a nuestros datos»):** la cuota, las
-  cuotas, el mes y la partida son datos del hogar (`scenarioSettings.reunifiedDebt`). Paso 1: se copian solos una vez desde el código
-  (`LEGACY_REUNIFIED_DEBT`); paso 2, cuando el hogar confirme que ha abierto la app: se borra del código el importe y la regla por el
-  nombre de la entidad (PROJECT_STATE 505).
+  cuotas, el mes y la partida son datos del hogar (`scenarioSettings.reunifiedDebt`). Paso 1: se copiaron solos una vez desde el
+  código (PROJECT_STATE 505). Paso 2, **hecho el 20/11/2026** tras confirmar el hogar que había abierto la app y cuadraba: el código ya
+  no trae el importe, ni la regla por el nombre de la entidad, ni la migración (PROJECT_STATE 507). Siguen en el código, sin importe,
+  el nombre de esa entidad en las reglas que reconocen conceptos del banco y en el identificador del plan reunificado.
 
 ## 3. Decisiones del hogar
 
