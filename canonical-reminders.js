@@ -79,7 +79,8 @@
    *   fiscal?: {year: number, total: number, pending: number},
    *   forecast?: Array<{id: string, date: string, title: string, description?: string}>,
    *   proposals?: Array<{id: string, date: string, title: string, description?: string}>,
-   *   options?: {horizonMonths?: number, incomeLeadDays?: number, bigChargeMin?: number, kinds?: Partial<Record<string, boolean>>}
+   *   options?: {horizonMonths?: number, incomeLeadDays?: number, bigChargeMin?: number, kinds?: Partial<Record<string, boolean>>},
+   *   appUrl?: string
    * }} input
    */
   function build(input = {}) {
@@ -293,7 +294,7 @@
   const dateValue = (iso) => iso.replace(/-/g, "");
 
   /**
-   * @param {Array<{uid: string, date: string, title: string, description?: string}>} events
+   * @param {Array<{uid: string, date: string, title: string, description?: string, url?: string}>} events
    * @param {{now?: string|number|Date, alarmHour?: number}} [options]
    */
   function toIcs(events, options = {}) {
