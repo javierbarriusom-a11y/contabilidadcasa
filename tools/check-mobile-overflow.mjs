@@ -19,7 +19,8 @@ if (!fs.existsSync(path.join(dist, "index.html"))) {
   throw new Error("No existe dist/index.html — ejecuta `npm run build:site` antes de `npm run test:mobile-overflow`.");
 }
 
-const WIDTHS = [360, 768, 1280];
+// DEC-38 (20/11/2026): 320 px es el ancho de WCAG 1.4.10 (reflujo), el de un móvil de 390 px con el zoom de la página al 120 %.
+const WIDTHS = [320, 360, 768, 1280];
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".json": "application/json", ".webmanifest": "application/manifest+json" };
 
 const server = http.createServer((request, response) => {

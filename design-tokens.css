@@ -4907,6 +4907,22 @@
   cursor: pointer;
 }
 
+/* DEC-38 (20/11/2026): por debajo de 360 px (móvil con zoom, WCAG 1.4.10 a 320 px) el segmentado pasa a dos líneas en vez
+   de salirse por la derecha (Análisis, con sus dos botones de descarga). Por encima, una sola fila como siempre. */
+@media (max-width: 359px) {
+  .e19-registrar-mes .registrar-mes-filters,
+  .e19-plan-mes .registrar-mes-filters,
+  .e19-cuadro-mandos .registrar-mes-filters,
+  .e19-prevision .registrar-mes-filters,
+  .e19-plan-prevision .registrar-mes-filters,
+  .e19-analisis .registrar-mes-filters,
+  .table-section .registrar-mes-filters {
+    flex-wrap: wrap;
+    max-width: 100%;
+    border-radius: var(--e19-radius-md);
+  }
+}
+
 .e19-registrar-mes .registrar-mes-filter.is-active,
 .e19-plan-mes .registrar-mes-filter.is-active,
 .e19-cuadro-mandos .registrar-mes-filter.is-active,
