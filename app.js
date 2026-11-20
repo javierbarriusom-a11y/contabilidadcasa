@@ -307,9 +307,8 @@ const DEBT_PORTFOLIO = [
 // Refinanciación reunificada (19/11/2026, el hogar: «Saca el importe de la refinanciación a nuestros datos», «dos pasos, sin
 // tocar cifras»): la cuota, el número de cuotas, el mes desde el que manda en el plan y la partida que la paga son datos del hogar
 // (scenarioSettings.reunifiedDebt, en la copia y la nube); la demo trae los suyos (baseData.assumptions.reunifiedDebt).
-// PASO 1 DE 2: LEGACY_REUNIFIED_DEBT copia una vez a los datos del hogar lo que había escrito aquí (migrateReunifiedDebtSetting),
-// solo si su plan tiene la partida de esa refinanciación. El paso 2, cuando el hogar confirme que ha abierto la app, lo borra.
-const LEGACY_REUNIFIED_DEBT = { payment: 180, installments: 36, fromMonth: "2026-05", rowLabel: "refinanciacion cetelem" };
+// Pasos 1 y 2 hechos (20/11/2026, el hogar: «Ya la he abierto y cuadra, haz el paso 2»): el código ya no trae importe ni regla
+// por el nombre de la entidad; sin el dato del hogar ni el de la demo no hay cuota ni plan unificado.
 
 function reunifiedDebtSettings() {
   const raw = (typeof scenarioSettings !== "undefined" && scenarioSettings?.reunifiedDebt) || baseData?.assumptions?.reunifiedDebt || null;
@@ -336,17 +335,6 @@ function reunifiedDebtCost() {
   return round2(reunifiedDebtPayment() * reunifiedDebtInstallments());
 }
 
-// Paso 1: la primera vez (sin el dato guardado, fuera de la demo y con la partida en el plan), lo de siempre pasa a los datos.
-function migrateReunifiedDebtSetting() {
-  if (typeof scenarioSettings === "undefined" || !scenarioSettings || scenarioSettings.reunifiedDebt || baseData?.metadata?.publicDemo) return false;
-  const row = (typeof availableSeriesRows === "function" ? availableSeriesRows("expense") : [])
-    .find((item) => normalizedText(displayLabelForRow(item)).includes(LEGACY_REUNIFIED_DEBT.rowLabel));
-  if (!row) return false;
-  const { payment, installments, fromMonth } = LEGACY_REUNIFIED_DEBT;
-  scenarioSettings.reunifiedDebt = { payment, installments, fromMonth, rowKey: seriesKeyForRow(row), migratedAt: new Date().toISOString() };
-  saveScenarioSettings();
-  return true;
-}
 const DebtContracts = globalThis.FinanceDebtContracts || null;
 const E14DebtAdapter = globalThis.FinanceCanonicalE14DebtAdapter || null;
 const E14DebtOperations = globalThis.FinanceCanonicalE14Operations || null;
@@ -4545,7 +4533,6 @@ function initSupabaseClient() {
 
 function refreshFromPersistedState() {
   const started = performance.now();
-  migrateReunifiedDebtSetting(); // también con lo que llega de una copia o de la nube
   updateSourceNote();
   writeControls({ ...baseData.assumptions, ...scenarioSettings, autoCapSavings: scenarioSettings.autoCapSavings ?? true });
   qs("scenarioName").textContent = currentScenario;
@@ -30648,7 +30635,6 @@ async function init() {
   ensureVariableOperationalSection();
   applyVariableOperationalMigration();
   applyVariableOperationalMayZeroDefault();
-  migrateReunifiedDebtSetting(); // paso 1 de 2: la cuota de la refinanciación, del código a los datos del hogar
   ensureBankActualsBaseline(); // reales: banco + lo anotado aparte (29/10/2026)
   refreshCanonicalSnapshot(canonicalSnapshot ? "startup-validation" : "initial-migration");
   refreshCanonicalLedger(canonicalLedgerSnapshot ? "startup-validation" : "initial-migration");
