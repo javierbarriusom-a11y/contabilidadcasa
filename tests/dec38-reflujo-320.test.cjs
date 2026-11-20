@@ -35,7 +35,9 @@ test("DEC-38 · paso 2: a 260 px (zoom al 150 %) todas las pantallas menos cinco
   assert.match(read("prestamo-deuda.css"), /\.pre-condiciones \{\n {2}display: grid;\n {2}grid-template-columns: minmax\(0, 1fr\);/);
   assert.match(read("fiscal-campana.css"), /min-inline-size: 0;/, "un fieldset no baja de su contenido sin esto");
   assert.match(read("design-tokens.css"), /repeat\(auto-fill, minmax\(min\(220px, 100%\), 1fr\)\)/);
-  for (const sel of ["\\.panel-uso-lista li", "\\.debt-priority-plan", "\\.decision-right"]) {
+  // Las dos que el CI vio a 260 px con sus fuentes (Registrar › Lote y Excel y la tarjeta de «nueva vida»).
+  assert.match(read("styles.css"), /@media \(max-width: 359px\) \{\n {2}\.module-heading,\n {2}\.e6-quality-card header \{\n {4}flex-wrap: wrap;/);
+  for (const sel of ["\\.panel-uso-lista li", "\\.debt-priority-plan", "\\.decision-right", "\\.data-card"]) {
     assert.match(read("styles.css"), new RegExp(`${sel} \\{\\n {2}display: grid;\\n {2}grid-template-columns: minmax\\(0, 1fr\\);`), sel);
   }
 });

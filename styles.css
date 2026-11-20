@@ -2772,6 +2772,14 @@ main {
   margin-bottom: 12px;
 }
 
+/* DEC-38 (20/11/2026): por debajo de 360 px (móvil con zoom) lo que acompaña al título baja de línea. */
+@media (max-width: 359px) {
+  .module-heading,
+  .e6-quality-card header {
+    flex-wrap: wrap;
+  }
+}
+
 .module-heading h3 {
   margin: 0;
   font-size: 17px;
@@ -4091,6 +4099,7 @@ svg {
 
 .data-card {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* DEC-38: la tarjeta puede estrecharse (móvil con zoom al 150 %) */
   align-content: start;
   gap: 12px;
   min-width: 0;
