@@ -82,7 +82,7 @@ test("la app: la descarga pasa la dirección; al cargar y al cambiar el «#», e
 test("versiones y Novedades: el fichero hay que descargarlo otra vez para tener el enlace", () => {
   const html = read("index.html");
   // views/repaso-v2.js siguió a 20261120dec23 con DEC-23 (los grupos clasificados de cada repaso).
-  assert.match(html, /<script defer src="views\/repaso-v2\.js\?v=20261120dec2[23]"><\/script>/);
+  assert.match(html, /<script defer src="views\/repaso-v2\.js\?v=(?:20261120dec2[23]|20261121foco)"><\/script>/);
   assert.match(html, /<script defer src="novedades\.js\?v=(?:20261120dec2[23]|20261121dec30|20261121dec45)"><\/script>/); // 21/11: DEC-30, la semana que viene; DEC-45, «¿te sirve?»
   // medidor-utilidad.js pasó a 20261121dec45 con «¿te sirve?» en Novedades (DEC-45).
   assert.match(html, /<script defer src="medidor-utilidad\.js\?v=20261121dec45"><\/script>/);
@@ -93,4 +93,11 @@ test("versiones y Novedades: el fichero hay que descargarlo otra vez para tener 
   assert.ok(novedad, "línea en Novedades");
   assert.match(novedad.texto, /Descargad otra vez los recordatorios/);
   assert.doesNotMatch(novedad.texto, /\d/);
+});
+
+// 21/11/2026: el despliegue 1507 falló en Safari porque, al cerrar el repaso abierto desde el enlace, WebKit devolvía el foco al <body>
+// (el elemento de antes de abrir el diálogo) después del evento «close». Se repite en la vuelta siguiente si se ha quedado en el <body>.
+test("al cerrar el repaso, el foco se repite en la vuelta siguiente si WebKit lo deja en el <body>", () => {
+  const repaso = fs.readFileSync(path.join(__dirname, "..", "views/repaso-v2.js"), "utf8");
+  assert.match(repaso, /setTimeout\(\(\) => \{\n {6}if \(!dialog\.open && \(!document\.activeElement \|\| document\.activeElement === document\.body\)\) enfocar\(\);\n {4}\}, 0\);/);
 });
