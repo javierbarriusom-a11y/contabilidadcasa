@@ -9288,6 +9288,24 @@ test.describe("DEC-22 · el enlace del aviso del domingo abre el repaso", () => 
     });
   }
 
+  // 21/11/2026: el despliegue de #657 cayó en Safari aquí (dos intentos): si el enlace abre el repaso antes de que Hoy pinte su
+  // entrada, no había a dónde devolver el foco y se quedaba en <body>. Se reproduce quitando la entrada antes del enlace.
+  test("aunque Hoy no hubiera pintado aún su entrada, al cerrar el foco vuelve a ella", enSafari({ width: 390, height: 844 }), async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 10, 22, 10, 0, 0) }); // domingo
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#home");
+    await expect(page.locator("#hoyV2 [data-hoy-v2-repaso]")).toBeVisible({ timeout: 20000 });
+    await page.evaluate(() => { document.querySelector("#hoyV2 [data-hoy-v2-repaso]").remove(); location.hash = "#home?abrir=repaso"; });
+    const repaso = page.locator("#repasoV2");
+    await expect(repaso).toBeVisible();
+    await repaso.locator("[data-rep-v2-cerrar]").first().click();
+    await expect(repaso).toBeHidden();
+    await expect(page.locator("#hoyV2 [data-hoy-v2-repaso]")).toBeFocused();
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
   test("con el diseño de siempre se queda en Hoy, sin errores", async ({ page }) => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));

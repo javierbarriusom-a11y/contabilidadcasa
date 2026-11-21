@@ -99,7 +99,8 @@ test("estilos, versiones y Novedades", () => {
   assert.match(css, /:root\[data-tema="v2"\] \.hoy-v2-hecho \{[^}]*background: var\(--e19-accent-soft\);/);
   assert.doesNotMatch(css.match(/:root\[data-tema="v2"\] \.hoy-v2-hecho \{[^}]*\}/)[0], /cursor/);
   const html = read("index.html");
-  ["views/hoy-v2.js", "views/repaso-v2.js"].forEach((file) => assert.ok(html.includes(`${file}?v=20261120dec23`), file));
+  assert.ok(html.includes("views/hoy-v2.js?v=20261120dec23"));
+  assert.match(html, /views\/repaso-v2\.js\?v=(?:20261120dec23|20261121dec22b)/, "repaso-v2.js siguió a 20261121dec22b (DEC-22, el foco al cerrar)");
   // tema-v2.css pasó a 20261121dec30 con la frase de la semana que viene (DEC-30) y novedades.js, también a 20261121dec45 (DEC-45).
   assert.match(html, /tema-v2\.css\?v=20261121dec(?:30|38c|38d)/); // y a 20261121dec38c con DEC-38 a 195 px
   assert.match(html, /novedades\.js\?v=20261121dec(?:30|45)/);
