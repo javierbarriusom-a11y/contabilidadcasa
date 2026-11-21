@@ -70,7 +70,7 @@ test("la app: la descarga pasa la dirección; al cargar y al cambiar el «#», e
   assert.match(repaso, /function repasoV2DesdeEnlace\(\) \{\n  if \(!globalThis\.FinanceCanonicalReminders\?\.reviewLinkRequested\(location\.hash\)\) return false;/);
   assert.match(repaso, /history\.replaceState\(null, "", `\$\{location\.pathname\}\$\{location\.search\}#home`\);/);
   assert.match(repaso, /FinanceMedidor\?\.anotar\("repaso-enlace", "accion"\)/);
-  assert.match(repaso, /repasoV2Open\(qs\("hoyV2"\)\?\.querySelector\("\[data-hoy-v2-repaso\]"\) \|\| null\);/);
+  assert.match(repaso, /repasoV2Open\(qs\("hoyV2"\)\?\.querySelector\("\[data-hoy-v2-repaso\]"\) \|\| null, \{ desdeHoy: true \}\);/); // 21/11: marcado encima de Hoy
   assert.match(repaso, /globalThis\.repasoV2DesdeEnlace = repasoV2DesdeEnlace;/);
   const app = read("app.js");
   assert.match(app, /openCaptureLinkFromHash\(\);\n    globalThis\.repasoV2DesdeEnlace\?\.\(\);/);
@@ -82,7 +82,7 @@ test("la app: la descarga pasa la dirección; al cargar y al cambiar el «#», e
 test("versiones y Novedades: el fichero hay que descargarlo otra vez para tener el enlace", () => {
   const html = read("index.html");
   // views/repaso-v2.js siguió a 20261120dec23 con DEC-23 (los grupos clasificados de cada repaso).
-  assert.match(html, /<script defer src="views\/repaso-v2\.js\?v=(?:20261120dec2[23]|20261121foco)"><\/script>/);
+  assert.match(html, /<script defer src="views\/repaso-v2\.js\?v=(?:20261120dec2[23]|20261121foco2?)"><\/script>/);
   assert.match(html, /<script defer src="novedades\.js\?v=(?:20261120dec2[23]|20261121dec30|20261121dec45)"><\/script>/); // 21/11: DEC-30, la semana que viene; DEC-45, «¿te sirve?»
   // medidor-utilidad.js pasó a 20261121dec45 con «¿te sirve?» en Novedades (DEC-45).
   assert.match(html, /<script defer src="medidor-utilidad\.js\?v=20261121dec45"><\/script>/);
@@ -100,4 +100,13 @@ test("versiones y Novedades: el fichero hay que descargarlo otra vez para tener 
 test("al cerrar el repaso, el foco se repite en la vuelta siguiente si WebKit lo deja en el <body>", () => {
   const repaso = fs.readFileSync(path.join(__dirname, "..", "views/repaso-v2.js"), "utf8");
   assert.match(repaso, /setTimeout\(\(\) => \{\n {6}if \(!dialog\.open && \(!document\.activeElement \|\| document\.activeElement === document\.body\)\) enfocar\(\);\n {4}\}, 0\);/);
+});
+
+// 21/11/2026, complementa la anterior: si el enlace abre el repaso antes de que Hoy pinte su entrada, no hay opener y la vuelta
+// siguiente tampoco tenía a dónde llevar el foco. El repaso abierto desde el enlace va marcado como «encima de Hoy».
+test("DEC-22 · al cerrar el repaso abierto desde el enlace, el foco vuelve a Hoy aunque su entrada no estuviera pintada al abrirlo", () => {
+  const repaso = read("views/repaso-v2.js");
+  assert.match(repaso, /function repasoV2Open\(opener = null, \{ desdeHoy = false \} = \{\}\)/);
+  assert.match(repaso, /const sobreHoy = Boolean\(repasoV2\?\.desdeHoy\);/);
+  assert.match(repaso, /const desdeHoy = sobreHoy \|\| Boolean\(opener\?\.hasAttribute\?\.\("data-hoy-v2-repaso"\)\);/);
 });

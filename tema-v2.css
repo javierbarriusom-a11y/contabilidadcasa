@@ -3069,18 +3069,23 @@
   cursor: pointer;
 }
 
-:root[data-tema="v2"] .plan-v2-financiaciones .plan-v2-bloque-nombre {
+:root[data-tema="v2"] .plan-v2-financiaciones .plan-v2-bloque-nombre,
+:root[data-tema="v2"] .plan-v2-ahorro-fila .plan-v2-bloque-nombre {
   min-height: 0;
   cursor: default;
 }
 
 :root[data-tema="v2"] .plan-v2-tabla td.plan-v2-nombre,
-:root[data-tema="v2"] .plan-v2-financiaciones td:first-child {
+:root[data-tema="v2"] .plan-v2-financiaciones td:first-child,
+:root[data-tema="v2"] .plan-v2-ahorro-fila td:first-child {
   white-space: normal;
 }
 
 :root[data-tema="v2"] .plan-v2-nombre small,
-:root[data-tema="v2"] .plan-v2-financiaciones small {
+/* La explicación debajo del nombre también en la fila del ahorro (T27): sin esta regla salía pegada y en negrita
+   («AHORROmeta del plan…»), a cualquier ancho. Visto al revisar Plan a 195 px (DEC-38, 21/11/2026). */
+:root[data-tema="v2"] .plan-v2-financiaciones small,
+:root[data-tema="v2"] .plan-v2-ahorro-fila small {
   display: block;
   margin-top: 2px;
   font-size: 12.5px;
@@ -3295,8 +3300,9 @@
     display: none;
   }
 
-  :root[data-tema="v2"] .plan-v2-tabla tr.plan-v2-financiaciones {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+  :root[data-tema="v2"] .plan-v2-tabla tr.plan-v2-financiaciones,
+  :root[data-tema="v2"] .plan-v2-tabla tr.plan-v2-ahorro-fila {
+    grid-template-columns: minmax(0, 1fr) auto auto; /* la del ahorro, como Financiaciones: la flecha en su fila (21/11, DEC-38) */
   }
 
   :root[data-tema="v2"] .plan-v2-fila .plan-v2-ritmo-celda {
@@ -3304,7 +3310,8 @@
     width: auto;
   }
 
-  :root[data-tema="v2"] .plan-v2-financiaciones .plan-v2-ritmo-celda {
+  :root[data-tema="v2"] .plan-v2-financiaciones .plan-v2-ritmo-celda,
+  :root[data-tema="v2"] .plan-v2-ahorro-fila .plan-v2-ritmo-celda {
     grid-column: auto;
   }
 
@@ -5472,8 +5479,17 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  :root[data-tema="v2"] .plan-v2-tabla tr.plan-v2-financiaciones {
-    grid-template-columns: minmax(0, 1fr);
+  :root[data-tema="v2"] .plan-v2-tabla tr.plan-v2-financiaciones,
+  :root[data-tema="v2"] .plan-v2-tabla tr.plan-v2-ahorro-fila,
+  :root[data-tema="v2"] .plan-v2-tabla tr.plan-v2-fila,
+  :root[data-tema="v2"] .plan-v2-tabla tr.plan-v2-bloque {
+    grid-template-columns: minmax(0, 1fr); /* y cada partida y cada bloque: el nombre arriba y el importe debajo (21/11; junto a la caja, la nota se quedaba en una palabra por línea y «GASTOS VARIABLES» se montaba sobre «1.750 €») */
+  }
+
+  :root[data-tema="v2"] .plan-v2-tabla td,
+  :root[data-tema="v2"] .plan-v2-bloque-nombre {
+    white-space: normal;
+    text-align: left;
   }
 
   /* Cierre: la columna de la derecha (confianza, lo que guarda la firma y «Firmar») cabe: menos relleno y el botón puede partir su

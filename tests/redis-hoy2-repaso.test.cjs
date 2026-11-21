@@ -78,7 +78,7 @@ test("está en Hoy: debajo de las decisiones, abre el repaso desde la propia lí
   assert.match(hoy, /\$\{hoyV2Decisions\(model\.todayRead, \[\.\.\.hoyV2AvisosPrevision\(hoy\), \.\.\.\(typeof svdPropuestasHoy === "function" \? svdPropuestasHoy\(hoy\) : \[\]\), \.\.\.\(model\.decisions \|\| \[\]\)\]\)\}\n\s+\$\{hoyV2Repaso\(\)\}\n\s+\$\{hoyV2Esperados\(\)\}/);
   assert.match(hoy, /closest\("\[data-hoy-v2-repaso\]"\);\n\s+if \(repaso\) \{\n\s+globalThis\.repasoV2Open\?\.\(repaso\);/);
   assert.match(repaso, /mismaSemana\(a, b\) \{\n\s+return repasoV2Lunes\(a\) === repasoV2Lunes\(b\);/);
-  assert.match(repaso, /const desdeHoy = Boolean\(opener\?\.hasAttribute\?\.\("data-hoy-v2-repaso"\)\);/);
+  assert.match(repaso, /const desdeHoy = sobreHoy \|\| Boolean\(opener\?\.hasAttribute\?\.\("data-hoy-v2-repaso"\)\);/);
   assert.match(repaso, /if \(desdeHoy && typeof renderHomeDashboard === "function"\) renderHomeDashboard\(\);/);
 });
 
