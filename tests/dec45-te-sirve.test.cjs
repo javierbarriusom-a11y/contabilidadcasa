@@ -123,7 +123,8 @@ test("DEC-45 · estilos, versiones y su línea de Novedades", () => {
   assert.match(css, /\.version-stamp-list \.novedad-sirve-btn \{[^}]*min-height: 24px;/, "24 px de objetivo táctil (WCAG 2.5.8)");
   assert.match(css, /\.version-stamp-list \.novedad-sirve-btn\[aria-pressed="true"\] \{/);
   const html = read("index.html");
-  ["styles.css", "medidor-utilidad.js", "novedades.js", "ux-shell.js"].forEach((file) => assert.ok(html.includes(`${file}?v=20261121dec45`), file));
+  ["medidor-utilidad.js", "novedades.js", "ux-shell.js"].forEach((file) => assert.ok(html.includes(`${file}?v=20261121dec45`), file));
+  assert.match(html, /styles\.css\?v=20261121dec(?:45|38c)/, "styles.css siguió a 20261121dec38c con DEC-38 a 195 px");
   assert.ok(html.indexOf('src="medidor-utilidad.js?v=') < html.indexOf('src="ux-shell.js?v='), "el medidor carga antes que la lista");
   const novedad = NOVEDADES.find((entry) => entry.id === "2026-11-21-te-sirve");
   assert.equal(novedad.href, "#ajustes");

@@ -554,6 +554,17 @@ que entra en las pruebas de Clasificar y Movimientos. *Por qué:* §1.5 y P-C. S
 - **DEC-38**, paso 2 (20/11/2026, PROJECT_STATE 510): a 260 px (zoom al 150 %) ninguna pantalla se sale salvo cinco de
   «Versiones anteriores» pendientes de D-N15, y el CI lo vigila. La causa común eran columnas de rejilla que no se dejaban
   estrechar (`minmax(0, 1fr)`). Queda 195 px (zoom al 200 %), que es trabajo de varias sesiones.
+- **DEC-38**, paso 3 (21/11/2026, PROJECT_STATE 516; el hogar: «Sigue con DEC-38, empezando por Hoy y Movimientos»): a 195 px
+  (zoom al 200 %), Hoy y Movimientos. Medido con la comprobación del CI solo salían 5 elementos, pero mirando las capturas había
+  más: textos que no se salían porque se apretaban a una letra por línea (el concepto de cada movimiento, «Decidir esta semana»,
+  las filas de la bandeja). Solo CSS, por debajo de 260 px: menos margen, la cifra y el título más pequeños y lo que iba en fila,
+  apilado. Además, tres rejillas sin columnas con `minmax(0, 1fr)` (como en el paso 2). El CI mira ya a 195 px estas dos;
+  las demás se suman por tandas. **Lección:** «nada se sale» no es «se lee»; a este ancho hay que mirar cada pantalla.
+  **Segunda tanda, el mismo día** («Sigue con la siguiente tanda: Clasificar y Previsión»): en Previsión, «Qué lo mueve» del
+  panel del día; en Clasificar, el nombre del grupo (se partía a media palabra) y «Aceptar y siguiente», que se salía por la
+  derecha del panel (es un diálogo: el CI no lo recorre, lo vigila una e2e). **Pendiente, visto al revisar:** Plan › Mes no se
+  lee a 195 px (cabeceras de bloque montadas sobre su importe, «Ahorro» cortado, leyenda solapada); por eso Plan no entra aún en
+  la lista del CI a 195 px. Siguiente tanda propuesta: Plan › Mes y Cierre.
 - **DEC-22**, el aviso del domingo abre el repaso (20/11/2026, PROJECT_STATE 511): el `.ics` de los recordatorios lleva en
   el detalle y en el campo URL de cada aviso del repaso la dirección de la app con `#home?abrir=repaso`; al abrirlo, el repaso
   sale encima de Hoy y la marca se quita de la dirección. Sin importes ni datos en el enlace; el título no cambia. Medido en

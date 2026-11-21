@@ -13433,3 +13433,21 @@ input[data-amount-input][aria-invalid="true"] {
   margin: 10px 0;
   font-size: 14px;
 }
+
+/* DEC-38 · paso 3 (21/11/2026): por debajo de 260 px (390 px con el zoom al 200 %, 195 px), menos margen a los lados de la
+   pantalla y los botones de la guía de primeros pasos de Hoy, uno debajo de otro y a todo el ancho. */
+@media (max-width: 259px) {
+  main {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .dex5-onboarding-actions {
+    flex-wrap: wrap;
+    flex-shrink: 1;
+  }
+
+  .dex5-onboarding-actions > * {
+    flex: 1 1 100%;
+  }
+}

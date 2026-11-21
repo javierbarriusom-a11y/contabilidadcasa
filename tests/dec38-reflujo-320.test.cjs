@@ -23,7 +23,7 @@ test("DEC-38 · por debajo de 360 px las etiquetas del cono se recortan y el seg
   assert.ok(panel > 0);
   assert.match(styles.slice(panel, panel + 200), /flex-direction: column;\n {4}align-items: stretch;/);
   assert.match(tokens, /@media \(max-width: 359px\) \{\n {2}\.e19-deuda-decidir \.deuda-decidir-strategy-actions \{\n {4}flex-wrap: wrap;/);
-  assert.match(read("tools/check-mobile-overflow.mjs"), /const WIDTHS = \[260, 320, 360, 768, 1280\];/);
+  assert.match(read("tools/check-mobile-overflow.mjs"), /const WIDTHS = \[195, 260, 320, 360, 768, 1280\];/); // 21/11: 195 px (paso 3), solo las revisadas
 });
 
 test("DEC-38 · paso 2: a 260 px (zoom al 150 %) todas las pantallas menos cinco de «Versiones anteriores» pendientes de D-N15", () => {

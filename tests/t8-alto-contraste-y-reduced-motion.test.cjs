@@ -96,6 +96,6 @@ test("color-scheme está declarado (T7) — prerequisito para que los controles 
 });
 
 test("index.html: styles.css y design-tokens.css llevan el bump de versión de T8", () => {
-  assert.match(html, /styles\.css\?v=20261121dec45/);
+  assert.match(html, /styles\.css\?v=20261121dec38c/);
   assert.match(html, /design-tokens\.css\?v=20261120dec38b/);
 });
