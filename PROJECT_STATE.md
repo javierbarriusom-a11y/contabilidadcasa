@@ -113,6 +113,33 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 21 de noviembre de 2026 (518): Hoy por áreas; plan óptimo de saldo en Deuda › Ruta; undécima auditoría
+
+- **Publicado de antes:** #659 (DEC-38 tandas 3 a 5, el gráfico de Hoy, el foco del repaso en Safari) con su CI en verde a la primera (66 min, Safari incluido), comprobada la cabeza 3a170e2a: main 96088460. Su despliegue, en curso al escribir esto, publica también #657 (el 1507 no publicó).
+- **El hogar:** «La pantalla llamada Hoy ha perdido su gráfico y su detalle de mes… tiene muchos datos interesantes, pero están todos en una sola página… ¿Podemos agruparlo por áreas temáticas, como en Deuda?», «Sigue analizando la app de manera crítica… propón nuevas mejoras y features… revisa del backlog anterior lo no implementado» y «Quiero seguir con un plan optimizado de saldo de deuda».
+- **Hoy por áreas:** cinco pestañas bajo la cabecera, accesibles (`tablist`, flechas, Inicio y Fin), con el aspecto de las de Deuda **sin número** (no es un recorrido en orden):
+  - **Hoy**, la de entrada: cifra con su gráfico, «Decidir esta semana», repaso, y en la columna el mes y la deuda con «Detalle del mes ›» y «Patrimonio y deuda ›»;
+  - **Mes:** la barra del mes, las tres partidas que más se desvían (las de Cierre), «El mes en una línea» (ingresos, previsto, real, desviación, sin clasificar, irá a ahorro) y el presupuesto y objetivos del mes. Es el «detalle de mes» que el hogar echaba en falta, que solo salía con «Ver todo el detalle»;
+  - **Caja:** hasta el siguiente ingreso, meses a vigilar y el seguimiento predictivo;
+  - **Patrimonio y deuda:** la tarjeta de deuda, las cifras de deuda, capacidad, reserva y riesgo, y la salud financiera;
+  - **Seguimiento:** decisiones abiertas, qué cambió, próximos hitos, lectura del hogar, señales y la vista por titular.
+  El área dura lo que la pestaña del navegador (`sessionStorage`). Cambiar de área no cuenta como acción en el medidor. **No se retira nada:** las áreas reparten por CSS bloques de la Hoy de siempre, y «Ver todo el detalle» sigue enseñándolo todo. Una trampa anotada en el CSS: `.home-context-layout` también lleva la clase `.home-layout`.
+- **De paso, un fallo que ya existía:** en el móvil, las filas de «Decisiones abiertas» (sin número) cedían su columna de 34 px al texto, que salía letra a letra. Una columna, en los dos temas.
+- **Plan óptimo de saldo**, en Deuda › Ruta encima de «Camino a deuda cero»:
+  - lo que se pone al mes (de entrada, la capacidad libre) y un pago inicial opcional;
+  - orden recomendado con su porqué: la avalancha, salvo que la bola de nieve cueste ≤ 3 % o 150 € más y salde antes la primera deuda;
+  - libre de deuda frente a hoy, intereses ahorrados, primera deuda saldada y los tramos, con las cuotas liberadas redirigidas.
+  `canonical-debt-optimal-plan.js` es un orquestador puro sobre el motor del camino (NTC-05), no un motor nuevo. Propone, no ejecuta.
+- **XGO-01:** Deuda › Ruta pasa de 7 a 8 titulares. Excepción escrita en `docs/gobierno/superficie.json`, con la condición de retirarla si el camino se funde en el plan (UND-15).
+- **Undécima auditoría** (`docs/PROPUESTA_UNDECIMA_AUDITORIA_2026-11-21.md`, propuesta):
+  - **fiabilidad silenciosa:** todas las pruebas en navegador arrancan sin nada guardado, y la app esconde un cálculo fallido en lugar de avisar;
+  - **arquitectura:** el patrón de áreas, para Ajustes e Inversión;
+  - **Deuda:** seis superficies para una sola pregunta;
+  - **medición:** se mide, pero no decide.
+  Repasa las 31 funciones abiertas de la décima, propone 26 nuevas (UND-01 a UND-26) y da la hoja de ruta del plan óptimo (v2: quitas y liquidez mes a mes; v3: seguimiento; v4: préstamo dentro del cálculo y Deuda en tres pestañas). **Decisiones que pide:** D-N23 (sigue abierta), D-N24 (la tolerancia de la bola de nieve) y D-N25 (Deuda en tres pestañas).
+- **Pruebas:** `tests/hoy-por-areas.test.cjs` (5) y `tests/plan-optimo-deuda.test.cjs` (5), nuevas; e2e «Hoy por áreas» (a 390 `@safari` y 1440, teclado, y el gráfico tras guardar y recargar) y «plan óptimo de saldo» (a 390 `@safari` y 1280, con paridad de motor); axe de las pestañas y del área Mes en claro y oscuro. ARQ-3 pasa de 134 a 135 `canonical-*.js`. Versiones: `views/hoy-v2.js`, `tema-v2.css`, `styles.css` y `novedades.js` a `20261121areas`; `camino-deuda-ui.js`, `camino-deuda.css` y el motor a `20261121plan`; `views/deuda.js` a `20261121plan`. Las pruebas que comprueban versiones aceptan las nuevas.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` **6.853/6.853** (+10). Batería completa en local, antes de rehacer la rama sobre main (e2e + a11y, Chromium): **492/494** en 28,6 min. Las dos que fallaron eran de este cambio y ya pasan: el inventario de titulares (la excepción) y la e2e SVD-2b, que leía la primera cifra de Ruta y ahora encuentra la del plan; lee la del camino. Rehecha la rama sobre main (conflictos solo en dos pruebas de versiones): e2e y a11y de Hoy por áreas, el plan, XGO-01, SVD-2b, DEC-22, DEC-23, DEC-38, el repaso y los cambios de Hoy, **48/48**.
+
 ## Cierre de sesión — 21 de noviembre de 2026 (517): DEC-38, paso 3, tandas 3 a 5 (Plan › Mes, Cierre, Ajustes, Deuda, la cabecera y el simulador visual a 195 px); Hoy recupera su gráfico al recargar
 
 - **Publicado de antes:** #657 (DEC-38, tandas 1 y 2) fusionado con su CI en verde a la primera (54 min, Safari incluido), comprobada la cabeza cd25ef21: main 9755b60d, mismo árbol. «Verify and deploy Pages» **1507 en rojo: no publicó.** Falló en Safari la e2e de DEC-22 (#651), ya existente: al cerrar el repaso abierto desde el enlace del domingo, el foco tenía que volver a su línea en Hoy y se quedaba en el `<body>`, también en el reintento. En el CI del PR, con la misma cabeza, pasó: era una carrera. **No se relanzó para conseguir el verde** (CLAUDE.md): WebKit devuelve el foco al elemento de antes de abrir el `<dialog>` *después* del evento `close`, y abierto desde un enlace ese elemento es el `<body>`. Corregido en este PR (`views/repaso-v2.js`): el foco se repite en la vuelta siguiente, solo si se ha quedado en el `<body>`. `views/repaso-v2.js` pasa a `?v=20261121foco`. Sin WebKit en el contenedor, la lectura en Safari es la del CI. #657 y este PR se publican juntos al fusionar este.
