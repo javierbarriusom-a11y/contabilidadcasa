@@ -167,6 +167,7 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 129 → 130 (Deuda › Contratos, «Detectadas en vuestros recibos», 15/11/2026): canonical-debt-receipts.js, con consumidor real (deudaContratosRecibos en views/deuda.js)
 // 128 → 129 (PRV-01, el gasto variable previsto frente a real, 14/11/2026): canonical-variable-recalibration.js, con consumidor real (previsionV2GastoVariable en views/prevision-v2.js, en la hoja «Por qué la confianza es…»)
 // 127 → 128 (Deuda › Préstamo para saldar, 14/11/2026): canonical-loan-payoff-plan.js, con consumidor real (renderDeudaPrestamo en views/deuda.js se lo pasa a prestamo-deuda-ui.js)
-test("ARQ-3 · el recuento de canonical-*.js sigue siendo 134 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
-  assert.equal(canonicalFiles.length, 134);
+// 134 → 135 (plan óptimo de saldo, 21/11/2026): canonical-debt-optimal-plan.js, con consumidor real (renderDeudaRuta en views/deuda.js se lo pasa a renderPlanOptimo de camino-deuda-ui.js)
+test("ARQ-3 · el recuento de canonical-*.js sigue siendo 135 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
+  assert.equal(canonicalFiles.length, 135);
 });

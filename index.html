@@ -42,14 +42,14 @@
          nativo de PWA (criterio de instalabilidad exige al menos un icono) y la pestaña mostraba el
          icono en blanco por defecto. `icon.svg` es el mismo icono para las dos cosas. -->
     <link rel="icon" href="icon.svg?v=20260919t11a1" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=20261121dec38d" />
+    <link rel="stylesheet" href="styles.css?v=20261121areas" />
     <link rel="stylesheet" href="p2.css?v=20260918t7a1" />
     <link rel="stylesheet" href="design-tokens.css?v=20261120dec38b" />
     <link rel="stylesheet" href="fiscal-campana.css?v=20261120dec38b" />
     <link rel="stylesheet" href="chart-kit.css?v=20261109fx12a" />
     <link rel="stylesheet" href="recordatorios.css?v=20261007wp32a1" />
     <link rel="stylesheet" href="deuda-tipo.css?v=20261007wp13a1" />
-    <link rel="stylesheet" href="camino-deuda.css?v=20261008wp19a1" />
+    <link rel="stylesheet" href="camino-deuda.css?v=20261121plan" />
     <link rel="stylesheet" href="prestamo-deuda.css?v=20261120dec38b" />
     <link rel="stylesheet" href="nominas.css?v=20261008wp31a1" />
     <link rel="stylesheet" href="anomalias.css?v=20261012wp36a2" />
@@ -74,7 +74,7 @@
     <link rel="stylesheet" href="patrimonio.css?v=20261014wp46b2" />
     <link rel="stylesheet" href="cierre-a11y.css?v=20261015d1" />
     <!-- Rediseño fase A: tema v2 detrás de bandera (?tema=v2). Va el último para poder redefinir tokens. -->
-    <link rel="stylesheet" href="tema-v2.css?v=20261121dec38d" />
+    <link rel="stylesheet" href="tema-v2.css?v=20261121areas" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -2227,6 +2227,20 @@
                 <a class="e19-btn e19-btn-secondary" href="#deuda-comparar">Comparar estrategias</a>
               </div>
             </div>
+
+            <!-- Plan óptimo de saldo (21/11/2026): en qué orden saldar, cuándo acabáis y cuánto os ahorráis, con las cuotas liberadas pasando a la siguiente deuda. Lo pinta camino-deuda-ui.js con canonical-debt-optimal-plan.js (el mismo motor que el camino). Propone, no ejecuta. -->
+            <article class="e19-card cam-card plan-optimo-card" id="planOptimoCard" aria-labelledby="planOptimoTitulo">
+              <h3 class="escenario-motor-panel-title" id="planOptimoTitulo">Plan óptimo de saldo</h3>
+              <p class="e19-kpi-note">Con lo que podéis poner al mes y, si queréis, un pago inicial: <strong>en qué orden saldar las deudas, cuándo acabáis y cuánto os ahorráis</strong> frente a seguir como hasta ahora. Las cuotas que se liberan pasan a la siguiente deuda.</p>
+              <div class="cam-control">
+                <label class="month-picker"><span>Al mes, además de las cuotas (€)</span>
+                  <input type="number" id="planOptimoMensual" min="0" max="100000" step="10" inputmode="decimal" value="0" /></label>
+                <label class="month-picker"><span>Pago inicial (€)</span>
+                  <input type="number" id="planOptimoPago" min="0" max="100000" step="100" inputmode="decimal" value="0" /></label>
+              </div>
+              <p class="e19-kpi-note" id="planOptimoNota" role="status"></p>
+              <div id="planOptimoResultado" aria-live="polite"></div>
+            </article>
 
             <!-- WP-19 (NDB-01, docs/WP19_DISENO.md): «¿cuándo acabamos y qué cambia con más?». La pinta camino-deuda-ui.js; no borra ni sustituye nada de lo de abajo. Proyección, no compromiso; no ejecuta nada. -->
             <article class="e19-card cam-card" id="caminoDeudaCard" aria-labelledby="caminoDeudaTitulo">
@@ -8327,7 +8341,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20261119priv4"></script>
-    <script defer src="novedades.js?v=20261121dec45"></script>
+    <script defer src="novedades.js?v=20261121areas"></script>
     <script defer src="ux-shell.js?v=20261121dec45"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -8363,7 +8377,8 @@
     <script defer src="canonical-rate-review.js?v=20261007wp20a1"></script>
     <script defer src="revision-tipo-ui.js?v=20261007wp20a1"></script>
     <script defer src="canonical-debt-payoff-path.js?v=20261117svd3"></script>
-    <script defer src="camino-deuda-ui.js?v=20261008wp19a1"></script>
+    <script defer src="canonical-debt-optimal-plan.js?v=20261121plan"></script>
+    <script defer src="camino-deuda-ui.js?v=20261121plan"></script>
     <script defer src="canonical-loan-payoff-plan.js?v=20261114pre1"></script>
     <script defer src="prestamo-deuda-ui.js?v=20261116cla1"></script>
     <script defer src="canonical-payroll.js?v=20261008wp31a1"></script>
@@ -8426,7 +8441,7 @@
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
     <script defer src="views/cobertura-ajuste.js?v=20261019cobro"></script>
-    <script defer src="views/hoy-v2.js?v=20261120dec23"></script>
+    <script defer src="views/hoy-v2.js?v=20261121areas"></script>
     <script defer src="views/deuda-simulador-v2.js?v=20261118svd6a"></script>
     <script defer src="views/movimientos-v2.js?v=20261119dat07"></script>
     <script defer src="views/importar-v2.js?v=20261116xda04b"></script>

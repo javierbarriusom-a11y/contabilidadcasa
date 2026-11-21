@@ -130,3 +130,17 @@
     padding-bottom: 8px;
   }
 }
+
+/* Plan óptimo de saldo (21/11/2026): los tramos, uno por línea, con la cifra del mes en tinta. */
+.plan-optimo-tramos {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 12px;
+  padding-left: 20px;
+  font: 400 var(--e19-text-sm) / 1.4 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.plan-optimo-tramos small {
+  color: var(--e19-muted);
+}

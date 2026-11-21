@@ -45,7 +45,7 @@ test("DEC-38 · paso 3: por debajo de 260 px, Hoy y Movimientos se apilan en vez
   assert.match(styles.slice(base), /main \{\n {4}padding-left: 8px;\n {4}padding-right: 8px;/, "menos margen a los lados de la pantalla");
   assert.match(styles.slice(base), /\.dex5-onboarding-actions \{\n {4}flex-wrap: wrap;/);
   const html = read("index.html");
-  for (const file of ["styles.css", "tema-v2.css"]) assert.ok(html.includes(`${file}?v=20261121dec38d`), file);
+  for (const file of ["styles.css", "tema-v2.css"]) assert.match(html, new RegExp(`${file.replace(".", "\\.")}\\?v=20261121(?:dec38d|areas)`), file); // y a «areas» con Hoy por áreas
 });
 
 // Tandas 3 a 5 (21/11/2026): Plan › Mes, Cierre, Ajustes, Deuda (Ruta, Comparar, Préstamo, Contratos y el simulador visual, el nuevo y el

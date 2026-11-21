@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**21/11/2026 · Hoy por áreas, plan óptimo de saldo y undécima auditoría (propuesta):** Hoy en cinco pestañas (Hoy, Mes, Caja, Patrimonio y deuda, Seguimiento) sin retirar nada; en Deuda › Ruta, el plan óptimo de saldo (orden, fecha, ahorro y tramos con las cuotas liberadas redirigidas). `docs/PROPUESTA_UNDECIMA_AUDITORIA_2026-11-21.md`: la fiabilidad silenciosa (UND-01 a UND-03 primero), 26 funciones y las decisiones D-N24 y D-N25 (PROJECT_STATE 518).
+
 **21/11/2026 · DEC-38, paso 3, tandas 3 a 5: Plan › Mes, Cierre, Ajustes, Deuda, la cabecera y el simulador visual a 195 px; Hoy recupera su gráfico:** la cabecera del móvil pasa de 117 a 46 px; el CI mira ya 10 pantallas a 195 px y una e2e, el simulador de siempre dentro de su iframe. El gráfico de Hoy se perdía al volver a abrir la app desde el 10/11 (la previsión diaria guardada no traía sus filas): corregido (PROJECT_STATE 517).
 
 **21/11/2026 · DEC-38, paso 3: Hoy, Movimientos, Previsión y Clasificar con el zoom al 200 % (195 px):** se leen sin salirse ni apretar el texto; lo vigilan el CI (Hoy y Movimientos) y una e2e (las cuatro). Siguiente tanda: Plan › Mes y Cierre (PROJECT_STATE 516).

@@ -182,6 +182,7 @@ const files = [
   "canonical-rate-review.js",
   "revision-tipo-ui.js",
   "canonical-debt-payoff-path.js",
+  "canonical-debt-optimal-plan.js",
   "camino-deuda-ui.js",
   "canonical-loan-payoff-plan.js",
   "prestamo-deuda-ui.js",

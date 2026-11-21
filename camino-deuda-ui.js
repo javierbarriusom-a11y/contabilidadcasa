@@ -199,3 +199,135 @@ function attachCaminoDeuda(doc) {
   doc.addEventListener("input", caminoOnInput);
   return true;
 }
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Plan óptimo de saldo de deuda (21/11/2026, petición del hogar: «quiero seguir con un plan optimizado de saldo de deuda»). Encima de
+// «Camino a deuda cero», en Deuda › Ruta. El cálculo es canonical-debt-optimal-plan.js, que usa el mismo motor que el camino. Dos
+// controles: lo que se pone al mes además de las cuotas (de entrada, la capacidad libre de Hoy, a la decena por abajo) y un pago
+// inicial (de entrada, 0; se dice cuánto hay por encima del suelo del colchón en los próximos 12 meses). Propone, no ejecuta (A11-4).
+let planOptimoMensual = null; // null: aún sin tocar, se parte de la capacidad libre
+let planOptimoPago = 0;
+let planOptimoLast = null;
+
+function planOptimoGuard(fn, fallback = null) {
+  try {
+    const value = fn();
+    return value === undefined ? fallback : value;
+  } catch {
+    return fallback;
+  }
+}
+
+// Capacidad libre al mes (la de Hoy › Patrimonio y deuda, «Capacidad libre real») y lo que hay por encima del suelo del colchón que la
+// previsión no toca en 12 meses (el dinero parado de la escalera del próximo euro). Solo para partir y para avisar.
+function planOptimoReferencias() {
+  const capacity = planOptimoGuard(() => Number(unifiedActionCenterModel()?.context?.capacity?.avgTransfer12m), null);
+  const idle = planOptimoGuard(() => {
+    if (!globalThis.FinanceCanonicalNextEuro || typeof proxEuroIdleModel !== "function") return null;
+    const model = proxEuroIdleModel(globalThis.FinanceCanonicalNextEuro, { idleOptions: [] });
+    return model?.status === "ok" ? model.windows.find((row) => row.months === 12 && row.calculable)?.idle ?? null : null;
+  }, null);
+  return { capacity: Number.isFinite(capacity) ? capacity : null, available: Number.isFinite(idle) ? idle : null };
+}
+
+const PLAN_OPTIMO_ESTRATEGIA = { avalancha: "avalancha", "bola-nieve": "bola de nieve" };
+
+function planOptimoRazonHtml(r) {
+  const rec = r.recommended;
+  const alt = r.alternative;
+  const first = rec.summary.firstPayoff;
+  const altFirst = alt.summary.firstPayoff;
+  if (rec.reason === "avalancha") {
+    const diff = r.diferenciaAlternativa;
+    return `<p class="cam-frase"><strong>Orden recomendado: avalancha</strong>, primero la deuda más cara. Es el que menos intereses paga${diff > 0 ? `: ${escapeHtml(money(diff, true))} menos que empezar por la más pequeña` : ""}.</p>`;
+  }
+  const meses = first && altFirst ? altFirst.payoffIndex - first.payoffIndex : 0;
+  const coste = Math.max(0, -Number(r.diferenciaAlternativa || 0));
+  return `<p class="cam-frase"><strong>Orden recomendado: bola de nieve</strong>, primero la deuda más pequeña. Saldáis ${escapeHtml(first.label)} en ${escapeHtml(caminoMonthText(first.payoffMonthKey))}${meses > 0 ? `, ${caminoMonths(meses)} antes` : ""}${coste > 0 ? `, por ${escapeHtml(money(coste, true))} más de intereses en total que con la avalancha. Una cuota menos pronto ayuda a sostener el plan, y eso vale esa diferencia` : ", y además sin pagar más intereses"}.</p>`;
+}
+
+function planOptimoTramosHtml(periods) {
+  if (!periods.length) return "";
+  const items = periods.map((p) => {
+    const acaba = p.settledId !== p.targetId ? ` <small>(ese mes acaba ${escapeHtml(p.settledLabel)} por su calendario y su cuota se suma)</small>` : "";
+    return `<li><strong>Hasta ${escapeHtml(caminoMonthText(p.payoffMonthKey))}:</strong> ${escapeHtml(money(p.extra, true))} al mes de más a ${escapeHtml(p.targetLabel)}${acaba}</li>`;
+  }).join("");
+  return `<ol class="plan-optimo-tramos" aria-label="Qué se paga de más cada mes y a qué deuda">${items}</ol>`;
+}
+
+function planOptimoAvisosHtml(r, refs) {
+  const notes = [];
+  for (const w of r.warnings) {
+    if (w.id === "por-encima-capacidad") notes.push(`<strong>Por encima de vuestra capacidad libre</strong> (${escapeHtml(money(w.capacity, true))} al mes): con más, la previsión puede bajar del suelo algún mes. Miradlo en Plan › Previsión.`);
+    if (w.id === "por-encima-disponible") notes.push(`<strong>El pago inicial pasa de lo que sobra sobre el suelo del colchón</strong> en los próximos 12 meses (${escapeHtml(money(w.available, true))}): os quedaríais por debajo del colchón.`);
+    if (w.id === "pago-inicial-sobra") notes.push(`Del pago inicial sobran ${escapeHtml(money(w.amount, true))}: con lo demás ya se saldan las deudas que entran en la cuenta.`);
+    if (w.id === "fuera") notes.push(`<strong>No entran en la cuenta</strong> ${w.count === 1 ? "una deuda" : `${w.count} deudas`} (${escapeHtml(money(w.principal, true))}) sin cuota activa o sin TAE ni plazo; las fechas son las de las demás. Completadlas en Contratos.`);
+  }
+  if (refs.available !== null && !r.lump && refs.available > 0) notes.push(`Por encima del suelo del colchón tenéis unos ${escapeHtml(money(refs.available, true))} que la previsión no toca en 12 meses: probad a poner parte como pago inicial.`);
+  notes.push("Se calcula con «Camino a deuda cero» (capital, cuota y TAE de cada contrato), pero aquí las cuotas que se liberan al saldar una deuda <strong>sí</strong> pasan a la siguiente. A lo pactado con una entidad no se le adelanta nada. Sin comisiones por amortizar antes ni cambios de tipo. Es una propuesta: no ejecuta nada.");
+  return notes.map((note) => `<p class="e19-kpi-note">${note}</p>`).join("");
+}
+
+function planOptimoHtml(engine, contracts, todayKey, refs, Plan) {
+  if (!Plan) return "";
+  const monthly = planOptimoMensual === null ? Math.max(0, Math.floor((refs.capacity || 0) / 10) * 10) : planOptimoMensual;
+  const r = Plan.plan(engine, contracts, { startMonthKey: todayKey, monthly, lump: planOptimoPago, order: caminoOrder(contracts), capacity: refs.capacity, available: refs.available });
+  if (!r.ok) return `<p class="e19-kpi-note">${escapeHtml(r.error)}</p>`;
+  if (r.nothing) return `<p class="e19-kpi-note">No hay deudas con capital pendiente: no hay plan que hacer.</p>`;
+  if (r.sinDatos) return `<p class="e19-kpi-note"><strong>No se puede calcular.</strong> Ninguna deuda tiene cuota activa con TAE o plazo: completadlas en Contratos.</p>`;
+  const s = r.recommended.summary;
+  const base = r.baseline;
+  const heroes = `<div class="cam-heroes">
+      ${caminoHeroHtml("Libre de deuda", s.debtFreeMonthKey ? caminoMonthText(s.debtFreeMonthKey) : "sin fecha", s.monthsSaved > 0 ? `${caminoMonths(s.monthsSaved)} antes que hoy (${caminoMonthText(base.debtFreeMonthKey)})` : base.beyondHorizon ? "hoy alguna deuda no acaba" : "como el calendario actual")}
+      ${caminoHeroHtml("Intereses que os ahorráis", s.interestSaved === null ? "—" : money(s.interestSaved, true), s.totalInterest === null ? "alguna deuda no acaba" : `pagaréis ${money(s.totalInterest, true)} en lugar de ${money(base.totalInterest ?? 0, true)}`)}
+      ${caminoHeroHtml("Primera deuda saldada", s.firstPayoff ? s.firstPayoff.label : "—", s.firstPayoff ? caminoMonthText(s.firstPayoff.payoffMonthKey) : "")}
+    </div>`;
+  const pago = r.recommended.lumpApplied.length
+    ? `<p class="e19-kpi-note">El pago inicial va a ${r.recommended.lumpApplied.map((x) => `${escapeHtml(x.label)} (${escapeHtml(money(x.amount, true))}${x.settles ? ", la salda" : ""})`).join(" y ")}.</p>`
+    : "";
+  return `${heroes}${planOptimoRazonHtml(r)}${planOptimoTramosHtml(r.recommended.periods)}${pago}${planOptimoAvisosHtml(r, refs)}`;
+}
+
+// La llama renderDeudaRuta (views/deuda.js) junto a la del camino, con el motor del camino y el del plan.
+function renderPlanOptimo(engine, contracts, Plan) {
+  const box = qs("planOptimoResultado");
+  if (!box || !engine || !Plan) return;
+  attachPlanOptimo(document);
+  planOptimoLast = { engine, contracts, Plan };
+  try {
+    const refs = planOptimoReferencias();
+    const mensual = qs("planOptimoMensual");
+    if (mensual && planOptimoMensual === null && document.activeElement !== mensual) mensual.value = String(Math.max(0, Math.floor((refs.capacity || 0) / 10) * 10));
+    const html = planOptimoHtml(engine, contracts || [], isoLocalDate(new Date()).slice(0, 7), refs, Plan);
+    if (box.__planHtml !== html) {
+      box.innerHTML = html;
+      box.__planHtml = html;
+    }
+  } catch (error) {
+    console.error(`renderPlanOptimo: ${error.message}`);
+  }
+}
+
+function planOptimoOnInput(event) {
+  const target = event.target;
+  if (!target || (target.id !== "planOptimoMensual" && target.id !== "planOptimoPago")) return;
+  const parsed = caminoParseExtra(target.value);
+  const note = qs("planOptimoNota");
+  if (parsed === null) {
+    target.setAttribute("aria-invalid", "true");
+    if (note) note.textContent = "Escribe un importe de 0 € o más, por ejemplo 150.";
+    return;
+  }
+  target.removeAttribute("aria-invalid");
+  if (note) note.textContent = "";
+  if (target.id === "planOptimoMensual") planOptimoMensual = parsed;
+  else planOptimoPago = parsed;
+  if (planOptimoLast) renderPlanOptimo(planOptimoLast.engine, planOptimoLast.contracts, planOptimoLast.Plan);
+}
+
+function attachPlanOptimo(doc) {
+  if (!doc || doc.__planOptimoAttached) return false;
+  doc.__planOptimoAttached = true;
+  doc.addEventListener("input", planOptimoOnInput);
+  return true;
+}

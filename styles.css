@@ -12093,6 +12093,16 @@ tbody tr:hover {
     grid-column: 1 / -1;
   }
 
+  /* 21/11/2026 · «Decisiones abiertas» de Hoy (se ve en Hoy › Seguimiento): estas filas no llevan número, así que la columna de 34 px
+     se la quedaba el texto («8 partidas sin real» salía letra a letra) y el botón ocupaba el resto. Una columna, botón debajo. */
+  .unified-action.home-decision-open {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .unified-action.home-decision-open button {
+    grid-column: 1;
+  }
+
   .action-review-dialog {
     padding: 22px 18px 18px;
   }
@@ -13550,6 +13560,28 @@ input[data-amount-input][aria-invalid="true"] {
 
   main .cam-hito-barra {
     grid-column: 1;
+  }
+
+  /* Hoy › Patrimonio y deuda (21/11/2026): la etiqueta de una cifra («Cerca del umbral») baja bajo su título y puede partirse. */
+  main .e19-kpi-head {
+    flex-wrap: wrap;
+  }
+
+  main .e19-kpi-head > .e19-kpi-badge {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  /* …y cada fila de la salud financiera: la cifra («70.3/100», «sin datos») bajo su nombre si no caben juntos. */
+  main .home-health-score-item {
+    flex-wrap: wrap;
+  }
+
+  /* …y en Caja, las tarjetas del seguimiento predictivo: los títulos y la ayuda pueden partirse (con fuentes algo más anchas se salían). */
+  main .p2-item,
+  main .p2-item :is(h4, p) {
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   main .deuda-flow-nav {
