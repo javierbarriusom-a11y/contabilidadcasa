@@ -45,7 +45,7 @@ test("DEC-38 · paso 3: por debajo de 260 px, Hoy y Movimientos se apilan en vez
   assert.match(styles.slice(base), /main \{\n {4}padding-left: 8px;\n {4}padding-right: 8px;/, "menos margen a los lados de la pantalla");
   assert.match(styles.slice(base), /\.dex5-onboarding-actions \{\n {4}flex-wrap: wrap;/);
   const html = read("index.html");
-  for (const file of ["styles.css", "tema-v2.css"]) assert.match(html, new RegExp(`${file.replace(".", "\\.")}\\?v=20261121(?:dec38d|areas)`), file); // y a «areas» con Hoy por áreas
+  for (const file of ["styles.css", "tema-v2.css"]) assert.match(html, new RegExp(`${file.replace(".", "\\.")}\\?v=20261121(?:dec38d|areas|d658)`), file); // y a «areas» con Hoy por áreas; a «d658» con lo que traía #658 (el índice de Ajustes y la fila «Ahorro»)
 });
 
 // Tandas 3 a 5 (21/11/2026): Plan › Mes, Cierre, Ajustes, Deuda (Ruta, Comparar, Préstamo, Contratos y el simulador visual, el nuevo y el
@@ -57,7 +57,7 @@ test("DEC-38 · paso 3, tandas 3 a 5: Plan, Cierre y el simulador nuevo se apila
   const bloque = css.slice(at);
   assert.match(bloque, /@media \(max-width: 259px\) \{/);
   assert.match(bloque, /\.plan-v2-leyenda \{\n {4}grid-template-columns: minmax\(0, 1fr\);/);
-  assert.match(bloque, /tr\.plan-v2-financiaciones \{\n {4}grid-template-columns: minmax\(0, 1fr\);/);
+  assert.match(bloque, /tr\.plan-v2-financiaciones,\n {2}:root\[data-tema="v2"\] \.plan-v2-tabla tr\.plan-v2-ahorro-fila,\n {2}:root\[data-tema="v2"\] \.plan-v2-tabla tr\.plan-v2-fila,\n {2}:root\[data-tema="v2"\] \.plan-v2-tabla tr\.plan-v2-bloque \{\n {4}grid-template-columns: minmax\(0, 1fr\);/); // y la del ahorro, cada partida y cada bloque (21/11)
   assert.match(bloque, /\.cierre-v2-paso \{\n {4}grid-template-columns: minmax\(0, 1fr\);/, "el icono encima del texto");
   assert.match(bloque, /\.cierre-v2-lado \.e19-btn \{\n {4}white-space: normal;/, "«Firmar el cierre» cabe");
   assert.match(bloque, /\.sim-v2-cifras \{\n {4}grid-template-columns: minmax\(0, 1fr\);/, "las cuatro cifras del simulador, una debajo de otra");
@@ -83,4 +83,14 @@ test("DEC-38 · paso 3, tanda 5: el simulador de siempre (iframe) estrecha y cam
   assert.match(roadmap, /@media\(max-width:259px\)\{\.kpis,\.metric-grid,\.summary-cards,\.form,\.inline4,\.profile-grid,\.scenarios,\.compare-grid,\.kanban,\.two,\.forecast-grid,\.flow\{grid-template-columns:minmax\(0,1fr\)\}/);
   assert.match(roadmap, /\.card>table\{display:block;overflow-x:auto\}/, "la tabla del semáforo se desplaza dentro de su tarjeta");
   assert.ok(read("index.html").includes('src="debt-roadmap.html?v=20261121dec38d"'), "el iframe pide la versión nueva");
+});
+
+// 21/11/2026, lo que #659 no cubría: el índice de Ajustes (a 195 × 422 px medía 439 px y, fijo, tapaba la pantalla entera) y la
+// fila «Ahorro» de Plan › Mes, como «Financiaciones» a cualquier ancho.
+test("DEC-38 · el índice de Ajustes no va fijo por debajo de 260 px y la fila «Ahorro» va como «Financiaciones»", () => {
+  const styles = read("styles.css");
+  assert.match(styles.slice(styles.lastIndexOf("@media (max-width: 259px) {")), /main \.e19-ajustes-anchors \{\n {4}position: static;/);
+  const css = read("tema-v2.css");
+  assert.match(css, /:root\[data-tema="v2"\] \.plan-v2-financiaciones small,\n:root\[data-tema="v2"\] \.plan-v2-ahorro-fila small \{\n {2}display: block;/);
+  assert.match(css, /\.plan-v2-tabla tr\.plan-v2-financiaciones,\n {2}:root\[data-tema="v2"\] \.plan-v2-tabla tr\.plan-v2-ahorro-fila \{\n {4}grid-template-columns: minmax\(0, 1fr\) auto auto;/);
 });
