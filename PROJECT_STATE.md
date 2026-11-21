@@ -113,6 +113,22 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 21 de noviembre de 2026 (516): DEC-38, paso 3, primeras dos tandas: Hoy, Movimientos, Previsión y Clasificar a 195 px
+
+- **Publicado de antes:** #656 (DEC-45) fusionado con su CI en verde a la primera (70 min, Safari incluido): main 82456009. «Verify and deploy Pages» **1505** en verde, publicado a las 10:16 UTC; «Published availability» **388** (lanzada a mano a las 10:21, tras publicarse) en verde. DEC-45 está en el sitio.
+- **El hogar:** «Sigue con DEC-38, empezando por Hoy y Movimientos» y, después, «Sigue con la siguiente tanda: Clasificar y Previsión». Las dos tandas, en este PR: son la misma entrega.
+- **Qué:** a 195 px (un móvil de 390 px con el zoom de la página al 200 %), sin salirse y sin apretar el texto. Solo CSS y solo por debajo de 260 px, salvo tres rejillas sin columnas que no dejaban estrechar la suya (`minmax(0, 1fr)` en el titular de Hoy y en la tira de cobertura; no cambian nada a 260 px o más):
+  - **todas las pantallas:** 8 px de margen a los lados en vez de 14;
+  - **Hoy:** la cifra protagonista más pequeña (y puede partirse), las dos cifras de debajo una encima de otra, «Decidir esta semana» en una columna (número, texto, nivel y botón; el texto se quedaba en 18 px), títulos y filas que bajan de línea, y los botones de la guía de primeros pasos uno debajo de otro;
+  - **Movimientos:** el título a 20 px, las filas de la bandeja con el icono arriba y el texto debajo, cada movimiento con la inicial y el importe arriba y el concepto debajo a todo el ancho (se quedaba en una letra por línea) y la tira de cobertura sin cortar;
+  - **Previsión:** «Qué lo mueve» del panel del día (el concepto se partía letra a letra);
+  - **Clasificar:** el nombre del grupo a 17 px (se partía a media palabra) y los dos botones uno encima de otro, «Aceptar y siguiente» arriba (en fila, se salía por la derecha del panel).
+- **Lección, anotada en la décima:** con la comprobación del CI solo salían 5 elementos; mirando las capturas, bastantes más. «Nada se sale» no es «se lee»: a este ancho, cada pantalla se mira. Por eso hay e2e que miden el ancho que le queda al texto.
+- **Visto y no hecho aquí:** Plan › Mes no se lee a 195 px (cabeceras de bloque montadas sobre su importe); el hogar pidió después esa tanda (Plan › Mes y Cierre), que va en el PR siguiente.
+- **CI:** `tools/check-mobile-overflow.mjs` mira también a 195 px las pantallas ya revisadas (`REVISADAS_A_195`: Hoy y Movimientos); las demás se suman por tandas. Clasificar es un diálogo y no lo recorre: lo vigila la e2e.
+- **Pruebas:** `tests/dec38-paso3-195.test.cjs` (3); e2e «DEC-38 · a 195 px» (2: Hoy y Movimientos con movimientos FICTICIOS de conceptos largos; Previsión y Clasificar); `dec38-reflujo-320` y `t9-recorte-pantalla` con el ancho nuevo. Versiones de `styles.css` y `tema-v2.css` a `20261121dec38c` (ajustadas en `audit-svg-tablas-oscuro`, `e17-interface`, `t8-alto-contraste-y-reduced-motion`, `dec23-hecho-esta-semana`, `dec30-semana-que-viene` y `dec45-te-sirve`).
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` **6.837/6.837** (+3). `npm run test:mobile-overflow` en verde (337 visitas, con 195 px). Batería completa en local (e2e + a11y, Chromium): **485/485** (23,0 min).
+
 ## Cierre de sesión — 21 de noviembre de 2026 (515): DEC-45, «¿te sirve?» en Novedades
 
 - **Publicado de antes:** #655 (DEC-30) fusionado con su CI en verde a la primera (59 min, Safari incluido): main 18de42b5. «Verify and deploy Pages» **1503** en verde, publicado a las 06:33 UTC; «Published availability» **386** (la programada de las 07:00, ya tras publicarse) y **387** (lanzada a mano a las 07:02), las dos en verde. DEC-30 está en el sitio.
