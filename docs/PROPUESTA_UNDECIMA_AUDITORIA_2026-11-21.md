@@ -221,7 +221,7 @@ desde lo hecho. *Métrica:* meses seguidos cumpliendo el plan. M · P1.
 **UND-15 · Deuda en tres pestañas: Plan · Contratos · Ofertas.** **Plan:** el plan óptimo arriba, el camino y el calendario.
 **Contratos:** los datos. **Ofertas:** Comparar, Préstamo y el simulador visual, que responden a «¿y si aceptamos esta oferta?».
 *Por qué:* §2.3; seis superficies para una pregunta. *Interfaz:* las pestañas numeradas de siempre, pero tres; los enlaces viejos
-(`#deuda-ruta`, `#deuda-comparar`…) siguen funcionando y llevan a su sitio nuevo. **Se consulta:** cambia una pantalla en uso. L · P2.
+(`#deuda-ruta`, `#deuda-comparar`…) siguen funcionando y llevan a su sitio nuevo. **Se consulta:** cambia una pantalla en uso. L · P2. **Decidida el 21/11 (D-N28: «Sí») y hecha el mismo día** (PROJECT_STATE 519): las cinco pantallas siguen siendo propias; lo que cambia es la navegación (tres arriba, Ofertas con su fila).
 
 **UND-16 · Hitos con su momento.** Al saldar una deuda (marcada en Contratos), Hoy lo dice una vez («Habéis saldado la tarjeta: 90 €
 al mes que ya van a la siguiente») y recuerda pedir el certificado de deuda cero. *Por qué:* las finanzas conductuales
@@ -337,7 +337,7 @@ a lo pactado con una entidad no se le adelanta nada; no ejecuta nada (A11-4).
   barato? Recomendación: mantenerla. **Decidida: «ok, pero me preguntas antes y poder modificar».** Hecho el mismo día: el plan
   enseña la avalancha mientras no se elija; si la bola de nieve entra en el margen, lo pregunta; el orden elegido se recuerda y se
   cambia en «Orden», y el margen (porcentaje e importe) se edita.
-- **D-N28** (antes D-N25): ¿Deuda en tres pestañas (UND-15)? Cambia una pantalla en uso, así que se consulta. **Decidida: «Sí».**
+- **D-N28** (antes D-N25): ¿Deuda en tres pestañas (UND-15)? Cambia una pantalla en uso, así que se consulta. **Decidida: «Sí».** Hecho el mismo día: Plan · Contratos · Ofertas, con Comparar, Préstamo y el simulador dentro de Ofertas; los enlaces de siempre siguen valiendo.
 
 ---
 

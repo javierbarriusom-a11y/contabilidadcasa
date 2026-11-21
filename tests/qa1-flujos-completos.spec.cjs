@@ -12402,7 +12402,7 @@ test.describe("Deuda › Ruta · plan óptimo de saldo", () => {
     test(`pregunta antes de empezar por la más pequeña, recuerda lo elegido y se puede cambiar, ${nombre}`, async ({ page }) => {
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
-      await conContratos(page, viewport, "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160\nFinanciera FICTICIA; coche; 900; 7; 75");
+      await conContratos(page, viewport, "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160\nFinanciera FICTICIA; préstamo; 900; 7; 75");
       const plan = page.locator("#planOptimoResultado");
       await page.fill("#planOptimoMensual", "200");
       // Con el margen de entrada puede no preguntar; con uno ancho (50 % o 100.000 €), sí.

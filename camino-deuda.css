@@ -227,7 +227,7 @@
   min-width: 0;
   padding: 0 2px;
   border-bottom: 3px solid transparent;
-  margin-bottom: -1px;
+  margin-bottom: -2px;
   font: 600 var(--e19-text-sm) / 1.2 var(--e19-font-sans);
   color: var(--e19-muted);
   text-decoration: none;
@@ -239,6 +239,7 @@
 
 .deuda-ofertas-tab.is-active {
   color: var(--e19-ink);
+  font-weight: 700;
   border-bottom-color: var(--e19-accent, var(--e19-ink));
 }
 

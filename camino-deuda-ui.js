@@ -271,8 +271,8 @@ function planOptimoPreguntaHtml(r) {
   return `<div class="plan-optimo-pregunta" role="group" aria-labelledby="planOptimoPreguntaTexto">
       <p id="planOptimoPreguntaTexto"><strong>¿Empezáis por la más pequeña?</strong> Saldar primero ${escapeHtml(s.firstPayoff.label)} ${coste} y la quitáis de en medio ${caminoMonths(s.monthsEarlier)} antes (${escapeHtml(caminoMonthText(s.firstPayoff.payoffMonthKey))}): una cuota menos pronto ayuda a sostener el plan. Mientras no lo decidáis, se enseña la avalancha.</p>
       <div class="plan-optimo-pregunta-botones">
-        <button type="button" class="e19-btn" data-plan-optimo-orden="bola-nieve">Sí, por la más pequeña</button>
-        <button type="button" class="secondary-button" data-plan-optimo-orden="avalancha">No, primero la más cara</button>
+        <button type="button" class="e19-btn e19-btn-primary" data-plan-optimo-orden="bola-nieve">Sí, por la más pequeña</button>
+        <button type="button" class="e19-btn e19-btn-secondary" data-plan-optimo-orden="avalancha">No, primero la más cara</button>
       </div>
     </div>`;
 }
