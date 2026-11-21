@@ -719,6 +719,17 @@ cualquiera de ellos se consulta.
 Recomendación: el realista solo en lo que sale de un acuerdo o de una estrategia del simulador, porque es lo que pasa cuando una entidad
 acepta una quita o una refinanciación. Lo que ya existía en Escenarios no se tocaría.
 
+**Decidida el 21/11/2026 («ok»: el realista) y hecha el mismo día** (PROJECT_STATE 519):
+
+- **El plan:** un acuerdo aceptado (`svdAcuerdo`) deja de restar la cuota de hoy desde su propio mes (`debtReliefStartIndex` en
+  `app.js`, el mismo inicio en el detalle de Deuda y en la hoja «Qué ocurrirá»; `canonical-decisions.js` igual). Las demás decisiones
+  de deuda del plan, como siempre: la cuota deja de restarse al acabar su pago.
+- **Escenarios:** la estrategia guardada desde el simulador lleva `planificacion.cuotaMesCambio: "sustituye"` (campo opcional nuevo del
+  esquema; sin él, o con «se-paga», lo de siempre). Las guardadas antes se leen con el criterio nuevo, sin reescribirlas
+  (`escenarioMotorSavedCriterio`, `escenarios-ui.js`).
+- **Paridad:** la prueba de §14.1 pasa de «exactamente una cuota de hoy más» a **la misma serie, mes a mes**, en quita, refinanciación e
+  híbrido. El mensaje al guardar ya no avisa de una diferencia que no hay.
+
 ### 13.1 «Desde vuestra última visita» (18/11/2026, decisión del hogar: «haz la 3»)
 
 - **Qué se ve:** al abrir el simulador, si algo ha cambiado fuera desde la última vez, una caja «Desde vuestra última visita (día):»
@@ -784,7 +795,8 @@ acepta una quita o una refinanciación. Lo que ya existía en Escenarios no se t
 
 - **No retira el simulador de siempre** ni su motor (decisión 5 de `docs/rediseno/ESTADO.md`: retirar se consulta, tras graduar).
 - **No cambia de motor.** Se pasará al de Ruta (`canonical-debt-payoff-path.js`) cuando se decida D-N23 (el criterio del mes del
-  acuerdo); hasta entonces, la paridad con el de siempre manda.
+  acuerdo); hasta entonces, la paridad con el de siempre manda. *(D-N23 decidida el 21/11: el realista, el mismo que ya seguían el
+  simulador y Ruta. El paso de motor queda desbloqueado, sin hacer.)*
 - **Fuera de esta pantalla quedan** los perfiles, la ruta ejecutiva, el árbol de «Entidad A», el hito CIRBE de «Entidad C», el
   seguimiento por tareas, el semáforo, la validación del acuerdo y las notas. Sigue a mano: «Ver el simulador anterior». Algunos son
   de la negociación de septiembre con nombres de ejemplo; qué pasa a la pantalla nueva se decide al graduarla.

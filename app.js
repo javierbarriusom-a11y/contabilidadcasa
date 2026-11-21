@@ -252,7 +252,7 @@ const VIEW_CHUNKS = {
   "virtual-advisor": { src: "views/virtual-advisor.js?v=20260918t14d1", rootId: "virtual-advisor" },
   "executive-advisor": { src: "views/executive-advisor.js?v=20261119priv4", rootId: "executive-advisor" },
   "new-life-definitive": { src: "views/new-life-definitive.js?v=20261119priv4", rootId: "new-life-definitive" },
-  "debt-control": { src: "views/debt-control.js?v=20261119refi1", rootId: "debt-control" },
+  "debt-control": { src: "views/debt-control.js?v=20261121dn23", rootId: "debt-control" },
   "asesor-decision": { src: "views/asesor-decision.js?v=20260919t14h1", rootId: "asesor-decision" },
   reconciliation: { src: "views/reconciliation.js?v=20260924arq4a1", rootId: "reconciliation" },
   "new-life-simulation": { src: "views/new-life-simulation.js?v=20261119priv4", rootId: "new-life-simulation" },
@@ -1345,6 +1345,8 @@ const BACKUP_LOCAL_STORES = [
   "net-worth-data", // WP-46: fotos del patrimonio neto en cada cierre firmado y los supuestos de su proyección
   "calm-coverage-inputs", // WP-44: tasa de retirada y titulares de las cuentas, tecleados por el hogar
   "next-euro-inputs", // WP-42: lo que el hogar tecleó en la escalera del próximo euro
+  "plan-optimo-orden", // D-N27: el orden que el hogar eligió para el plan óptimo de saldo (avalancha o bola de nieve)
+  "plan-optimo-margen", // D-N27: el margen con el que el plan óptimo pregunta si empezar por la deuda más pequeña
   "payroll-split-drafts", // WP-47: borradores del reparto de la nómina y su lista de transferencias
   "shadow-debt-answers", // WP-41: lo que el hogar respondió a cada compromiso que parecía deuda en la sombra
   "cirbe-report", // WP-40: filas del informe de la CIRBE tecleadas por el hogar y su fecha
@@ -6160,7 +6162,7 @@ function scheduledDecisionMonthlyImpact(project, forecastIndex) {
     forecastIndex >= project.startIndex + recurringStartOffset &&
     forecastIndex < project.startIndex + recurringStartOffset + recurringDuration;
   const recurring = recurringActive ? recurringAmount : 0;
-  const reliefStart = project.startIndex + duration;
+  const reliefStart = debtReliefStartIndex(project, project.startIndex);
   const reliefMonths = debtReliefMonthsForItem(project, reliefStart);
   const effectiveRelief = effectiveDebtDecisionMonthlyRelief(project);
   const reliefActive =
@@ -7756,13 +7758,20 @@ function debtReliefMonthsForItem(item, reliefStartIndex = 0) {
   return Math.max(0, Math.ceil((principal + monthlyRelief * 2) / monthlyRelief));
 }
 
+// D-N23 (21/11/2026, decisión del hogar: «ok» al criterio realista): un acuerdo aceptado con la entidad (SVD-3, `svdAcuerdo`)
+// sustituye a la cuota de hoy desde su propio mes, como en Ruta y en el simulador; el mes del acuerdo ya no se paga también la
+// cuota de hoy. Las demás decisiones de deuda del plan siguen como siempre: la cuota deja de pagarse al acabar su pago.
+function debtReliefStartIndex(item, startIndex) {
+  if (item?.svdAcuerdo === true) return startIndex;
+  return startIndex + Math.max(1, Number(item?.duration || 1));
+}
+
 function addDebtRelief(outflows, item, startIndex) {
   if (isDebtResumeMode(item?.payoffMode || item?.mode)) return;
   if (debtTargetIsSuspended(debtTargetForDecision(item))) return;
   const monthlyRelief = Math.max(0, Number(item.monthlyRelief || 0));
   if (!monthlyRelief) return;
-  const duration = Math.max(1, Number(item.duration || 1));
-  const reliefStart = Math.min(outflows.length, startIndex + duration);
+  const reliefStart = Math.min(outflows.length, debtReliefStartIndex(item, startIndex));
   const reliefMonths = debtReliefMonthsForItem(item, reliefStart);
   if (!reliefMonths) return;
   const reliefEnd = Math.min(outflows.length, reliefStart + reliefMonths);

@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-21-deuda-orden-y-acuerdos",
+      fecha: "2026-11-21",
+      texto: "Deuda: el plan óptimo pregunta antes de empezar por la más pequeña y recuerda el orden; un acuerdo ya no paga también la cuota ese mes.",
+      href: "#deuda-ruta",
+    },
+    {
       id: "2026-11-21-plan-optimo-deuda",
       fecha: "2026-11-21",
       texto: "Deuda › Ruta: plan óptimo de saldo. Cuánto poner al mes, en qué orden saldar, cuándo acabáis y cuánto os ahorráis.",

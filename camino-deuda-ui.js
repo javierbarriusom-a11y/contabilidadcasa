@@ -209,6 +209,25 @@ let planOptimoMensual = null; // null: aún sin tocar, se parte de la capacidad 
 let planOptimoPago = 0;
 let planOptimoLast = null;
 
+// D-N27 (21/11/2026, «ok, pero me preguntas antes y poder modificar»): el orden elegido y el margen para preguntar se recuerdan en
+// este navegador. Sin elegir, la avalancha; si la bola de nieve cuesta poco más y salda antes la primera, se pregunta.
+const PLAN_OPTIMO_ORDEN_KEY = "plan-optimo-orden";
+const PLAN_OPTIMO_MARGEN_KEY = "plan-optimo-margen";
+
+function planOptimoOrdenGuardado() {
+  const value = planOptimoGuard(() => storageGet(storageKey(PLAN_OPTIMO_ORDEN_KEY), ""), "");
+  return value === "avalancha" || value === "bola-nieve" ? value : null;
+}
+
+function planOptimoMargenGuardado() {
+  const parsed = planOptimoGuard(() => JSON.parse(storageGet(storageKey(PLAN_OPTIMO_MARGEN_KEY), "null")), null);
+  return parsed && typeof parsed === "object" ? parsed : null;
+}
+
+function planOptimoGuardar(key, value) {
+  planOptimoGuard(() => storageSet(storageKey(key), value));
+}
+
 function planOptimoGuard(fn, fallback = null) {
   try {
     const value = fn();
@@ -230,20 +249,32 @@ function planOptimoReferencias() {
   return { capacity: Number.isFinite(capacity) ? capacity : null, available: Number.isFinite(idle) ? idle : null };
 }
 
-const PLAN_OPTIMO_ESTRATEGIA = { avalancha: "avalancha", "bola-nieve": "bola de nieve" };
-
 function planOptimoRazonHtml(r) {
   const rec = r.recommended;
-  const alt = r.alternative;
   const first = rec.summary.firstPayoff;
-  const altFirst = alt.summary.firstPayoff;
-  if (rec.reason === "avalancha") {
-    const diff = r.diferenciaAlternativa;
-    return `<p class="cam-frase"><strong>Orden recomendado: avalancha</strong>, primero la deuda más cara. Es el que menos intereses paga${diff > 0 ? `: ${escapeHtml(money(diff, true))} menos que empezar por la más pequeña` : ""}.</p>`;
+  const diff = Number(r.diferenciaAlternativa || 0);
+  if (rec.strategy === "avalancha") {
+    const quien = r.chosen ? "Orden elegido" : "Orden recomendado";
+    return `<p class="cam-frase"><strong>${quien}: avalancha</strong>, primero la deuda más cara. Es el que menos intereses paga${diff > 0 ? `: ${escapeHtml(money(diff, true))} menos que empezar por la más pequeña` : ""}.</p>`;
   }
+  const altFirst = r.alternative.summary.firstPayoff;
   const meses = first && altFirst ? altFirst.payoffIndex - first.payoffIndex : 0;
-  const coste = Math.max(0, -Number(r.diferenciaAlternativa || 0));
-  return `<p class="cam-frase"><strong>Orden recomendado: bola de nieve</strong>, primero la deuda más pequeña. Saldáis ${escapeHtml(first.label)} en ${escapeHtml(caminoMonthText(first.payoffMonthKey))}${meses > 0 ? `, ${caminoMonths(meses)} antes` : ""}${coste > 0 ? `, por ${escapeHtml(money(coste, true))} más de intereses en total que con la avalancha. Una cuota menos pronto ayuda a sostener el plan, y eso vale esa diferencia` : ", y además sin pagar más intereses"}.</p>`;
+  const coste = Math.max(0, -diff);
+  return `<p class="cam-frase"><strong>Orden elegido: bola de nieve</strong>, primero la deuda más pequeña. Saldáis ${escapeHtml(first?.label || "la primera")}${first ? ` en ${escapeHtml(caminoMonthText(first.payoffMonthKey))}` : ""}${meses > 0 ? `, ${caminoMonths(meses)} antes que con la avalancha` : ""}${coste > 0 ? `, por ${escapeHtml(money(coste, true))} más de intereses en total` : ", sin pagar más intereses"}. Podéis cambiarlo en «Orden».</p>`;
+}
+
+// D-N27: la pregunta, solo mientras no se ha elegido orden. Hasta contestar, se enseña la avalancha.
+function planOptimoPreguntaHtml(r) {
+  if (!r.pregunta || !r.sugerencia) return "";
+  const s = r.sugerencia;
+  const coste = s.extraCost > 0 ? `os cuesta ${escapeHtml(money(s.extraCost, true))} más de intereses en total` : "no os cuesta más intereses";
+  return `<div class="plan-optimo-pregunta" role="group" aria-labelledby="planOptimoPreguntaTexto">
+      <p id="planOptimoPreguntaTexto"><strong>¿Empezáis por la más pequeña?</strong> Saldar primero ${escapeHtml(s.firstPayoff.label)} ${coste} y la quitáis de en medio ${caminoMonths(s.monthsEarlier)} antes (${escapeHtml(caminoMonthText(s.firstPayoff.payoffMonthKey))}): una cuota menos pronto ayuda a sostener el plan. Mientras no lo decidáis, se enseña la avalancha.</p>
+      <div class="plan-optimo-pregunta-botones">
+        <button type="button" class="e19-btn" data-plan-optimo-orden="bola-nieve">Sí, por la más pequeña</button>
+        <button type="button" class="secondary-button" data-plan-optimo-orden="avalancha">No, primero la más cara</button>
+      </div>
+    </div>`;
 }
 
 function planOptimoTramosHtml(periods) {
@@ -271,7 +302,10 @@ function planOptimoAvisosHtml(r, refs) {
 function planOptimoHtml(engine, contracts, todayKey, refs, Plan) {
   if (!Plan) return "";
   const monthly = planOptimoMensual === null ? Math.max(0, Math.floor((refs.capacity || 0) / 10) * 10) : planOptimoMensual;
-  const r = Plan.plan(engine, contracts, { startMonthKey: todayKey, monthly, lump: planOptimoPago, order: caminoOrder(contracts), capacity: refs.capacity, available: refs.available });
+  const r = Plan.plan(engine, contracts, {
+    startMonthKey: todayKey, monthly, lump: planOptimoPago, order: caminoOrder(contracts), capacity: refs.capacity, available: refs.available,
+    strategy: planOptimoOrdenGuardado(), tolerance: planOptimoMargenGuardado(),
+  });
   if (!r.ok) return `<p class="e19-kpi-note">${escapeHtml(r.error)}</p>`;
   if (r.nothing) return `<p class="e19-kpi-note">No hay deudas con capital pendiente: no hay plan que hacer.</p>`;
   if (r.sinDatos) return `<p class="e19-kpi-note"><strong>No se puede calcular.</strong> Ninguna deuda tiene cuota activa con TAE o plazo: completadlas en Contratos.</p>`;
@@ -285,7 +319,7 @@ function planOptimoHtml(engine, contracts, todayKey, refs, Plan) {
   const pago = r.recommended.lumpApplied.length
     ? `<p class="e19-kpi-note">El pago inicial va a ${r.recommended.lumpApplied.map((x) => `${escapeHtml(x.label)} (${escapeHtml(money(x.amount, true))}${x.settles ? ", la salda" : ""})`).join(" y ")}.</p>`
     : "";
-  return `${heroes}${planOptimoRazonHtml(r)}${planOptimoTramosHtml(r.recommended.periods)}${pago}${planOptimoAvisosHtml(r, refs)}`;
+  return `${planOptimoPreguntaHtml(r)}${heroes}${planOptimoRazonHtml(r)}${planOptimoTramosHtml(r.recommended.periods)}${pago}${planOptimoAvisosHtml(r, refs)}`;
 }
 
 // La llama renderDeudaRuta (views/deuda.js) junto a la del camino, con el motor del camino y el del plan.
@@ -298,6 +332,7 @@ function renderPlanOptimo(engine, contracts, Plan) {
     const refs = planOptimoReferencias();
     const mensual = qs("planOptimoMensual");
     if (mensual && planOptimoMensual === null && document.activeElement !== mensual) mensual.value = String(Math.max(0, Math.floor((refs.capacity || 0) / 10) * 10));
+    planOptimoSincronizarControles();
     const html = planOptimoHtml(engine, contracts || [], isoLocalDate(new Date()).slice(0, 7), refs, Plan);
     if (box.__planHtml !== html) {
       box.innerHTML = html;
@@ -308,8 +343,62 @@ function renderPlanOptimo(engine, contracts, Plan) {
   }
 }
 
+// Los controles de orden y margen dicen lo guardado (sin pisar lo que se está escribiendo).
+function planOptimoSincronizarControles() {
+  const orden = planOptimoOrdenGuardado() || "avalancha";
+  document.querySelectorAll('input[name="planOptimoOrden"]').forEach((radio) => { radio.checked = radio.value === orden; });
+  const margen = globalThis.FinanceCanonicalDebtOptimalPlan?.tolerance?.(planOptimoMargenGuardado());
+  if (!margen) return;
+  const pct = qs("planOptimoMargenPct");
+  const abs = qs("planOptimoMargenAbs");
+  if (pct && document.activeElement !== pct && !pct.hasAttribute("aria-invalid")) pct.value = String(Math.round(margen.pct * 1000) / 10);
+  if (abs && document.activeElement !== abs && !abs.hasAttribute("aria-invalid")) abs.value = String(margen.abs);
+}
+
+function planOptimoRepintar() {
+  if (planOptimoLast) renderPlanOptimo(planOptimoLast.engine, planOptimoLast.contracts, planOptimoLast.Plan);
+}
+
+function planOptimoElegirOrden(value, enfocar) {
+  if (value !== "avalancha" && value !== "bola-nieve") return;
+  planOptimoGuardar(PLAN_OPTIMO_ORDEN_KEY, value);
+  planOptimoRepintar();
+  if (enfocar) document.querySelector(`input[name="planOptimoOrden"][value="${value}"]`)?.focus();
+  const note = qs("planOptimoNota");
+  if (note) note.textContent = value === "bola-nieve" ? "Orden guardado: primero la más pequeña. Podéis cambiarlo en «Orden»." : "Orden guardado: primero la más cara. Podéis cambiarlo en «Orden».";
+}
+
+function planOptimoOnMargen(target) {
+  const raw = String(target.value || "").replace(",", ".").trim();
+  const value = raw === "" ? NaN : Number(raw);
+  const max = target.id === "planOptimoMargenPct" ? 50 : 100000;
+  const note = qs("planOptimoNota");
+  if (!Number.isFinite(value) || value < 0 || value > max) {
+    target.setAttribute("aria-invalid", "true");
+    if (note) note.textContent = target.id === "planOptimoMargenPct" ? "Escribe un porcentaje entre 0 y 50, por ejemplo 3." : "Escribe un importe de 0 € o más, por ejemplo 150.";
+    return;
+  }
+  target.removeAttribute("aria-invalid");
+  if (note) note.textContent = "";
+  const actual = globalThis.FinanceCanonicalDebtOptimalPlan?.tolerance?.(planOptimoMargenGuardado()) || { pct: 0.03, abs: 150 };
+  const next = target.id === "planOptimoMargenPct" ? { ...actual, pct: Math.round(value * 10) / 1000 } : { ...actual, abs: Math.round(value * 100) / 100 };
+  planOptimoGuardar(PLAN_OPTIMO_MARGEN_KEY, JSON.stringify(next));
+  planOptimoRepintar();
+}
+
+function planOptimoOnChange(event) {
+  const target = event.target;
+  if (target?.name === "planOptimoOrden") planOptimoElegirOrden(target.value, false);
+}
+
+function planOptimoOnClick(event) {
+  const button = event.target?.closest?.("[data-plan-optimo-orden]");
+  if (button) planOptimoElegirOrden(button.dataset.planOptimoOrden, true);
+}
+
 function planOptimoOnInput(event) {
   const target = event.target;
+  if (target && (target.id === "planOptimoMargenPct" || target.id === "planOptimoMargenAbs")) { planOptimoOnMargen(target); return; }
   if (!target || (target.id !== "planOptimoMensual" && target.id !== "planOptimoPago")) return;
   const parsed = caminoParseExtra(target.value);
   const note = qs("planOptimoNota");
@@ -322,12 +411,14 @@ function planOptimoOnInput(event) {
   if (note) note.textContent = "";
   if (target.id === "planOptimoMensual") planOptimoMensual = parsed;
   else planOptimoPago = parsed;
-  if (planOptimoLast) renderPlanOptimo(planOptimoLast.engine, planOptimoLast.contracts, planOptimoLast.Plan);
+  planOptimoRepintar();
 }
 
 function attachPlanOptimo(doc) {
   if (!doc || doc.__planOptimoAttached) return false;
   doc.__planOptimoAttached = true;
   doc.addEventListener("input", planOptimoOnInput);
+  doc.addEventListener("change", planOptimoOnChange);
+  doc.addEventListener("click", planOptimoOnClick);
   return true;
 }

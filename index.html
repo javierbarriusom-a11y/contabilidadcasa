@@ -49,7 +49,7 @@
     <link rel="stylesheet" href="chart-kit.css?v=20261109fx12a" />
     <link rel="stylesheet" href="recordatorios.css?v=20261007wp32a1" />
     <link rel="stylesheet" href="deuda-tipo.css?v=20261007wp13a1" />
-    <link rel="stylesheet" href="camino-deuda.css?v=20261121plan" />
+    <link rel="stylesheet" href="camino-deuda.css?v=20261121dn27" />
     <link rel="stylesheet" href="prestamo-deuda.css?v=20261120dec38b" />
     <link rel="stylesheet" href="nominas.css?v=20261008wp31a1" />
     <link rel="stylesheet" href="anomalias.css?v=20261012wp36a2" />
@@ -2238,6 +2238,22 @@
                 <label class="month-picker"><span>Pago inicial (€)</span>
                   <input type="number" id="planOptimoPago" min="0" max="100000" step="100" inputmode="decimal" value="0" /></label>
               </div>
+              <!-- D-N27 (21/11/2026): el orden lo elige el hogar y se puede cambiar cuando se quiera; el plan pregunta antes de empezar por la más pequeña. -->
+              <fieldset class="plan-optimo-orden" id="planOptimoOrden">
+                <legend>Orden</legend>
+                <label><input type="radio" name="planOptimoOrden" value="avalancha" checked /> Primero la más cara (avalancha: menos intereses)</label>
+                <label><input type="radio" name="planOptimoOrden" value="bola-nieve" /> Primero la más pequeña (bola de nieve)</label>
+              </fieldset>
+              <details class="plan-optimo-margen" id="planOptimoMargen">
+                <summary>Cuándo os pregunta si empezar por la más pequeña</summary>
+                <p class="e19-kpi-note">Si cuesta como mucho esto más de intereses que la avalancha (lo que sea mayor) y salda antes la primera deuda.</p>
+                <div class="cam-control">
+                  <label class="month-picker"><span>Margen (% de los intereses)</span>
+                    <input type="number" id="planOptimoMargenPct" min="0" max="50" step="0.5" inputmode="decimal" value="3" /></label>
+                  <label class="month-picker"><span>o hasta (€)</span>
+                    <input type="number" id="planOptimoMargenAbs" min="0" max="100000" step="10" inputmode="decimal" value="150" /></label>
+                </div>
+              </details>
               <p class="e19-kpi-note" id="planOptimoNota" role="status"></p>
               <div id="planOptimoResultado" aria-live="polite"></div>
             </article>
@@ -8262,9 +8278,9 @@
     <script defer src="canonical-data-age.js?v=20261002s4a1"></script>
     <script defer src="canonical-home-margin.js?v=20261002s3a1"></script>
     <script defer src="canonical-debt-contracts.js?v=20261117svd4"></script>
-    <script defer src="canonical-scenario-schema.js?v=20261119priv4"></script>
-    <script defer src="canonical-scenario-engine.js?v=20260809e20b1"></script>
-    <script defer src="canonical-e14-debt-adapter.js?v=20261118visita"></script>
+    <script defer src="canonical-scenario-schema.js?v=20261121dn23"></script>
+    <script defer src="canonical-scenario-engine.js?v=20261121dn23"></script>
+    <script defer src="canonical-e14-debt-adapter.js?v=20261121dn23"></script>
     <script defer src="legacy-debt-roadmap-engine.js?v=20261117svd2b"></script>
     <script defer src="canonical-e14-operations.js?v=20260805e14b1"></script>
     <script defer src="canonical-e14-parity.js?v=20260805e14parity1"></script>
@@ -8330,7 +8346,7 @@
     <script defer src="canonical-receipt-ocr.js?v=20260903a173a1"></script>
     <script defer src="e17-experience.js?v=20260821d1a1"></script>
     <script defer src="e18-health.js?v=20260828a1"></script>
-    <script defer src="canonical-decisions.js?v=20260714d"></script>
+    <script defer src="canonical-decisions.js?v=20261121dn23"></script>
     <script defer src="canonical-commit-barrier.js?v=20260718p05"></script>
     <script defer src="canonical-workflow.js?v=20260714a"></script>
     <script defer src="canonical-supabase-store.js?v=20261112diskio"></script>
@@ -8341,7 +8357,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20261119priv4"></script>
-    <script defer src="novedades.js?v=20261121areas"></script>
+    <script defer src="novedades.js?v=20261121dn27"></script>
     <script defer src="ux-shell.js?v=20261121dec45"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -8377,8 +8393,8 @@
     <script defer src="canonical-rate-review.js?v=20261007wp20a1"></script>
     <script defer src="revision-tipo-ui.js?v=20261007wp20a1"></script>
     <script defer src="canonical-debt-payoff-path.js?v=20261117svd3"></script>
-    <script defer src="canonical-debt-optimal-plan.js?v=20261121plan"></script>
-    <script defer src="camino-deuda-ui.js?v=20261121plan"></script>
+    <script defer src="canonical-debt-optimal-plan.js?v=20261121dn27"></script>
+    <script defer src="camino-deuda-ui.js?v=20261121dn27"></script>
     <script defer src="canonical-loan-payoff-plan.js?v=20261114pre1"></script>
     <script defer src="prestamo-deuda-ui.js?v=20261116cla1"></script>
     <script defer src="canonical-payroll.js?v=20261008wp31a1"></script>
@@ -8425,7 +8441,7 @@
     <script defer src="importar-extracto-ui.js?v=20261119dec12"></script>
     <script defer src="laboratorio-ui.js?v=20261118dec40"></script>
     <!-- SVD-1 (17/11/2026): el puente con el simulador visual de deuda, en su propio fichero; mismo ámbito, se carga antes que la app. -->
-    <script defer src="deuda-simulador-puente.js?v=20261118visita"></script>
+    <script defer src="deuda-simulador-puente.js?v=20261121dn23"></script>
     <script defer src="canonical-net-worth.js?v=20261014wp46b2"></script>
     <script defer src="patrimonio-ui.js?v=20261014wp46b2"></script>
     <script defer src="valoracion-ui.js?v=20261006wp15a1"></script>
@@ -8434,7 +8450,7 @@
     <script defer src="fiscal-campana-ui.js?v=20261016wp23c1"></script>
     <script defer src="canonical-balance-pulse.js?v=20261004wp26b1"></script>
     <script defer src="registrar-ui.js?v=20261119priv3"></script>
-    <script defer src="escenarios-ui.js?v=20261119priv4"></script>
+    <script defer src="escenarios-ui.js?v=20261121dn23"></script>
     <script defer src="canonical-liquidity-backtest.js?v=20261005wp12a1"></script>
     <script defer src="liquidity-backtest-ui.js?v=20261005wp12a1"></script>
     <script defer src="p2-domain.js?v=20261119priv4"></script>
@@ -8468,7 +8484,7 @@
     <script defer src="siguiente-paso-ui.js?v=20261028wp17"></script>
     <script defer src="cierre-guia-ui.js?v=20261104cierreC3"></script>
     <script defer src="antes-de-decidir-ui.js?v=20261113xda10pr3"></script>
-    <script defer src="app.js?v=20261120dec22"></script>
+    <script defer src="app.js?v=20261121dn23"></script>
     <script defer src="p2-ui.js?v=20261119priv4"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

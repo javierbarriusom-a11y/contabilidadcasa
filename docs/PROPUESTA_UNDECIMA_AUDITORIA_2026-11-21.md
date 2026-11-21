@@ -81,7 +81,7 @@
   **Contratos** (los datos), **Simulador visual** (quitas y refinanciaciones por contrato), el **plan heredado** en «Versiones
   anteriores» y, desde hoy, el **plan óptimo**. Responden a variantes de una misma pregunta: «¿cómo salimos de la deuda lo antes y
   lo más barato posible sin quedarnos sin colchón?».
-- **D-N23 sigue abierta:** el simulador y Ruta dejan de pagar la cuota de hoy desde el mes de un acuerdo; el plan y Escenarios la
+- **D-N23 sigue abierta** (decidida el 21/11, después de escribir esto: el realista; ver §5.4): el simulador y Ruta dejan de pagar la cuota de hoy desde el mes de un acuerdo; el plan y Escenarios la
   siguen pagando ese mes. Mientras no se decida, el plan óptimo no puede llevar acuerdos simulados (solo los aceptados).
 - **DEC-29 (Ruta sin contradicción) sigue sin hacer:** el título puede decir «sin fecha estimable» encima de una fecha.
 
@@ -320,17 +320,24 @@ a lo pactado con una entidad no se le adelanta nada; no ejecuta nada (A11-4).
 | Versión | Qué | Depende de |
 |---|---|---|
 | v1 (hoy) | Orden, fecha, ahorro, tramos, pago inicial | — |
-| v2 | Quitas como rendimiento equivalente (UND-11) y la liquidez mes a mes (UND-12) | D-N23 (criterio de la cuota el mes del acuerdo) |
+| v2 | Quitas como rendimiento equivalente (UND-11) y la liquidez mes a mes (UND-12) | D-N23 (decidida el 21/11: el realista) |
 | v3 | Guardar el plan como escenario y seguir lo hecho cada mes (UND-14); hitos (UND-16) | SVD-4 (ya hecho) |
-| v4 | Préstamo de consolidación como candidato más del plan (Préstamo dentro del cálculo) y Deuda en tres pestañas (UND-15) | DEC-24 (estado «en impago»), consulta al hogar |
+| v4 | Préstamo de consolidación como candidato más del plan (Préstamo dentro del cálculo) y Deuda en tres pestañas (UND-15) | DEC-24 (estado «en impago»); las tres pestañas, sí (D-N28) |
 
-### 5.4 Decisiones que pide
+### 5.4 Decisiones que pide (contestadas el 21/11/2026)
+
+> **Renumeradas el 21/11/2026:** esta propuesta las llamó D-N24 y D-N25, pero esos números ya eran de las decisiones de privacidad
+> del 19/11 (`docs/PRIVACIDAD_NOMBRES.md`). Pasan a ser D-N27 y D-N28; las respuestas del hogar se refieren a ellas.
 
 - **D-N23** (abierta desde el 18/11): un solo criterio para el mes de un acuerdo. Recomendación: el realista (sin la cuota de hoy)
-  para lo que sale de un acuerdo o del simulador.
-- **D-N24 (nueva):** ¿la tolerancia de la bola de nieve (3 % o 150 €) os parece bien, o preferís que el plan sea siempre el más
-  barato? Recomendación: mantenerla. Es pequeña y se dice en euros.
-- **D-N25 (nueva):** ¿Deuda en tres pestañas (UND-15)? Cambia una pantalla en uso, así que se consulta.
+  para lo que sale de un acuerdo o del simulador. **Decidida: «ok».** Hecho el mismo día (PROJECT_STATE 519): el plan deja de restar
+  la cuota de hoy desde el mes del acuerdo aceptado, y las estrategias guardadas desde el simulador la sustituyen desde su mes en
+  Escenarios (`planificacion.cuotaMesCambio: "sustituye"`); lo demás de Escenarios, igual.
+- **D-N27** (antes D-N24): ¿la tolerancia de la bola de nieve (3 % o 150 €) os parece bien, o preferís que el plan sea siempre el más
+  barato? Recomendación: mantenerla. **Decidida: «ok, pero me preguntas antes y poder modificar».** Hecho el mismo día: el plan
+  enseña la avalancha mientras no se elija; si la bola de nieve entra en el margen, lo pregunta; el orden elegido se recuerda y se
+  cambia en «Orden», y el margen (porcentaje e importe) se edita.
+- **D-N28** (antes D-N25): ¿Deuda en tres pestañas (UND-15)? Cambia una pantalla en uso, así que se consulta. **Decidida: «Sí».**
 
 ---
 

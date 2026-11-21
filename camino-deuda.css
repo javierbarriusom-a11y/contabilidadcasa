@@ -144,3 +144,67 @@
 .plan-optimo-tramos small {
   color: var(--e19-muted);
 }
+
+/* D-N27 (21/11/2026): el orden del plan óptimo lo elige el hogar; la pregunta por la bola de nieve y el margen para hacerla. */
+.plan-optimo-orden {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 10px 0 4px;
+  padding: 0;
+  border: 0;
+  font: 400 var(--e19-text-sm) / 1.4 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.plan-optimo-orden legend {
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+
+.plan-optimo-orden label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  min-width: 0;
+}
+
+.plan-optimo-margen {
+  margin: 4px 0 8px;
+  font: 400 var(--e19-text-sm) / 1.4 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.plan-optimo-margen > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.plan-optimo-pregunta {
+  margin: 8px 0 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--e19-border);
+  border-left: 4px solid var(--e19-accent, var(--e19-border));
+  border-radius: var(--e19-radius-sm, 8px);
+  font: 400 var(--e19-text-base) / 1.45 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.plan-optimo-pregunta p {
+  margin: 0 0 10px;
+  overflow-wrap: anywhere;
+}
+
+.plan-optimo-pregunta-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.plan-optimo-pregunta-botones button {
+  min-height: 44px;
+  white-space: normal;
+}
