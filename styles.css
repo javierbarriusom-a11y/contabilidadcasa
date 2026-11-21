@@ -13562,6 +13562,16 @@ input[data-amount-input][aria-invalid="true"] {
     grid-column: 1;
   }
 
+  /* Hoy › Patrimonio y deuda (21/11/2026): la etiqueta de una cifra («Cerca del umbral») baja bajo su título y puede partirse. */
+  main .e19-kpi-head {
+    flex-wrap: wrap;
+  }
+
+  main .e19-kpi-head > .e19-kpi-badge {
+    max-width: 100%;
+    white-space: normal;
+  }
+
   main .deuda-flow-nav {
     flex-wrap: wrap;
     gap: 8px;

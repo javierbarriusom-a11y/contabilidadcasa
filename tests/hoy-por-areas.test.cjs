@@ -60,3 +60,10 @@ test("versiones y Novedades", () => {
   for (const file of ["views/hoy-v2.js", "tema-v2.css", "styles.css", "novedades.js"]) assert.ok(html.includes(`${file}?v=20261121areas`), file);
   assert.match(read("novedades.js"), /id: "2026-11-21-hoy-por-areas"/);
 });
+
+test("a 195 px, la etiqueta de cada cifra de Patrimonio y deuda baja bajo su título (el CI recorre cada área)", () => {
+  const styles = read("styles.css");
+  const bloque = styles.slice(styles.indexOf("/* DEC-38 · paso 3, tandas 3 a 5"));
+  assert.match(bloque, /main \.e19-kpi-head \{\n {4}flex-wrap: wrap;/);
+  assert.match(bloque, /main \.e19-kpi-head > \.e19-kpi-badge \{\n {4}max-width: 100%;\n {4}white-space: normal;/);
+});
