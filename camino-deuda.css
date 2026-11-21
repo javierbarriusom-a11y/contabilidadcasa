@@ -247,3 +247,13 @@
   outline: 2px solid var(--e19-accent, var(--e19-ink));
   outline-offset: 2px;
 }
+
+/* Despliegue 1518 en rojo (21/11/2026): en Safari a 390 px, al llevar a la vista una pestaña de Deuda, la cabecera fija del móvil
+   (70 px) la tapaba y el toque caía en otro elemento. Las dos filas de pestañas dejan ese hueco arriba al desplazarse a ellas o
+   al recibir el foco (WCAG 2.4.11, el foco no queda tapado). */
+.e19-deuda-decidir .e19-registrar-tabs,
+.e19-deuda-decidir .e19-registrar-tab,
+.deuda-ofertas-tabs,
+.deuda-ofertas-tab {
+  scroll-margin-top: 88px;
+}

@@ -12395,15 +12395,18 @@ test.describe("D-N28 · Deuda en tres pestañas", () => {
       await expect(page.locator("#deudaRutaScreenTabs a[aria-current=page]")).toHaveText("1Plan");
       await expect(page.locator("#deuda-ruta > .section-title .e19-eyebrow")).toHaveText("Deuda · Plan");
       await expect(page.locator("#deudaRutaFlowNav")).toContainText("Contratos →");
-      // Ofertas abre Comparar, con su fila.
-      await page.locator("#deudaRutaScreenTabs a", { hasText: "Ofertas" }).click();
+      // Ofertas abre Comparar, con su fila. Con el teclado: en Safari a 390 px la página aún se desplaza mientras Ruta acaba de
+      // pintarse y el toque en un punto fijo caía en otro elemento (despliegue 1518); el enlace es el mismo.
+      await page.locator("#deudaRutaScreenTabs a", { hasText: "Ofertas" }).focus();
+      await page.keyboard.press("Enter");
       await expect(page).toHaveURL(/#deuda-comparar$/);
       // En Comparar, «Ofertas» es su propia dirección: aria-current="page"; en Préstamo y el simulador, «true».
       await expect(page.locator("#deudaCompararScreenTabs a[aria-current=page]")).toHaveText("3Ofertas");
       const fila = page.locator("#deudaCompararOfertasTabs a");
       await expect(fila).toHaveText(["Comparar", "Préstamo", "Simulador visual"]);
       await expect(page.locator("#deudaCompararOfertasTabs a[aria-current=page]")).toHaveText("Comparar");
-      await page.locator("#deudaCompararOfertasTabs a", { hasText: "Préstamo" }).click();
+      await page.locator("#deudaCompararOfertasTabs a", { hasText: "Préstamo" }).focus();
+      await page.keyboard.press("Enter");
       await expect(page).toHaveURL(/#deuda-prestamo$/);
       await expect(page.locator("#deudaPrestamoOfertasTabs a[aria-current=page]")).toHaveText("Préstamo");
       await expect(page.locator("#deudaPrestamoScreenTabs a[aria-current=true]")).toHaveText("3Ofertas");
