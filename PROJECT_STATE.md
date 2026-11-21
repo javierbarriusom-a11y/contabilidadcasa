@@ -115,6 +115,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 
 ## Cierre de sesión — 21 de noviembre de 2026 (520): lo que dejó #658 (otra conversación), portado y publicado desde aquí
 
+- **Publicado de antes:** #661 (D-N23, D-N27 y D-N28) con su CI en verde a la primera (59 min, Safari incluido), fusionado comprobada la cabeza 857e919f: main 0551b53a. Su despliegue, en curso al escribir esto.
 - **El hogar:** «Todo lo que esté pendiente de otras conversaciones hazlo tú». Lo único abierto era #658 (borrador, sin la main de #660), con lo que #659 no cubría. Se porta a esta rama, que ya llevaba #661, y **#658 se cierra sin fusionar** al publicarse este; su trabajo queda aquí.
 - **Qué trae, tal cual lo hizo aquella conversación** (no se ha cambiado nada; se ha comprobado de nuevo):
   - **DEC-22, el foco sin opener:** si el enlace del aviso del domingo abría el repaso antes de que Hoy pintara su entrada, no había opener y, al cerrar, el foco se quedaba en `<body>`, también con el reintento de #659. El repaso abierto desde el enlace va marcado «encima de Hoy» (`repasoV2Open(…, { desdeHoy: true })`). Hacen falta las dos defensas;
