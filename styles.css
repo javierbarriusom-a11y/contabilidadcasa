@@ -13451,3 +13451,114 @@ input[data-amount-input][aria-invalid="true"] {
     flex: 1 1 100%;
   }
 }
+
+/* DEC-38 · paso 3, tandas 3 a 5 (21/11/2026): por debajo de 260 px (195 px, el zoom al 200 %), en los dos temas. La cabecera del
+   móvil, de 117 px a menos de 50: solo el «FC» y «Menú» (el nombre de la app y del plan no caben y ocupaban un tercio de la pantalla
+   de 422 px de alto). Ajustes y Deuda: lo que va en fila (título y etiqueta, texto y botón, nombre y cifra) baja de línea. */
+@media (max-width: 259px) {
+  .sidebar {
+    padding: 6px 8px;
+  }
+
+  .sidebar .brand-block {
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+    font-size: 13px;
+  }
+
+  .sidebar .brand-block > div:not(.brand-mark) {
+    display: none;
+  }
+
+  .sidebar .brand-block > .mobile-nav-toggle {
+    grid-column: 3;
+    min-width: 0;
+    min-height: 34px;
+    padding: 4px 12px;
+  }
+
+  /* Ajustes: tarjetas de Versiones anteriores, panel de uso y su pregunta de minutos. */
+  .laboratorio-card-head,
+  .panel-uso-cabecera {
+    flex-wrap: wrap;
+  }
+
+  .laboratorio-card-head > div,
+  .panel-uso-cabecera > strong {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .panel-uso-minutos-fila {
+    flex-wrap: wrap;
+  }
+
+  /* Deuda: el resumen de cada pestaña y la tarjeta de cada estrategia de Comparar (220 px de mínimo), los avisos con su texto a lo
+     ancho y el paso siguiente del flujo bajo el anterior. */
+  /* design-tokens.css y camino-deuda.css van después de esta hoja: «section» y «main» ganan a su misma regla. */
+  section.e19-deuda-decidir .deuda-decidir-strategy-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  section.e19-deuda-decidir .deuda-decidir-strategy-card {
+    padding: 12px;
+  }
+
+  section.e19-deuda-decidir .deuda-decidir-strategy-flag {
+    position: static;
+    align-self: flex-start;
+  }
+
+  section.e19-deuda-decidir .deuda-decidir-strategy-kpis div,
+  section.e19-deuda-decidir .deuda-decidir-strategy-actions,
+  main .e19-insight {
+    flex-wrap: wrap;
+  }
+
+  main .e19-insight > * {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  section.e19-deuda-decidir .deuda-decidir-strategy-actions > .e19-btn {
+    flex: 1 1 100%;
+  }
+
+  main .cam-heroes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Préstamo: la política de deuda con su recuento debajo del título y «Probar a 60 meses» a todo el ancho; Ruta: cada hito con su
+     nombre a lo ancho (con contratos de nombre largo se quedaba en 85 px). */
+  main .pre-politica-cabecera {
+    flex-wrap: wrap;
+  }
+
+  main .pre-check-item > .e19-btn {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+
+  main .cam-hito {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  main .cam-hito-barra {
+    grid-column: 1;
+  }
+
+  main .deuda-flow-nav {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  main .deuda-flow-nav > * {
+    flex: 1 1 100%;
+    text-align: center;
+  }
+}

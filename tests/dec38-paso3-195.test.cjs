@@ -8,10 +8,10 @@ const path = require("node:path");
 
 const read = (file) => fs.readFileSync(path.join(__dirname, "..", file), "utf8");
 
-test("DEC-38 · paso 3: el CI mira a 195 px las pantallas revisadas, empezando por Hoy y Movimientos", () => {
+test("DEC-38 · paso 3: el CI mira a 195 px las pantallas revisadas (Hoy, Movimientos, Plan, Cierre, Ajustes y Deuda)", () => {
   const tool = read("tools/check-mobile-overflow.mjs");
   assert.match(tool, /const WIDTHS = \[195, 260, 320, 360, 768, 1280\];/);
-  assert.match(tool, /const REVISADAS_A_195 = new Set\(\["home", "movements"\]\);/);
+  assert.match(tool, /const REVISADAS_A_195 = new Set\(\["home", "movements", "plan", "cierre", "ajustes", "deuda-ruta", "deuda-comparar", "deuda-prestamo", "deuda-contratos", "deuda-simulador"\]\);/);
   assert.match(tool, /if \(width === 195 && !REVISADAS_A_195\.has\(id\)\) continue;/, "a 195 px, solo las revisadas");
 });
 
@@ -24,9 +24,9 @@ test("DEC-38 · paso 3: las rejillas sin columnas ya no impiden estrechar (titul
 
 test("DEC-38 · paso 3: por debajo de 260 px, Hoy y Movimientos se apilan en vez de apretar el texto", () => {
   const css = read("tema-v2.css");
-  const at = css.lastIndexOf("@media (max-width: 259px) {");
+  const at = css.indexOf("/* DEC-38 · paso 3 (21/11/2026)");
   assert.ok(at > 0);
-  const bloque = css.slice(at);
+  const bloque = css.slice(at, css.indexOf("/* DEC-38 · paso 3, tandas 3 a 5"));
   assert.match(bloque, /\.hoy-v2-figure \{\n {4}font-size: clamp\(28px, 15vw, 48px\);\n {4}overflow-wrap: anywhere;/, "la cifra de Hoy cabe y, si no, se parte");
   assert.match(bloque, /\.hoy-v2-stats \{\n {4}grid-template-columns: minmax\(0, 1fr\);/);
   assert.match(bloque, /\.hoy-v2-decision \{\n {4}grid-template-columns: minmax\(0, 1fr\);/, "el número y el nivel ya no roban columnas al texto");
@@ -40,10 +40,47 @@ test("DEC-38 · paso 3: por debajo de 260 px, Hoy y Movimientos se apilan en vez
   assert.match(bloque, /\.clas-v2-botones > \.e19-btn \{\n {4}flex: 1 1 100%;/);
   assert.match(bloque, /\.clas-v2-botones > \.e19-btn-primary \{\n {4}order: -1;/, "«Aceptar y siguiente», arriba");
   const styles = read("styles.css");
-  const base = styles.lastIndexOf("@media (max-width: 259px) {");
+  const base = styles.indexOf("/* DEC-38 · paso 3 (21/11/2026)");
   assert.ok(base > 0);
   assert.match(styles.slice(base), /main \{\n {4}padding-left: 8px;\n {4}padding-right: 8px;/, "menos margen a los lados de la pantalla");
   assert.match(styles.slice(base), /\.dex5-onboarding-actions \{\n {4}flex-wrap: wrap;/);
   const html = read("index.html");
-  for (const file of ["styles.css", "tema-v2.css"]) assert.ok(html.includes(`${file}?v=20261121dec38c`), file);
+  for (const file of ["styles.css", "tema-v2.css"]) assert.ok(html.includes(`${file}?v=20261121dec38d`), file);
+});
+
+// Tandas 3 a 5 (21/11/2026): Plan › Mes, Cierre, Ajustes, Deuda (Ruta, Comparar, Préstamo, Contratos y el simulador visual, el nuevo y el
+// de siempre dentro de su iframe) y la cabecera del móvil, que a 195 px medía 117 de los 422 px de alto de la pantalla.
+test("DEC-38 · paso 3, tandas 3 a 5: Plan, Cierre y el simulador nuevo se apilan por debajo de 260 px", () => {
+  const css = read("tema-v2.css");
+  const at = css.indexOf("/* DEC-38 · paso 3, tandas 3 a 5");
+  assert.ok(at > 0);
+  const bloque = css.slice(at);
+  assert.match(bloque, /@media \(max-width: 259px\) \{/);
+  assert.match(bloque, /\.plan-v2-leyenda \{\n {4}grid-template-columns: minmax\(0, 1fr\);/);
+  assert.match(bloque, /tr\.plan-v2-financiaciones \{\n {4}grid-template-columns: minmax\(0, 1fr\);/);
+  assert.match(bloque, /\.cierre-v2-paso \{\n {4}grid-template-columns: minmax\(0, 1fr\);/, "el icono encima del texto");
+  assert.match(bloque, /\.cierre-v2-lado \.e19-btn \{\n {4}white-space: normal;/, "«Firmar el cierre» cabe");
+  assert.match(bloque, /\.sim-v2-cifras \{\n {4}grid-template-columns: minmax\(0, 1fr\);/, "las cuatro cifras del simulador, una debajo de otra");
+  assert.match(bloque, /\.sim-v2-cuenta-cabeza \{\n {4}flex-wrap: wrap;/);
+});
+
+test("DEC-38 · paso 3, tandas 3 a 5: la cabecera del móvil, Ajustes y Deuda (en los dos temas)", () => {
+  const styles = read("styles.css");
+  const at = styles.indexOf("/* DEC-38 · paso 3, tandas 3 a 5");
+  assert.ok(at > 0);
+  const bloque = styles.slice(at);
+  assert.match(bloque, /\.sidebar \.brand-block > div:not\(\.brand-mark\) \{\n {4}display: none;/, "solo «FC» y «Menú»");
+  assert.match(bloque, /\.brand-mark \{\n {4}width: 34px;/);
+  assert.match(bloque, /\.laboratorio-card-head,\n {2}\.panel-uso-cabecera \{\n {4}flex-wrap: wrap;/);
+  // design-tokens.css y camino-deuda.css se cargan después: estas reglas necesitan más especificidad que las suyas.
+  assert.match(bloque, /section\.e19-deuda-decidir \.deuda-decidir-strategy-grid \{\n {4}grid-template-columns: minmax\(0, 1fr\);/);
+  assert.match(bloque, /main \.cam-heroes \{\n {4}grid-template-columns: minmax\(0, 1fr\);/);
+  assert.match(bloque, /main \.deuda-flow-nav \{\n {4}flex-wrap: wrap;/);
+});
+
+test("DEC-38 · paso 3, tanda 5: el simulador de siempre (iframe) estrecha y cambia de versión", () => {
+  const roadmap = read("debt-roadmap.html");
+  assert.match(roadmap, /@media\(max-width:259px\)\{\.kpis,\.metric-grid,\.summary-cards,\.form,\.inline4,\.profile-grid,\.scenarios,\.compare-grid,\.kanban,\.two,\.forecast-grid,\.flow\{grid-template-columns:minmax\(0,1fr\)\}/);
+  assert.match(roadmap, /\.card>table\{display:block;overflow-x:auto\}/, "la tabla del semáforo se desplaza dentro de su tarjeta");
+  assert.ok(read("index.html").includes('src="debt-roadmap.html?v=20261121dec38d"'), "el iframe pide la versión nueva");
 });

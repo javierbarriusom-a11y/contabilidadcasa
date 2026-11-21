@@ -557,8 +557,17 @@ function repasoV2BindOnce(dialog) {
     // la entrada nueva o, si ya no está, al primer botón de Hoy.
     const desdeHoy = Boolean(opener?.hasAttribute?.("data-hoy-v2-repaso")); // por el atributo: un repintado lo desconecta
     if (desdeHoy && typeof renderHomeDashboard === "function") renderHomeDashboard();
-    const vuelta = opener?.isConnected ? opener : desdeHoy ? qs("hoyV2")?.querySelector("[data-hoy-v2-repaso]") || qs("hoyV2")?.querySelector("button") : null;
-    vuelta?.focus?.();
+    const enfocar = () => {
+      const vuelta = opener?.isConnected ? opener : desdeHoy ? qs("hoyV2")?.querySelector("[data-hoy-v2-repaso]") || qs("hoyV2")?.querySelector("button") : null;
+      vuelta?.focus?.();
+    };
+    enfocar();
+    // 21/11/2026: WebKit devuelve el foco al elemento que lo tenía antes de abrir el diálogo DESPUÉS de este evento; abierto desde un
+    // enlace (DEC-22) ese elemento es el <body> y el foco se perdía (el despliegue 1507 falló en Safari por esto). Se repite en la
+    // vuelta siguiente, solo si se ha quedado en el <body> (si el hogar ya ha movido el foco, no se toca).
+    setTimeout(() => {
+      if (!dialog.open && (!document.activeElement || document.activeElement === document.body)) enfocar();
+    }, 0);
   });
 }
 

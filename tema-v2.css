@@ -5462,3 +5462,93 @@
     display: none;
   }
 }
+
+/* DEC-38 · paso 3, tandas 3 a 5 (21/11/2026): por debajo de 260 px (195 px, el zoom al 200 %), Plan › Mes, Cierre y el simulador
+   visual de Deuda. Solo por debajo de 260 px: a 260 px y más, como estaban. */
+@media (max-width: 259px) {
+  /* Plan › Mes: la leyenda de «Sin asignar», una por línea (en dos columnas cada una se quedaba en 69 px y en tres líneas), y la
+     fila de financiaciones en una sola columna (el texto «N contratos · se editan en Deuda» se quedaba en 2 px). */
+  :root[data-tema="v2"] .plan-v2-leyenda {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :root[data-tema="v2"] .plan-v2-tabla tr.plan-v2-financiaciones {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Cierre: la columna de la derecha (confianza, lo que guarda la firma y «Firmar») cabe: menos relleno y el botón puede partir su
+     texto. Cada dato de «Lo que guarda la firma», con su valor debajo. */
+  :root[data-tema="v2"] .cierre-v2-lado .e19-card {
+    padding: 14px;
+  }
+
+  :root[data-tema="v2"] .cierre-v2-lado .e19-btn {
+    white-space: normal;
+    min-width: 0;
+  }
+
+  :root[data-tema="v2"] .cierre-v2-guarda dl > div {
+    flex-wrap: wrap;
+    gap: 2px 12px;
+  }
+
+  :root[data-tema="v2"] .cierre-v2-guarda dd {
+    text-align: left;
+  }
+
+  /* Cierre: cada comprobación, con el icono encima del texto (al lado, el texto se quedaba en unos 100 px) y la guía plegada con
+     su título a lo ancho. */
+  :root[data-tema="v2"] .cierre-v2-paso {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    padding: 14px 12px;
+  }
+
+  :root[data-tema="v2"] #cierre:has(> #cierreV2[data-modo="v2"]) > #cierreGuia > summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :root[data-tema="v2"] #cierre:has(> #cierreV2[data-modo="v2"]) > #cierreGuia .cierre-guia-accion {
+    justify-self: start;
+  }
+
+  /* Simulador visual (SVD-6): las cuatro cifras, una debajo de otra (en dos columnas «7.500 €» se partía en «7.50 / 0 €»); el nombre
+     del contrato y su importe, uno debajo de otro; y el «Mes a mes» en dos líneas por mes. */
+  :root[data-tema="v2"] .sim-v2-cifras {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :root[data-tema="v2"] .sim-v2-cifras > div:nth-child(odd) {
+    border-right: 0;
+  }
+
+  :root[data-tema="v2"] .sim-v2-cifras > div {
+    padding: 10px 12px;
+  }
+
+  :root[data-tema="v2"] .sim-v2-cuenta {
+    padding: 12px;
+  }
+
+  :root[data-tema="v2"] .sim-v2-cuenta-cabeza {
+    flex-wrap: wrap;
+    gap: 2px 12px;
+  }
+
+  :root[data-tema="v2"] .sim-v2-cuenta-cabeza > * {
+    overflow-wrap: anywhere;
+  }
+
+  :root[data-tema="v2"] .sim-v2-campos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :root[data-tema="v2"] .sim-v2-mes-a-mes li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 10px;
+  }
+
+  :root[data-tema="v2"] .sim-v2-mes-a-mes li > :first-child {
+    grid-column: 1 / -1;
+  }
+}

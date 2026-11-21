@@ -565,6 +565,10 @@ que entra en las pruebas de Clasificar y Movimientos. *Por qué:* §1.5 y P-C. S
   derecha del panel (es un diálogo: el CI no lo recorre, lo vigila una e2e). **Pendiente, visto al revisar:** Plan › Mes no se
   lee a 195 px (cabeceras de bloque montadas sobre su importe, «Ahorro» cortado, leyenda solapada); por eso Plan no entra aún en
   la lista del CI a 195 px. Siguiente tanda propuesta: Plan › Mes y Cierre.
+  **Tandas 3 a 5** (21/11/2026, PROJECT_STATE 517; «Sigue con la siguiente tanda: la cabecera y el simulador visual»): Plan › Mes,
+  Cierre, Ajustes, las cinco pestañas de Deuda, la cabecera del móvil (de 117 a 46 px: solo «FC» y «Menú») y el simulador visual,
+  el nuevo y el de siempre dentro de su iframe (que medía 303 px en 177). El CI mira 10 pantallas a 195 px. **Queda:** las
+  pantallas de Inversión, Escenarios, Registrar y Herramientas, y las de «Versiones anteriores» (pendientes de D-N15).
 - **DEC-22**, el aviso del domingo abre el repaso (20/11/2026, PROJECT_STATE 511): el `.ics` de los recordatorios lleva en
   el detalle y en el campo URL de cada aviso del repaso la dirección de la app con `#home?abrir=repaso`; al abrirlo, el repaso
   sale encima de Hoy y la marca se quita de la dirección. Sin importes ni datos en el enlace; el título no cambia. Medido en
