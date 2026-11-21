@@ -66,4 +66,6 @@ test("a 195 px, la etiqueta de cada cifra de Patrimonio y deuda baja bajo su tí
   const bloque = styles.slice(styles.indexOf("/* DEC-38 · paso 3, tandas 3 a 5"));
   assert.match(bloque, /main \.e19-kpi-head \{\n {4}flex-wrap: wrap;/);
   assert.match(bloque, /main \.e19-kpi-head > \.e19-kpi-badge \{\n {4}max-width: 100%;\n {4}white-space: normal;/);
+  assert.match(bloque, /main \.home-health-score-item \{\n {4}flex-wrap: wrap;/, "y cada fila de la salud financiera");
+  assert.match(bloque, /main \.p2-item,\n {2}main \.p2-item :is\(h4, p\) \{\n {4}min-width: 0;\n {4}overflow-wrap: anywhere;/, "y el seguimiento predictivo de Caja");
 });

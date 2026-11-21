@@ -13572,6 +13572,18 @@ input[data-amount-input][aria-invalid="true"] {
     white-space: normal;
   }
 
+  /* …y cada fila de la salud financiera: la cifra («70.3/100», «sin datos») bajo su nombre si no caben juntos. */
+  main .home-health-score-item {
+    flex-wrap: wrap;
+  }
+
+  /* …y en Caja, las tarjetas del seguimiento predictivo: los títulos y la ayuda pueden partirse (con fuentes algo más anchas se salían). */
+  main .p2-item,
+  main .p2-item :is(h4, p) {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   main .deuda-flow-nav {
     flex-wrap: wrap;
     gap: 8px;
