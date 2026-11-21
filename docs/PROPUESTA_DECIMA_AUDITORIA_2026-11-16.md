@@ -565,6 +565,21 @@ que entra en las pruebas de Clasificar y Movimientos. *Por qué:* §1.5 y P-C. S
   derecha del panel (es un diálogo: el CI no lo recorre, lo vigila una e2e). **Pendiente, visto al revisar:** Plan › Mes no se
   lee a 195 px (cabeceras de bloque montadas sobre su importe, «Ahorro» cortado, leyenda solapada); por eso Plan no entra aún en
   la lista del CI a 195 px. Siguiente tanda propuesta: Plan › Mes y Cierre.
+  **Tercera tanda, el mismo día** («Sigue con la siguiente tanda: Plan › Mes y Cierre», PROJECT_STATE 517): en Plan › Mes, cada
+  partida en una columna (el nombre del bloque se montaba sobre su importe), el mes a todo el ancho con las flechas debajo y la
+  leyenda una por línea; en Cierre, la columna de la firma, que medía más que la pantalla (otra rejilla sin columnas) y sus datos
+  con el valor debajo. De paso, la fila «Ahorro» de Plan › Mes, como «Financiaciones» a cualquier ancho: su explicación salía
+  pegada al nombre y en negrita, y la flecha en una línea suelta. Plan (sus tres pestañas) y Cierre entran en la lista del CI a
+  195 px: ya son cuatro pantallas.
+  **Cuarta tanda, el mismo día** («Sigue con la siguiente tanda: Ajustes y Deuda»): en Ajustes, lo que más estorbaba no se salía:
+  el índice de secciones iba fijo arriba y a 195 px mide unos 330 px de alto, así que con la cabecera tapaba casi media pantalla
+  todo el rato; deja de ir fijo por debajo de 260 px. Además, las etiquetas de «Funciones en prueba» y el panel de uso. En Deuda,
+  las estrategias de Comparar y las cifras de Ruta medían más que la pantalla (`minmax(min(220px, 100%), 1fr)`, como en el paso
+  2) y los botones de paso no bajaban de línea. Solo CSS, sin tocar cifras ni funciones (D-N16 sigue abierta). Entran en el CI
+  Ajustes y cuatro pestañas de Deuda; **Deuda › Simulador visual no:** con los contratos de ejemplo enseña el simulador anterior
+  en un iframe con su propia hoja, cuyos titulares se cortan; con contratos reales sale el nuevo. **Quedan, vistas al revisar:**
+  la tabla editable de Deuda › Contratos se desplaza en horizontal con campos estrechos (es una tabla de datos de dos dimensiones,
+  admitido por WCAG 1.4.10) y la cabecera de la app (el nombre del plan en tres líneas) ocupa 117 px de alto en todas.
 - **DEC-22**, el aviso del domingo abre el repaso (20/11/2026, PROJECT_STATE 511): el `.ics` de los recordatorios lleva en
   el detalle y en el campo URL de cada aviso del repaso la dirección de la app con `#home?abrir=repaso`; al abrirlo, el repaso
   sale encima de Hoy y la marca se quita de la dirección. Sin importes ni datos en el enlace; el título no cambia. Medido en

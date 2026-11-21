@@ -22,7 +22,7 @@
 
 .cam-heroes {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); /* DEC-38: con menos de 190 px, una columna que cabe */
   gap: 12px;
   margin: 12px 0;
 }

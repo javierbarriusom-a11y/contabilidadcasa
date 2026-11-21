@@ -2639,7 +2639,7 @@
 
 .e19-deuda-decidir .deuda-decidir-strategy-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); /* DEC-38: con menos de 220 px, una columna que cabe */
   gap: 16px;
   margin: 18px 0;
 }
@@ -7057,4 +7057,21 @@
 
 .cierre-cobertura-lista .is-ok::marker {
   color: var(--e19-success);
+}
+
+/* DEC-38 · paso 3 (21/11/2026), cuarta tanda: por debajo de 260 px (390 px con el zoom al 200 %), en Deuda los botones de paso
+   («Contratos →», «Simulador visual →») bajan de línea y, en Ajustes › Funciones en prueba, la etiqueta («Adoptada»…) baja
+   bajo el nombre en vez de salirse de la tarjeta. */
+@media (max-width: 259px) {
+  .deuda-flow-nav,
+  .laboratorio-card-head,
+  .e19-insight {
+    flex-wrap: wrap; /* .e19-insight: el titular y su explicación, uno debajo de otro (en Deuda › Comparar, en fila, se salía) */
+  }
+
+  /* El índice de Ajustes deja de ir fijo arriba: a este ancho mide unos 330 px de alto y, con la cabecera, tapaba casi media
+     pantalla todo el rato. Se queda al principio, donde está. */
+  .e19-ajustes-anchors {
+    position: static;
+  }
 }

@@ -9112,7 +9112,7 @@ test.describe("DEC-45 · «¿te sirve?» en Novedades", () => {
 // DEC-38 · paso 3 (21/11/2026): a 195 px (el móvil de 390 px con el zoom al 200 %), Hoy y Movimientos con movimientos FICTICIOS de
 // conceptos largos. Que nada se salga lo mira el CI (tools/check-mobile-overflow.mjs); esto mira que se lea: que los textos tengan
 // sitio y no se queden en una columna de una letra, que es lo que pasaba sin salirse.
-test.describe("DEC-38 · a 195 px (zoom al 200 %): Hoy, Movimientos, Previsión y Clasificar", () => {
+test.describe("DEC-38 · a 195 px (zoom al 200 %): Hoy, Movimientos, Previsión, Clasificar, Plan, Cierre, Ajustes y Deuda", () => {
   test("los textos tienen sitio y nada queda fuera, con movimientos de conceptos largos", async ({ page }) => {
     test.setTimeout(60000);
     const pageErrors = [];
@@ -9194,6 +9194,62 @@ test.describe("DEC-38 · a 195 px (zoom al 200 %): Hoy, Movimientos, Previsión 
     // «Aceptar y siguiente», encima de «Saltar».
     const [aceptar, saltar] = await Promise.all(["[data-clas-v2-aceptar]", "[data-clas-v2-saltar]"].map((sel) => panel.locator(sel).evaluate((el) => el.getBoundingClientRect().top)));
     expect(aceptar).toBeLessThan(saltar);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  // Tercera tanda (21/11/2026): Plan › Mes (el nombre de cada bloque encima de su importe, no montado; el mes entero) y Cierre (la
+  // columna de la firma, que medía más que la pantalla).
+  test("Plan › Mes y Cierre: nada montado ni fuera, el mes entero y la firma a la vista", async ({ page }) => {
+    test.setTimeout(60000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 195, height: 900 });
+    await page.clock.install({ time: new Date(2026, 11, 2, 10, 0, 0) });
+    await page.goto("/index.html#plan");
+    const tabla = page.locator("#plan .plan-v2-tabla");
+    await expect(tabla).toBeVisible({ timeout: 15000 });
+    const vw = await page.evaluate(() => document.documentElement.clientWidth);
+    // Cada bloque: su nombre y su importe no se pisan (antes, «GASTOS VARIABLES» encima de «1.750 €»).
+    const pisados = await tabla.locator("tr.plan-v2-bloque").evaluateAll((filas) => filas.filter((tr) => {
+      const [nombre, importe] = [tr.querySelector("td:first-child"), tr.querySelector("td.plan-v2-num")].map((el) => el?.getBoundingClientRect());
+      return nombre && importe && importe.height > 0 && importe.top < nombre.bottom - 1 && importe.left < nombre.right - 1;
+    }).length);
+    expect(pisados, "ningún nombre de bloque montado sobre su importe").toBe(0);
+    expect(await page.locator("#plan .plan-v2-mes-pildora").evaluate((el) => el.getBoundingClientRect().width)).toBeGreaterThan(130);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+    await page.goto("/index.html#cierre");
+    const lado = page.locator("#cierre .cierre-v2-lado");
+    await expect(lado).toBeVisible({ timeout: 15000 });
+    expect(await lado.evaluate((el) => el.getBoundingClientRect().right)).toBeLessThanOrEqual(vw + 1);
+    const firmar = page.locator("#cierreSignButton");
+    expect(await firmar.evaluate((el) => el.getBoundingClientRect().right)).toBeLessThanOrEqual(vw + 1);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  // Cuarta tanda (21/11/2026): Ajustes (su índice ya no va fijo y tapa media pantalla) y Deuda (las estrategias de Comparar y las
+  // cifras de Ruta, que medían más que la pantalla).
+  test("Ajustes y Deuda: el índice no tapa la pantalla y las tarjetas caben", async ({ page }) => {
+    test.setTimeout(60000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 195, height: 900 });
+    await page.clock.install({ time: new Date(2026, 10, 21, 10, 0, 0) });
+    await page.goto("/index.html#ajustes");
+    const indice = page.locator("#ajustes .e19-ajustes-anchors");
+    await expect(indice).toBeVisible({ timeout: 15000 });
+    expect(await indice.evaluate((el) => getComputedStyle(el).position)).toBe("static");
+    // Más abajo, el índice ya no está en pantalla.
+    await page.locator("#panelUsoCard").scrollIntoViewIfNeeded();
+    expect(await indice.evaluate((el) => el.getBoundingClientRect().bottom)).toBeLessThan(0);
+    const vw = await page.evaluate(() => document.documentElement.clientWidth);
+    for (const [hash, sel] of [["deuda-comparar", ".deuda-decidir-strategy-card"], ["deuda-ruta", ".cam-hero"]]) {
+      await page.goto(`/index.html#${hash}`);
+      const tarjetas = page.locator(`#${hash} ${sel}`);
+      await expect(tarjetas.first()).toBeVisible({ timeout: 15000 });
+      const derecha = await tarjetas.evaluateAll((els) => Math.max(...els.map((el) => el.getBoundingClientRect().right)));
+      expect(derecha, `${hash}: ${sel} cabe`).toBeLessThanOrEqual(vw + 1);
+    }
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });

@@ -1492,6 +1492,7 @@ main {
 /* WP-03 (UXS-04): pregunta semanal de minutos del panel de uso. */
 .panel-uso-minutos {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* DEC-38: sin columnas, la implícita no bajaba de lo que mide la fila (zoom al 200 %) */
   gap: 6px;
   margin-top: 12px;
 }
@@ -13449,5 +13450,12 @@ input[data-amount-input][aria-invalid="true"] {
 
   .dex5-onboarding-actions > * {
     flex: 1 1 100%;
+  }
+
+  /* Ajustes › Uso de la app (cuarta tanda): el campo de minutos y «Guardar», y cada nombre con su cifra («2 min/semana»), uno
+     debajo de otro si no caben. */
+  .panel-uso-minutos-fila,
+  .panel-uso-cabecera {
+    flex-wrap: wrap;
   }
 }

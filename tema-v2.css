@@ -3069,18 +3069,23 @@
   cursor: pointer;
 }
 
-:root[data-tema="v2"] .plan-v2-financiaciones .plan-v2-bloque-nombre {
+:root[data-tema="v2"] .plan-v2-financiaciones .plan-v2-bloque-nombre,
+:root[data-tema="v2"] .plan-v2-ahorro-fila .plan-v2-bloque-nombre {
   min-height: 0;
   cursor: default;
 }
 
 :root[data-tema="v2"] .plan-v2-tabla td.plan-v2-nombre,
-:root[data-tema="v2"] .plan-v2-financiaciones td:first-child {
+:root[data-tema="v2"] .plan-v2-financiaciones td:first-child,
+:root[data-tema="v2"] .plan-v2-ahorro-fila td:first-child {
   white-space: normal;
 }
 
 :root[data-tema="v2"] .plan-v2-nombre small,
-:root[data-tema="v2"] .plan-v2-financiaciones small {
+/* La explicación debajo del nombre también en la fila del ahorro (T27): sin esta regla salía pegada y en negrita
+   («AHORROmeta del plan…»), a cualquier ancho. Visto al revisar Plan a 195 px (DEC-38). */
+:root[data-tema="v2"] .plan-v2-financiaciones small,
+:root[data-tema="v2"] .plan-v2-ahorro-fila small {
   display: block;
   margin-top: 2px;
   font-size: 12.5px;
@@ -3295,8 +3300,9 @@
     display: none;
   }
 
-  :root[data-tema="v2"] .plan-v2-tabla tr.plan-v2-financiaciones {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+  :root[data-tema="v2"] .plan-v2-tabla tr.plan-v2-financiaciones,
+  :root[data-tema="v2"] .plan-v2-tabla tr.plan-v2-ahorro-fila {
+    grid-template-columns: minmax(0, 1fr) auto auto; /* la del ahorro, como Financiaciones: la flecha en su fila (21/11, DEC-38) */
   }
 
   :root[data-tema="v2"] .plan-v2-fila .plan-v2-ritmo-celda {
@@ -3304,7 +3310,8 @@
     width: auto;
   }
 
-  :root[data-tema="v2"] .plan-v2-financiaciones .plan-v2-ritmo-celda {
+  :root[data-tema="v2"] .plan-v2-financiaciones .plan-v2-ritmo-celda,
+  :root[data-tema="v2"] .plan-v2-ahorro-fila .plan-v2-ritmo-celda {
     grid-column: auto;
   }
 
@@ -3809,6 +3816,7 @@
 
 :root[data-tema="v2"] .cierre-v2-lado {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* DEC-38: sin columnas, la implícita no bajaba de lo que mide la tarjeta (zoom al 200 %) */
   gap: 16px;
   position: sticky;
   top: 16px;
@@ -5445,6 +5453,54 @@
 
   :root[data-tema="v2"] .clas-v2-botones > .e19-btn-primary {
     order: -1;
+  }
+
+  /* Plan › Mes (tercera tanda): cada partida en una columna, el nombre arriba y el importe debajo (en dos, el nombre del bloque
+     se montaba sobre su importe), sin cortar los nombres; y la leyenda del reparto, una por línea. */
+  :root[data-tema="v2"] .plan-v2-tabla tr,
+  :root[data-tema="v2"] .plan-v2-tabla tr.plan-v2-financiaciones,
+  :root[data-tema="v2"] .plan-v2-tabla tr.plan-v2-ahorro-fila {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 10px 12px;
+  }
+
+  :root[data-tema="v2"] .plan-v2-tabla td,
+  :root[data-tema="v2"] .plan-v2-bloque-nombre {
+    white-space: normal;
+    text-align: left;
+  }
+
+  :root[data-tema="v2"] .plan-v2-financiaciones .plan-v2-ritmo-celda,
+  :root[data-tema="v2"] .plan-v2-ahorro-fila .plan-v2-ritmo-celda {
+    justify-self: start;
+  }
+
+  :root[data-tema="v2"] .plan-v2-leyenda {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* El mes, a todo el ancho y entero; las dos flechas, debajo (entre ellas, el nombre se cortaba en «novien…»). */
+  :root[data-tema="v2"] .plan-v2-mes-nav {
+    flex-wrap: wrap;
+  }
+
+  :root[data-tema="v2"] .plan-v2-mes-pildora {
+    flex: 1 1 100%;
+    order: -1;
+  }
+
+  :root[data-tema="v2"] .plan-v2-mes-flecha {
+    flex: 1 1 0;
+  }
+
+  /* Cierre: menos relleno en la columna de la firma y cada dato con su valor debajo si no caben juntos. */
+  :root[data-tema="v2"] .cierre-v2-lado .e19-card {
+    padding: 12px;
+  }
+
+  :root[data-tema="v2"] .cierre-v2-guarda dl > div,
+  :root[data-tema="v2"] .cierre-v2-eyebrow {
+    flex-wrap: wrap;
   }
 
   /* Las filas de la bandeja (y el repaso): el icono o el número arriba y el texto debajo a todo el ancho; en fila, el texto se

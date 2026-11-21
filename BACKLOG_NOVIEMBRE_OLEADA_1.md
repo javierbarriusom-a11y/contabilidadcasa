@@ -21,7 +21,7 @@ minutos.
 
 ## 0. Estado en una línea
 
-**21/11/2026 · DEC-38, paso 3: Hoy, Movimientos, Previsión y Clasificar con el zoom al 200 % (195 px):** se leen sin salirse ni apretar el texto; lo vigilan el CI (Hoy y Movimientos) y una e2e (las cuatro). Siguiente tanda: Plan › Mes y Cierre (PROJECT_STATE 516).
+**21/11/2026 · DEC-38, paso 3: Hoy, Movimientos, Previsión y Clasificar con el zoom al 200 % (195 px):** se leen sin salirse ni apretar el texto; lo vigilan el CI (Hoy y Movimientos) y una e2e (las cuatro). Tercera y cuarta tandas, Plan, Cierre, Ajustes y Deuda (PROJECT_STATE 517); el CI mira a 195 px Hoy, Movimientos, Plan, Cierre, Ajustes y cuatro pestañas de Deuda.
 
 **21/11/2026 · DEC-45, «¿te sirve?» en Novedades:** las líneas de las dos últimas semanas preguntan «¿Te sirve?» (Sí / No); las respuestas van al medidor y salen en Ajustes › Uso de la app (PROJECT_STATE 515).
 
