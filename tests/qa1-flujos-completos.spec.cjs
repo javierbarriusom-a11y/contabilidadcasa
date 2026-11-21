@@ -9112,7 +9112,7 @@ test.describe("DEC-45 · «¿te sirve?» en Novedades", () => {
 // DEC-38 · paso 3 (21/11/2026): a 195 px (el móvil de 390 px con el zoom al 200 %), Hoy y Movimientos con movimientos FICTICIOS de
 // conceptos largos. Que nada se salga lo mira el CI (tools/check-mobile-overflow.mjs); esto mira que se lea: que los textos tengan
 // sitio y no se queden en una columna de una letra, que es lo que pasaba sin salirse.
-test.describe("DEC-38 · a 195 px (zoom al 200 %): Hoy, Movimientos, Previsión y Clasificar", () => {
+test.describe("DEC-38 · a 195 px (zoom al 200 %): Hoy, Movimientos, Previsión, Clasificar, Plan, Cierre, Ajustes y Deuda", () => {
   test("los textos tienen sitio y nada queda fuera, con movimientos de conceptos largos", async ({ page }) => {
     test.setTimeout(60000);
     const pageErrors = [];
@@ -9194,6 +9194,75 @@ test.describe("DEC-38 · a 195 px (zoom al 200 %): Hoy, Movimientos, Previsión 
     // «Aceptar y siguiente», encima de «Saltar».
     const [aceptar, saltar] = await Promise.all(["[data-clas-v2-aceptar]", "[data-clas-v2-saltar]"].map((sel) => panel.locator(sel).evaluate((el) => el.getBoundingClientRect().top)));
     expect(aceptar).toBeLessThan(saltar);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  // Tandas 3 a 5 (21/11/2026): la cabecera del móvil (117 px de los 422 de alto), Plan › Mes, Cierre, Ajustes y las cinco pestañas de
+  // Deuda, con el simulador visual nuevo (contratos FICTICIOS) y el de siempre dentro de su iframe, que el CI no recorre.
+  test("la cabecera, Plan › Mes, Cierre, Ajustes y Deuda: nada fuera y los textos con sitio", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 195, height: 422 });
+    await page.clock.install({ time: new Date(2026, 10, 21, 10, 0, 0) });
+    const ancho = (locator) => locator.evaluate((el) => el.getBoundingClientRect().width);
+    const fuera = (id) => page.evaluate((sid) => {
+      const vw = document.documentElement.clientWidth;
+      const recoge = (el) => { for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) if (["auto", "scroll", "hidden", "clip"].includes(getComputedStyle(p).overflowX)) return true; return false; };
+      return [...document.getElementById(sid).querySelectorAll("*")].filter((el) => { const b = el.getBoundingClientRect(); const c = getComputedStyle(el); return b.width > 1 && b.right > vw + 1 && c.visibility !== "hidden" && c.opacity !== "0" && !(c.position === "absolute" && c.clip !== "auto") && !recoge(el); }).length;
+    }, id);
+
+    // Contratos FICTICIOS, para que Deuda › Simulador visual sea la pantalla nueva (SVD-6).
+    await page.goto("/index.html#deuda-contratos");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const varios = page.locator("#deudaContratosDetectados .deuda-varios");
+    await varios.locator("summary").click();
+    await page.fill("#deudaContratosVarios", "Banco FICTICIO DE CRÉDITO AL CONSUMO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
+    await varios.locator("[data-deuda-varios-alta]").click();
+    await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
+    await page.evaluate(() => { debtContractHiddenExampleIds = ["debt-1", "debt-2", "debt-3"]; saveDebtContractHiddenExampleIds(); });
+    await page.reload();
+
+    // La cabecera: solo «FC» y «Menú», y el menú se sigue abriendo.
+    expect(await page.locator("#primarySidebar").evaluate((el) => el.offsetHeight)).toBeLessThan(60);
+    await page.locator("#mobileNavToggle").click();
+    await expect(page.locator("#primarySidebar .side-nav")).toBeVisible();
+    await page.locator("#mobileNavToggle").click();
+
+    await page.goto("/index.html#plan");
+    await expect(page.locator(".plan-v2-leyenda li").first()).toBeVisible({ timeout: 15000 });
+    expect(await ancho(page.locator(".plan-v2-leyenda li").first()), "la leyenda de «Sin asignar», a lo ancho").toBeGreaterThan(110);
+    expect(await fuera("plan"), "nada fuera en Plan › Mes").toBe(0);
+
+    await page.goto("/index.html#cierre");
+    await expect(page.locator("#cierreSignButton")).toBeVisible({ timeout: 15000 });
+    expect(await page.locator("#cierreSignButton").evaluate((el) => el.getBoundingClientRect().right <= document.documentElement.clientWidth + 1), "«Firmar» cabe").toBe(true);
+    expect(await fuera("cierre"), "nada fuera en Cierre").toBe(0);
+
+    await page.goto("/index.html#ajustes");
+    await expect(page.locator("#ajustes")).toBeVisible({ timeout: 15000 });
+    expect(await fuera("ajustes"), "nada fuera en Ajustes").toBe(0);
+
+    for (const id of ["deuda-ruta", "deuda-comparar", "deuda-prestamo", "deuda-contratos"]) {
+      await page.evaluate((hash) => { location.hash = hash; }, id);
+      await expect(page.locator(`#${id}`)).toBeVisible({ timeout: 15000 });
+      await page.waitForTimeout(300);
+      expect(await fuera(id), `nada fuera en ${id}`).toBe(0);
+    }
+
+    await page.evaluate(() => { location.hash = "deuda-simulador"; });
+    const v2 = page.locator("#deudaSimuladorV2");
+    await expect(v2.locator(".sim-v2-cuenta")).toHaveCount(2, { timeout: 20000 });
+    expect(await ancho(v2.locator(".sim-v2-cifras > div").first()), "las cuatro cifras, una debajo de otra").toBeGreaterThan(150);
+    expect(await fuera("deuda-simulador"), "nada fuera en el simulador nuevo").toBe(0);
+    // El de siempre, dentro de su iframe: nada más ancho que el propio iframe.
+    await v2.getByRole("button", { name: "Ver el simulador anterior" }).click();
+    await expect(page.locator("#deudaSimuladorClasico")).toBeVisible();
+    await expect(page.frameLocator("#debtRoadmapFrame").locator("main")).toBeVisible({ timeout: 20000 });
+    const sim = page.frames().find((f) => f.url().includes("debt-roadmap.html"));
+    expect(await sim.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), "el simulador de siempre no se corta por la derecha").toBeLessThanOrEqual(1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });

@@ -101,7 +101,7 @@ test("estilos, versiones y Novedades", () => {
   const html = read("index.html");
   ["views/hoy-v2.js", "views/repaso-v2.js"].forEach((file) => assert.ok(html.includes(`${file}?v=20261120dec23`), file));
   // tema-v2.css pasó a 20261121dec30 con la frase de la semana que viene (DEC-30) y novedades.js, también a 20261121dec45 (DEC-45).
-  assert.match(html, /tema-v2\.css\?v=20261121dec(?:30|38c)/); // y a 20261121dec38c con DEC-38 a 195 px
+  assert.match(html, /tema-v2\.css\?v=20261121dec(?:30|38c|38d)/); // y a 20261121dec38c y dec38d con DEC-38 a 195 px
   assert.match(html, /novedades\.js\?v=20261121dec(?:30|45)/);
   const novedad = require("../novedades.js").find((entry) => entry.id === "2026-11-30-repaso-hecho");
   assert.equal(novedad.fecha, "2026-11-30");

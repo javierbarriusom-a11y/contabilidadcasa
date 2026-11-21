@@ -6827,7 +6827,7 @@ function refreshCanonicalDailyAudit(monthlyInput, rows, context) {
   const previous = canonicalDailyEngineRuns[context];
   const inputBuilder = window.FinanceCanonicalDailyInput;
   const datesSignature = inputBuilder?.datesSignature(monthlyInput) || "";
-  if (previous?.monthlyFingerprint && previous.monthlyFingerprint === monthlyRun?.fingerprint && previous.datesSignature === datesSignature && previous?.invariants?.valid) return previous;
+  if (previous?.monthlyFingerprint && previous.monthlyFingerprint === monthlyRun?.fingerprint && previous.datesSignature === datesSignature && previous?.invariants?.valid && previous.rows?.length) return previous; // 21/11/2026: la copia guardada no trae las filas (compactCanonicalDailyRun); sin ellas Hoy perdía el gráfico al recargar
   if (!inputBuilder) throw new Error("Entrada de la auditoría diaria canónica no disponible.");
   const input = inputBuilder.build(monthlyInput, rows, { operatingReserve: state.operatingReserve });
   const snapshot = engine.buildSnapshot(input, previous, { reason: `simulation-${context}` });
