@@ -9254,7 +9254,9 @@ test.describe("DEC-38 · a 195 px (zoom al 200 %): Hoy, Movimientos, Previsión,
     await page.evaluate(() => { location.hash = "deuda-simulador"; });
     const v2 = page.locator("#deudaSimuladorV2");
     await expect(v2.locator(".sim-v2-cuenta")).toHaveCount(2, { timeout: 20000 });
-    expect(await ancho(v2.locator(".sim-v2-cifras > div").first()), "las cuatro cifras, una debajo de otra").toBeGreaterThan(150);
+    // Las cifras se repintan al terminar el cálculo («Actualizando cálculos…»): se espera a verlas y se mide con reintento.
+    await expect(v2.locator(".sim-v2-cifras > div").first()).toBeVisible({ timeout: 20000 });
+    await expect.poll(() => ancho(v2.locator(".sim-v2-cifras > div").first()), { message: "las cuatro cifras, una debajo de otra", timeout: 10000 }).toBeGreaterThan(150);
     expect(await fuera("deuda-simulador"), "nada fuera en el simulador nuevo").toBe(0);
     // El de siempre, dentro de su iframe: nada más ancho que el propio iframe.
     await v2.getByRole("button", { name: "Ver el simulador anterior" }).click();
