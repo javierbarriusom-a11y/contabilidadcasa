@@ -426,10 +426,24 @@ function saveEscenarioMotorSavedList(list) {
   storageSet(storageKey("escenario-motor-saved"), JSON.stringify(list));
 }
 
+// D-N23 (21/11/2026): las estrategias guardadas desde el simulador antes de esta fecha no llevan `cuotaMesCambio`; se leen con el
+// criterio que tienen ahora las nuevas («sustituye»), sin reescribir lo guardado. Las demás decisiones de Escenarios, igual que siempre.
+const SVD_MOTIVO_PRUDENTE = "el mes del cambio todavía cuenta la cuota de hoy (criterio de Escenarios).";
+function escenarioMotorSavedCriterio(entry) {
+  if (entry?.origen !== "simulador-deuda" || !Array.isArray(entry.decisiones)) return entry;
+  return {
+    ...entry,
+    motivo: typeof entry.motivo === "string" ? entry.motivo.replace(SVD_MOTIVO_PRUDENTE, "ese mes ya no se paga también la cuota de hoy, como en el simulador.") : entry.motivo,
+    decisiones: entry.decisiones.map((decision) => (decision?.planificacion && decision.planificacion.cuotaMesCambio === undefined
+      ? { ...decision, planificacion: { ...decision.planificacion, cuotaMesCambio: "sustituye" } }
+      : decision)),
+  };
+}
+
 function loadEscenarioMotorSaved() {
   try {
     const parsed = JSON.parse(storageGet(storageKey("escenario-motor-saved"), "[]"));
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? parsed.map(escenarioMotorSavedCriterio) : [];
   } catch {
     return [];
   }

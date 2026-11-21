@@ -113,6 +113,46 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 21 de noviembre de 2026 (519): D-N23, D-N27 y D-N28 decididas y hechas (el acuerdo sustituye a la cuota desde su mes; el plan óptimo pregunta antes de empezar por la más pequeña; Deuda en tres pestañas)
+
+- **Publicado de antes:** #660 (Hoy por áreas, plan óptimo, undécima auditoría) fusionado: main af7e33d7. «Verify and deploy Pages» **1516 en verde**; «Published availability» lanzada a mano después.
+- **El hogar contestó las tres decisiones de la undécima auditoría:** D-N23 «ok» (el criterio realista); la de la bola de nieve, «ok, pero me preguntas antes y poder modificar»; la de Deuda en tres pestañas, «Sí».
+- **Renumeradas:** la undécima auditoría llamó D-N24 y D-N25 a las dos nuevas, pero esos números ya eran de privacidad (19/11: el repositorio privado y los nombres en Ajustes). Pasan a ser **D-N27** (bola de nieve) y **D-N28** (tres pestañas), y así constan en la propuesta (§5.4), el backlog y el código.
+- **D-N23, el realista** (`docs/SVD_DISENO.md` §14.1):
+  - **El plan:** un acuerdo aceptado con la entidad (SVD-3, `svdAcuerdo`) deja de restar la cuota de hoy desde el propio mes del acuerdo, no desde el siguiente (`debtReliefStartIndex` en `app.js`). El mismo inicio usan el detalle de la decisión, el detalle de Deuda (`views/debt-control.js`), la hoja «Qué ocurrirá» (`deuda-simulador-puente.js`, que ya lo dice así) y el motor canónico de decisiones (`canonical-decisions.js`). Las demás decisiones de deuda del plan siguen como siempre.
+  - **Escenarios:** la estrategia guardada desde el simulador lleva `planificacion.cuotaMesCambio: "sustituye"`, un campo opcional nuevo del esquema; sin él, o con «se-paga», todo sigue igual. El motor (`buildContractSchedule`) empieza lo nuevo el propio mes. Las estrategias guardadas antes se leen con el criterio nuevo sin reescribirlas (`escenarioMotorSavedCriterio`).
+  - **Paridad:** la prueba de SVD-4 pasa de «el escenario paga exactamente una cuota de hoy más» a **la misma serie, mes a mes**, en quita, refinanciación e híbrido. El mensaje al guardar ya no avisa de una diferencia que no hay: «En Previsión sale la misma liquidez que aquí».
+  - **Lo que cambia en vuestras cifras:** con un acuerdo ya aplicado, la previsión sube una cuota de hoy el mes del acuerdo (deja de pagarse dos veces ese mes). Queda desbloqueado, sin hacer, pasar el simulador al motor de Ruta (SVD-6).
+- **D-N27, la bola de nieve se pregunta:**
+  - el plan óptimo enseña la avalancha mientras no se elija orden;
+  - si la bola de nieve cuesta como mucho el margen más y salda antes la primera deuda, sale una pregunta («¿Empezáis por la más pequeña?») con lo que cuesta y cuántos meses antes salda la primera, y dos botones;
+  - el orden elegido se recuerda (y viaja en la copia: `plan-optimo-orden`) y se cambia en «Orden»;
+  - el margen (de entrada 3 % o 150 €) se edita en «Cuándo os pregunta si empezar por la más pequeña» (`plan-optimo-margen`).
+  `canonical-debt-optimal-plan.js` ya no elige la bola de nieve: devuelve `sugerencia`, `pregunta` y `chosen`, y admite `strategy` y `tolerance`.
+- **D-N28, Deuda en tres pestañas:**
+  - arriba, **1 Plan · 2 Contratos · 3 Ofertas**; Plan es la de Ruta;
+  - dentro de Ofertas, una segunda fila sin número con Comparar, Préstamo y el simulador visual;
+  - las cinco pantallas siguen siendo propias, con su hash: los enlaces de siempre llevan a su sitio y **no se retira nada**;
+  - cabeceras «Deuda · Plan» y «Deuda · Ofertas · …»; el recorrido Anterior/Siguiente sigue el orden nuevo; el menú lateral no cambia.
+- **Lecciones de esta sesión:**
+  - **El servidor de las pruebas en navegador se reutiliza** (`reuseExistingServer`). Al parar una batería, su servidor siguió vivo con el `dist` de las 19:51, y la batería siguiente y `test:mobile-overflow` probaron esa construcción vieja, sin D-N28. Se paró todo, se reconstruyó y se repitieron las dos. Antes de una batería: ningún `serve-dist` vivo, o `npm run build:site` justo antes.
+  - Una comprobación a 195 px hecha a mano destapó un fallo en mi propia e2e de D-N27: el alta en bloque no reconoce el tipo «coche». Ahora es «préstamo».
+- **Pruebas:**
+  - `tests/d-n23-cuota-mes-acuerdo.test.cjs` (4), nueva;
+  - `tests/svd4-paridad-escenario.test.cjs`, rehecha (6: paridad exacta, el criterio de siempre sin la marca y el esquema);
+  - `tests/plan-optimo-deuda.test.cjs` (7, +2);
+  - pestañas de Deuda y NAV-4, rehechas;
+  - e2e nuevas: «pregunta antes de empezar por la más pequeña» y «D-N28 · Deuda en tres pestañas», las dos a 390 px (`@safari`) y a 1280; las de SVD-3/SVD-4 y Préstamo, al día.
+  - Versiones a `20261121dn23` (motores de escenarios, adaptador, decisiones, `escenarios-ui.js`, el puente, `app.js` y `views/debt-control.js`), `20261121dn27` (el motor del plan óptimo) y `20261121dn28` (`views/deuda.js`, `camino-deuda-ui.js`, `camino-deuda.css` y `novedades.js`).
+- **Validación:** **`npm run verify` en verde, por partes** (las 6.862 unitarias, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke; +8). `npm run test:mobile-overflow` sobre un `dist` recién construido: **371 visitas** sin nada cortado. Además, a mano a 195 px: el plan óptimo con la pregunta y el margen abiertos, y las tres pantallas de Ofertas, sin nada fuera.
+  - **Batería en navegador** (e2e, a11y y perf-screens en Chromium): **496 pasan y 5 fallan, todas de este cambio**:
+    - el inventario de titulares (XGO-01) ya no llegaba a Préstamo ni al simulador, porque su recorrido solo seguía la primera fila de pestañas. Ahora sigue también la de Ofertas. El manifiesto solo cambia de orden, más un plegable nuevo en Plan (el del margen; los plegables no tienen techo);
+    - la e2e de D-N28 esperaba `aria-current="true"` en Comparar, que es la propia dirección de Ofertas (`"page"`);
+    - las dos de D-N27 usaban el tipo «coche», y tras recargar el plegable del margen vuelve cerrado.
+  - **Repetidas aparte** sobre una construcción nueva: lo de Deuda, Escenarios, SVD, WP-19 y XGO-01, en e2e y a11y: **67/67** y luego **4/4**.
+  - **Lo que esa pasada mezcló:** también lancé el proyecto `safari`. Sus 88 pruebas no arrancan aquí (no hay WebKit en el contenedor), y la lectura en Safari es la del CI.
+- **Sin tocar, de otra conversación:** #658 (el foco de DEC-22 sin opener, Plan › Mes y el índice de Ajustes a 195 px, la fila «Ahorro») sigue abierto en borrador, sin la main de #660 incorporada. No es mío y no lo toco: si al fusionar este se quiere integrar, que lo diga el hogar.
+
 ## Cierre de sesión — 21 de noviembre de 2026 (518): Hoy por áreas; plan óptimo de saldo en Deuda › Ruta; undécima auditoría
 
 - **Publicado de antes:** #659 (DEC-38 tandas 3 a 5, el gráfico de Hoy, el foco del repaso en Safari) con su CI en verde a la primera (66 min, Safari incluido), comprobada la cabeza 3a170e2a: main 96088460. Su despliegue, en curso al escribir esto, publica también #657 (el 1507 no publicó).

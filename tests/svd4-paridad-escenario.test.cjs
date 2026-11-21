@@ -1,10 +1,9 @@
 // SVD-4 (17/11/2026): paridad entre la estrategia del simulador visual de deuda y la misma estrategia guardada como escenario (lo que
-// enseña Plan › Previsión al elegir «O un escenario guardado»). Medida, no supuesta:
-//  - Escenarios (y las decisiones del plan, SVD-3) siguen el criterio prudente de la app: el mes del cambio todavía se paga la cuota
-//    de hoy y lo nuevo empieza el mes siguiente;
-//  - el simulador (y Ruta) dejan de pagar la cuota de hoy desde el mes de la estrategia.
-// Así que el escenario paga exactamente UNA cuota de hoy más, y la liquidez de Previsión queda esa cuota por debajo desde ese mes. Si
-// algún día alguno de los dos cambia de criterio, estas pruebas lo dicen. Contrato inventado.
+// enseña Plan › Previsión al elegir «O un escenario guardado»). Medida, no supuesta.
+// Hasta D-N23 el escenario pagaba exactamente UNA cuota de hoy más (el mes del cambio todavía se pagaba). Desde D-N23 (21/11/2026,
+// decisión del hogar: el criterio realista para lo que sale de un acuerdo o del simulador) la estrategia guardada lleva
+// `planificacion.cuotaMesCambio: "sustituye"` y la serie es la misma, euro a euro. Lo demás de Escenarios (sin esa marca) sigue con
+// el criterio de siempre, y también se comprueba. Contrato inventado.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
@@ -39,41 +38,60 @@ function scenarioSeries(account) {
   return resolved.months.map((month) => round2(month.refi));
 }
 
-const sum = (list) => round2(list.reduce((total, value) => total + value, 0));
 
-test("SVD-4 · paridad · quita: el escenario paga la cuota de hoy también el mes del pago; ni un euro más", () => {
+test("SVD-4 · paridad · quita: el escenario paga lo mismo que el simulador, mes a mes (D-N23)", () => {
   const sim = simulatorSeries({ strategy: "settlement", lump: 2000, start: 3 }).series;
   const esc = scenarioSeries({ strategy: "settlement", lump: 2000, start: 3 });
   assert.deepEqual(sim.slice(0, 4), [150, 150, 2000, 0]);
-  assert.deepEqual(esc.slice(0, 4), [150, 150, 2150, 0]);
-  const diff = esc.map((value, index) => round2(value - sim[index]));
-  assert.deepEqual(diff.filter((value) => value !== 0), [150]);
-  assert.equal(round2(sum(esc) - sum(sim)), 150);
+  assert.deepEqual(esc, sim);
 });
 
-test("SVD-4 · paridad · refinanciación: mismas cuotas nuevas, un mes más tarde, y una cuota de hoy más", () => {
+test("SVD-4 · paridad · refinanciación: las mismas cuotas nuevas, desde el mismo mes (D-N23)", () => {
   const { series: sim, account } = simulatorSeries({ strategy: "refi", lump: 0, apr: 5, term: 18, financePct: 100, start: 3 });
   const esc = scenarioSeries({ strategy: "refi", lump: 0, financed: account.financed, monthly: account.monthly, apr: 5, term: 18, start: 3 });
   const cuota = round2(account.monthly);
   assert.deepEqual(sim.slice(0, 4), [150, 150, cuota, cuota]);
-  assert.deepEqual(esc.slice(0, 4), [150, 150, 150, cuota]);
-  // 18 cuotas nuevas en los dos; el escenario acaba un mes después.
-  assert.equal(sim.filter((value) => value === cuota).length, 18);
   assert.equal(esc.filter((value) => value === cuota).length, 18);
-  assert.equal(round2(sum(esc) - sum(sim)), 150);
-  // Lo que paga de más el escenario, acumulado: el mes del cambio paga la cuota de hoy (150) en vez de la nueva, así que ese mes va
-  // por DEBAJO (−9,40 con estas cifras); desde el siguiente, una cuota nueva por encima… y al acabar, exactamente la cuota de hoy.
-  let acumulada = 0;
-  const camino = esc.map((value, index) => (acumulada = round2(acumulada + value - sim[index])));
-  assert.equal(camino[2], round2(150 - cuota));
-  assert.ok(camino.every((value) => value >= round2(150 - cuota) && value <= 150), JSON.stringify(camino));
-  assert.equal(camino[camino.length - 1], 150);
+  assert.deepEqual(esc, sim);
 });
 
-test("SVD-4 · paridad · el mensaje al guardar dice cuánto más baja sale Previsión, con el mismo criterio", () => {
+test("SVD-4 · paridad · híbrido (pago único y refinanciación): la misma serie (D-N23)", () => {
+  const { series: sim, account } = simulatorSeries({ strategy: "hybrid", lump: 500, apr: 5, term: 12, financePct: 100, start: 2 });
+  const esc = scenarioSeries({ strategy: "hybrid", lump: 500, financed: account.financed, monthly: account.monthly, apr: 5, term: 12, start: 2 });
+  assert.deepEqual(esc, sim);
+});
+
+test("D-N23 · las decisiones de Escenarios sin la marca siguen con el criterio de siempre: el mes del cambio se paga la cuota de hoy", () => {
+  const { decisions } = Adapter.scenarioDecisionsFromRoadmap({ canonical, baseMonthKey: "2026-11", accounts: [{ accountKey: key, account: { strategy: "settlement", lump: 2000, start: 3 } }] });
+  assert.equal(decisions[0].planificacion.cuotaMesCambio, "sustituye");
+  const prudente = decisions.map((decision, orden) => {
+    const { cuotaMesCambio, ...planificacion } = decision.planificacion;
+    return { ...decision, planificacion, id: `dec_01ARZ3NDEKTSV4RRFFQ69G5FB${orden}`, orden };
+  });
+  const resolved = ScenarioEngine.resolveEscenario(prudente, { baseInput: { months }, debtContracts: [contract] });
+  assert.deepEqual(resolved.months.slice(0, 4).map((month) => round2(month.refi)), [150, 150, 2150, 0]);
+  const marcada = prudente.map((decision) => ({ ...decision, planificacion: { ...decision.planificacion, cuotaMesCambio: "se-paga" } }));
+  const resolvedMarcada = ScenarioEngine.resolveEscenario(marcada, { baseInput: { months }, debtContracts: [contract] });
+  assert.deepEqual(resolvedMarcada.months.map((month) => round2(month.refi)), resolved.months.map((month) => round2(month.refi)));
+});
+
+test("D-N23 · el esquema admite cuotaMesCambio «se-paga» o «sustituye», y nada más", () => {
+  const Schema = require("../canonical-scenario-schema.js");
+  const base = { id: "dec_01ARZ3NDEKTSV4RRFFQ69G5FC0", orden: 0, tipo: "acuerdo_quita", titulo: "Quita", activa: true, params: { deudaId: contract.id, importePactado: 2000, modalidad: "pago-unico", vigenciaHasta: "2027-01-31" } };
+  const errores = (planificacion) => { const issues = []; Schema.validateDecision({ ...base, planificacion }, "$", issues); return issues.filter((issue) => issue.severity === "error").map((issue) => issue.code); };
+  assert.deepEqual(errores({ modo: "manual", mesManual: "2027-01", cuotaMesCambio: "sustituye" }), []);
+  assert.deepEqual(errores({ modo: "manual", mesManual: "2027-01", cuotaMesCambio: "se-paga" }), []);
+  assert.deepEqual(errores({ modo: "manual", mesManual: "2027-01" }), []);
+  assert.ok(errores({ modo: "manual", mesManual: "2027-01", cuotaMesCambio: "a-veces" }).includes("invalid-enum"));
+});
+
+test("SVD-4 · al guardar, el mensaje ya no avisa de una diferencia que no hay; las guardadas antes se leen con el criterio nuevo", () => {
   const fs = require("node:fs");
   const path = require("node:path");
   const puente = fs.readFileSync(path.join(__dirname, "..", "deuda-simulador-puente.js"), "utf8");
-  assert.match(puente, /function svdDiferenciaEscenario\(/);
-  assert.match(puente, /el mes del cambio todavía cuenta la cuota de hoy/);
+  assert.doesNotMatch(puente, /el mes del cambio todavía cuenta la cuota de hoy/);
+  assert.match(puente, /En Previsión sale la misma liquidez que aquí/);
+  const ui = fs.readFileSync(path.join(__dirname, "..", "escenarios-ui.js"), "utf8");
+  assert.match(ui, /function escenarioMotorSavedCriterio\(/);
+  assert.match(ui, /parsed\.map\(escenarioMotorSavedCriterio\)/);
 });

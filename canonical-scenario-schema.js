@@ -13,6 +13,10 @@
   const ESTACIONALIDADES = Object.freeze(["aprendida", "plana", "manual"]);
   const SEVERIDADES_GUARDARRAIL = Object.freeze(["dura", "blanda"]);
   const PLANIFICACION_MODOS = Object.freeze(["optimo", "manual"]);
+  // D-N23 (21/11/2026): qué pasa con la cuota de hoy el mes en que una decisión cambia una deuda. «se-paga» (lo de siempre, si no
+  // se dice nada): ese mes todavía se paga y lo nuevo empieza el siguiente. «sustituye»: lo nuevo sustituye a la cuota desde ese
+  // mismo mes, como en Ruta y en el simulador; es lo que llevan las estrategias guardadas desde Deuda › Simulador visual.
+  const CUOTA_MES_CAMBIO = Object.freeze(["se-paga", "sustituye"]);
   const CUENTAS = Object.freeze(["caixabank", "mediolanum", "externo"]);
   // Privacidad, fase 4c (D-N26): las personas son «p1» y «p2». Un escenario guardado antes con la clave de siempre sigue siendo
   // válido (household-members.js la reconoce por su huella): las copias antiguas se restauran sin perder ninguno.
@@ -248,7 +252,7 @@
       error(issues, path, "invalid-type", `${path} debe ser un objeto.`);
       return;
     }
-    const allowed = ["modo", "mesManual", "mesResuelto"];
+    const allowed = ["modo", "mesManual", "mesResuelto", "cuotaMesCambio"];
     requireFields(planificacion, ["modo"], path, issues);
     rejectExtraProperties(planificacion, allowed, path, issues);
     if (planificacion.modo !== undefined && !PLANIFICACION_MODOS.includes(planificacion.modo)) {
@@ -264,6 +268,9 @@
     }
     if (planificacion.mesResuelto !== undefined && planificacion.mesResuelto !== null && !MONTH_PATTERN.test(String(planificacion.mesResuelto))) {
       error(issues, `${path}.mesResuelto`, "invalid-value", "mesResuelto debe tener formato AAAA-MM o ser null.");
+    }
+    if (planificacion.cuotaMesCambio !== undefined && !CUOTA_MES_CAMBIO.includes(planificacion.cuotaMesCambio)) {
+      error(issues, `${path}.cuotaMesCambio`, "invalid-enum", `cuotaMesCambio debe ser uno de: ${CUOTA_MES_CAMBIO.join(", ")}.`);
     }
   }
 

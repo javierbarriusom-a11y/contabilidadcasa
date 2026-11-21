@@ -13,8 +13,11 @@
  *  - un pago inicial opcional, que se aplica en el orden de ataque (rebaja el capital de la primera deuda y, si sobra, de la
  *    siguiente; cuota y TAE no cambian, así que el plazo se acorta);
  *  - compara los dos órdenes (avalancha: primero la TAE más alta, que es el que menos intereses paga; bola de nieve: primero la
- *    más pequeña) y recomienda la avalancha salvo que la bola de nieve cueste muy poco más (≤ 3 % de los intereses o ≤ 150 €) y
- *    salde la primera deuda antes: una cuota menos pronto ayuda a sostener el plan, y eso vale esa diferencia;
+ *    más pequeña). Por defecto, la avalancha. Si la bola de nieve cuesta muy poco más (de entrada ≤ 3 % de los intereses o
+ *    ≤ 150 €, lo que sea mayor; el hogar puede cambiar ese margen) y salda antes la primera deuda, NO la elige solo: lo pregunta
+ *    (`sugerencia`), porque una cuota menos pronto ayuda a sostener el plan y eso puede valer esa diferencia, pero lo decide el
+ *    hogar (D-N27, 21/11/2026: «ok, pero me preguntas antes y poder modificar»). El orden elegido (`options.strategy`) manda
+ *    siempre y se puede cambiar cuando se quiera;
  *  - el calendario por tramos: hasta qué mes va cuánto a qué deuda.
  *
  * Motor puro: sin DOM, sin red ni almacenamiento. No ejecuta ninguna operación ni cambia ningún contrato (A11-4).
@@ -88,6 +91,16 @@
     return out;
   }
 
+  // El margen que pone el hogar (D-N27): un porcentaje de los intereses de la avalancha (0 a 50 %) y un importe (0 a 100.000 €).
+  function tolerance(value) {
+    const pct = Number(value?.pct);
+    const abs = Number(value?.abs);
+    return {
+      pct: Number.isFinite(pct) && pct >= 0 && pct <= 0.5 ? pct : SNOWBALL_TOLERANCE.pct,
+      abs: Number.isFinite(abs) && abs >= 0 && abs <= 100000 ? round2(abs) : SNOWBALL_TOLERANCE.abs,
+    };
+  }
+
   function summary(result, baseline) {
     const finishes = result.ok && !result.beyondHorizon && result.debtFreeMonthKey;
     const baseFinishes = baseline.ok && !baseline.beyondHorizon && baseline.debtFreeMonthKey;
@@ -104,9 +117,11 @@
   /**
    * @param {{project: Function}} payoffEngine FinanceCanonicalDebtPayoffPath
    * @param {Array<Record<string, any>>} contracts filas de contrato canónico (las mismas de «Camino a deuda cero»)
-   * @param {{startMonthKey?: string, monthly?: number, lump?: number, order?: string[], capacity?: number|null, available?: number|null}} options
+   * @param {{startMonthKey?: string, monthly?: number, lump?: number, order?: string[], capacity?: number|null, available?: number|null, strategy?: string|null, tolerance?: {pct?: number, abs?: number}|null}} options
    *   `monthly`: lo que se pone al mes además de las cuotas; `lump`: pago inicial; `order`: orden de la avalancha (DEB5, TAE tras
-   *   deducción fiscal); `capacity` y `available`: la capacidad libre al mes y el dinero por encima del suelo del colchón, solo para avisar.
+   *   deducción fiscal); `capacity` y `available`: la capacidad libre al mes y el dinero por encima del suelo del colchón, solo para avisar;
+   *   `strategy`: el orden que ha elegido el hogar («avalancha» o «bola-nieve»; sin elegir, la avalancha y, si procede, la pregunta);
+   *   `tolerance`: el margen para preguntar por la bola de nieve ({pct, abs}; sin él, SNOWBALL_TOLERANCE).
    */
   function plan(payoffEngine, contracts, options = {}) {
     if (!payoffEngine || typeof payoffEngine.project !== "function") return { ok: false, error: "Falta el cálculo de «Camino a deuda cero»." };
@@ -128,18 +143,21 @@
     const avalancha = camino("avalancha");
     const bola = camino("bola-nieve");
 
-    let recommended = avalancha;
-    let reason = "avalancha";
+    // D-N27: la bola de nieve se sugiere (no se elige sola) si cuesta como mucho el margen más y salda antes la primera deuda.
     const a = avalancha.summary;
     const b = bola.summary;
+    const margen = tolerance(options.tolerance);
+    let sugerencia = null;
     if (a.totalInterest !== null && b.totalInterest !== null && a.firstPayoff && b.firstPayoff) {
       const extraCost = round2(b.totalInterest - a.totalInterest);
-      const tolerance = Math.max(SNOWBALL_TOLERANCE.abs, a.totalInterest * SNOWBALL_TOLERANCE.pct);
-      if (extraCost <= tolerance && b.firstPayoff.payoffIndex < a.firstPayoff.payoffIndex) {
-        recommended = bola;
-        reason = extraCost <= 0 ? "bola-gratis" : "bola-motiva";
+      const limit = round2(Math.max(margen.abs, a.totalInterest * margen.pct));
+      if (extraCost <= limit && b.firstPayoff.payoffIndex < a.firstPayoff.payoffIndex) {
+        sugerencia = { strategy: "bola-nieve", extraCost: Math.max(0, extraCost), monthsEarlier: a.firstPayoff.payoffIndex - b.firstPayoff.payoffIndex, firstPayoff: b.firstPayoff, limit };
       }
     }
+    const chosen = options.strategy === "avalancha" || options.strategy === "bola-nieve" ? options.strategy : null;
+    const recommended = chosen === "bola-nieve" ? bola : avalancha;
+    const reason = chosen ? `elegida-${chosen}` : "avalancha";
     const alternative = recommended === avalancha ? bola : avalancha;
     const warnings = [];
     const capacity = options.capacity === null || options.capacity === undefined ? null : Number(options.capacity);
@@ -158,10 +176,14 @@
       baseline: { debtFreeMonthKey: baseline.debtFreeMonthKey, monthsToDebtFree: baseline.monthsToDebtFree, totalInterest: baseline.beyondHorizon ? null : baseline.totalInterest, beyondHorizon: baseline.beyondHorizon, excluded: baseline.excluded },
       recommended: { ...recommended, reason },
       alternative,
+      chosen,
+      sugerencia,
+      pregunta: Boolean(sugerencia) && !chosen,
+      tolerance: margen,
       diferenciaAlternativa: a.totalInterest !== null && b.totalInterest !== null ? round2(alternative.summary.totalInterest - recommended.summary.totalInterest) : null,
       warnings,
     };
   }
 
-  return { SCHEMA_ID, SNOWBALL_TOLERANCE, plan, applyLump, periods };
+  return { SCHEMA_ID, SNOWBALL_TOLERANCE, plan, applyLump, periods, tolerance };
 });

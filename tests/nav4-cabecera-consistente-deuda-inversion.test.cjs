@@ -45,7 +45,13 @@ function tabsFrom(source, name) {
   return context[name];
 }
 
-const DEUDA_SCREEN_TABS = tabsFrom(deuda, "DEUDA_SCREEN_TABS");
+// D-N28 (21/11/2026): Deuda en tres pestañas; las tres pantallas de «Ofertas» dicen «Deuda · Ofertas · <Pantalla>».
+const DEUDA_TOP_TABS = tabsFrom(deuda, "DEUDA_SCREEN_TABS");
+const DEUDA_OFERTAS_TABS = tabsFrom(deuda, "DEUDA_OFERTAS_TABS");
+const DEUDA_SCREEN_TABS = [
+  ...DEUDA_TOP_TABS.filter((tab) => !tab.screens).map((tab) => ({ id: tab.id, label: tab.label })),
+  ...DEUDA_OFERTAS_TABS.map((tab) => ({ id: tab.id, label: `Ofertas · ${tab.label}` })),
+];
 const INVERSION_SCREEN_TABS = tabsFrom(inversion, "INVERSION_SCREEN_TABS");
 
 function staticEyebrowFor(viewId) {
@@ -74,7 +80,8 @@ function viewTitlesEyebrowFor(viewId) {
 
 // --- Las 4 pestañas de Deuda usan "Deuda · <Pestaña>", igual que Inversión -----------------------
 
-test("NAV-4 · las cuatro pestañas de Deuda repiten «Deuda · <Pestaña>», con la etiqueta exacta de su propia pestaña", () => {
+test("NAV-4 · las pantallas de Deuda repiten «Deuda · <Pestaña>» (y «Deuda · Ofertas · <Pantalla>» las de Ofertas), con su etiqueta exacta", () => {
+  assert.equal(DEUDA_SCREEN_TABS.length, 5);
   DEUDA_SCREEN_TABS.forEach((tab) => {
     const expected = `Deuda · ${tab.label}`;
     assert.equal(staticEyebrowFor(tab.id), expected, `${tab.id}: el eyebrow estático debe ser "${expected}"`);

@@ -549,7 +549,8 @@
       if (!contract) { skipped.push({ accountKey: key, reason: "sin-contrato" }); return; }
       const mes = addMonthKeys(baseMonth, Math.max(1, Math.round(number(account.start) || 1)) - 1);
       const label = String(contract.entity || "deuda").trim();
-      const decision = (tipo, titulo, params) => ({ tipo, titulo: titulo.slice(0, 60), activa: true, planificacion: { modo: "manual", mesManual: mes }, params });
+      // D-N23: lo que sale del simulador sustituye a la cuota de hoy desde su mes, igual que en el simulador.
+      const decision = (tipo, titulo, params) => ({ tipo, titulo: titulo.slice(0, 60), activa: true, planificacion: { modo: "manual", mesManual: mes, cuotaMesCambio: "sustituye" }, params });
       const lump = round2(Math.max(0, number(account.lump)));
       if (strategy === "settlement") {
         if (!(lump > 0)) { skipped.push({ accountKey: key, reason: "sin-importe" }); return; }

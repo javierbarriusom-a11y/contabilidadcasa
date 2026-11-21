@@ -302,6 +302,10 @@
       return { id: decision.id, tipo: decision.tipo, resultado: conflict.code, objetivos: targets, ...conflict };
     }
     const outcome = APPLIERS[decision.tipo](decision, debtState);
+    // D-N23: «sustituye» marca la deuda para que, el mes del cambio, deje de pagarse la cuota de hoy (buildContractSchedule).
+    if (decision.planificacion?.cuotaMesCambio === "sustituye" && outcome.resultado === "aplicada") {
+      targets.forEach((deudaId) => { const contract = debtState.get(deudaId); if (contract) contract.sustituyeMesCambio = true; });
+    }
     return { id: decision.id, tipo: decision.tipo, objetivos: targets, ...outcome };
   }
 
@@ -364,18 +368,20 @@
 
   // Aportación final de una deuda a `refi`: original hasta (e incluyendo) el mes resuelto de la
   // última decisión que la tocó, estado post-decisión desde el mes siguiente, más cualquier importe
-  // de golpe (amortización, quita) sumado sobre el mes resuelto.
+  // de golpe (amortización, quita) sumado sobre el mes resuelto. Con `sustituyeMesCambio` (D-N23,
+  // planificacion.cuotaMesCambio «sustituye»), el estado post-decisión empieza el propio mes resuelto.
   function buildContractSchedule(contract, months) {
     const changeIndex = contract.scheduleEffectiveFrom ? monthIndexOf(months, contract.scheduleEffectiveFrom) : -1;
+    const shift = contract.sustituyeMesCambio === true ? 1 : 0;
     const schedule = new Map();
     months.forEach((month, index) => {
-      const beforeOrAtChange = changeIndex < 0 || index <= changeIndex;
+      const beforeOrAtChange = changeIndex < 0 || index <= changeIndex - shift;
       if (beforeOrAtChange) {
         if (contract.original.paymentStatus === "active" && index < contract.original.remainingInstallments) {
           schedule.set(month.monthKey, round2(contract.original.currentPayment));
         }
       } else {
-        const monthsSinceChange = index - changeIndex - 1;
+        const monthsSinceChange = index - changeIndex - 1 + shift;
         if (contract.paymentStatus === "active" && monthsSinceChange < contract.remainingInstallments) {
           schedule.set(month.monthKey, round2(contract.currentPayment));
         }
