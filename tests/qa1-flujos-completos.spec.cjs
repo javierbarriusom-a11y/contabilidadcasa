@@ -9028,6 +9028,87 @@ test.describe("DEC-30 · la semana que viene en una frase", () => {
   }
 });
 
+// DEC-45 (décima auditoría §4.9, 21/11/2026): «¿te sirve?» en las líneas de Novedades de las dos últimas semanas. «Sí» o «No»
+// (tocar la marcada la quita) se guardan en el medidor de este navegador, sin texto ni importes, y salen en Ajustes › Uso de la app.
+// En los dos temas: Novedades vive en el menú, fuera del diseño nuevo.
+test.describe("DEC-45 · «¿te sirve?» en Novedades", () => {
+  const abrirNovedades = async (page, viewport) => {
+    if (viewport.width < 900) await page.locator("#mobileNavToggle").click();
+    await page.locator("#versionStamp > summary").click();
+    await expect(page.locator("#versionStamp")).toHaveAttribute("open", "");
+  };
+  const opiniones = (page) => page.evaluate(() => JSON.parse(localStorage.getItem("medidor-utilidad") || "{}").novedades || {});
+
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`responder, cambiar y quitar; lo antiguo sin botones; y el informe en Uso de la app, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 21, 10, 0, 0) });
+      await page.goto("/index.html#home");
+      await expect(page.locator("#home")).toBeVisible({ timeout: 15000 });
+      await abrirNovedades(page, viewport);
+      const linea = page.locator('#novedadesList li[data-novedad="2026-11-21-te-sirve"]');
+      const grupo = linea.getByRole("group", { name: /^¿Te sirve\? Novedades: las de las dos últimas semanas/ });
+      await expect(grupo).toBeVisible();
+      const si = grupo.getByRole("button", { name: "Sí" });
+      const no = grupo.getByRole("button", { name: "No" });
+      await expect(si).toHaveAttribute("aria-pressed", "false");
+      // Las de hace más de dos semanas, como siempre: sin botones.
+      const antigua = page.locator("#novedadesList li", { hasText: "Hoy tiene un único titular" });
+      await expect(antigua).toHaveCount(1);
+      await expect(antigua.locator("button")).toHaveCount(0);
+      // Al menos 24 px de alto (WCAG 2.5.8).
+      expect((await si.boundingBox()).height).toBeGreaterThanOrEqual(24);
+
+      await si.click();
+      await expect(si).toHaveAttribute("aria-pressed", "true");
+      await expect(no).toHaveAttribute("aria-pressed", "false");
+      await expect(si).toBeFocused();
+      expect(await opiniones(page)).toEqual({ "2026-11-21-te-sirve": { v: "si", f: "2026-11-21" } });
+      // Cambiar de idea, y tocar la marcada la quita.
+      await no.click();
+      await expect(no).toHaveAttribute("aria-pressed", "true");
+      await expect(si).toHaveAttribute("aria-pressed", "false");
+      await no.click();
+      await expect(no).toHaveAttribute("aria-pressed", "false");
+      expect(await opiniones(page)).toEqual({});
+      await no.click();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      // Sin el texto de la línea en lo guardado: solo su identificador, la respuesta y la fecha.
+      expect(await page.evaluate(() => localStorage.getItem("medidor-utilidad"))).not.toContain("Uso de la app");
+
+      // Se recuerda al volver.
+      await page.reload();
+      await expect(page.locator("#home")).toBeVisible({ timeout: 15000 });
+      await abrirNovedades(page, viewport);
+      await expect(page.locator('#novedadesList li[data-novedad="2026-11-21-te-sirve"] [data-novedad-sirve="no"]')).toHaveAttribute("aria-pressed", "true");
+
+      await page.goto("/index.html#ajustes");
+      const informe = page.locator("#medidorUtilidadLista li", { hasText: "Novedades («¿te sirve?»)" });
+      await expect(informe).toContainText("vista 1 día · 1 «sí, me sirve» (actuasteis el 100 % de los días) · 2 «no me sirve» · 1 respuesta quitada"); // sí, no, quitar, no
+      await expect(informe).toContainText("Respondidas 1: 0 os sirven y 1 no. No os sirven: «Novedades: las de las dos últimas semanas preguntan «¿Te si…».");
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+
+  test("con el diseño de siempre, la misma pregunta", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.clock.install({ time: new Date(2026, 10, 21, 10, 0, 0) });
+    await page.goto("/index.html?tema=clasico#home");
+    await expect(page.locator("#home")).toBeVisible({ timeout: 15000 });
+    expect(await page.evaluate(() => document.documentElement.dataset.tema || "")).not.toBe("v2");
+    await page.locator("#versionStamp > summary").click();
+    const si = page.locator('#novedadesList li[data-novedad="2026-11-21-te-sirve"] [data-novedad-sirve="si"]');
+    await si.click();
+    await expect(si).toHaveAttribute("aria-pressed", "true");
+    expect(await opiniones(page)).toEqual({ "2026-11-21-te-sirve": { v: "si", f: "2026-11-21" } });
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
 // DEC-22 (décima auditoría, 20/11/2026): el aviso del domingo del calendario lleva «#home?abrir=repaso». Abre la app con el repaso
 // encima de Hoy, la marca sale de la dirección (recargar no lo vuelve a abrir) y cuenta en el medidor. Con el diseño de siempre no hay
 // repaso: se queda en Hoy sin errores.

@@ -571,6 +571,12 @@ que entra en las pruebas de Clasificar y Movimientos. *Por qué:* §1.5 y P-C. S
   lunes a domingo sería un día); y el día más justo solo se dice si no es el último de los 7 (con el gasto del día a día repartido
   y sin cobro, el saldo baja hasta el final y el día lo pondría el corte). En el repaso, para seguir en tres líneas (FX-42), con
   aviso no sale la de qué ha cambiado. Sin cifra ni motor nuevos.
+- **DEC-45**, «¿te sirve?» en Novedades (21/11/2026, PROJECT_STATE 515; el hogar: «Sigue con DEC-45»): «Sí» y «No» en las
+  líneas de Novedades, que van al medidor (vista = abrir Novedades; «sí», acción; «no», descarte; quitar la respuesta,
+  deshecho) y salen en Ajustes › Uso de la app con cuáles no sirven. En los dos temas. **Me aparto en una cosa:** no en «cada
+  línea», sino en las de las dos últimas semanas (el plazo de P9) y en las ya respondidas: el 21/11 hay 202 líneas, 128 de los
+  últimos 30 días; en todas serían unos 400 botones en el menú. Se guarda solo el identificador de la línea, la respuesta y la
+  fecha, en este navegador.
 - **DEC-16** (un solo contador para el repaso) no se ha hecho: sustituye cuatro tarjetas por una y eso cambia lo que se ve en
   Movimientos y en el repaso; mejor con D-N17 contestada.
 

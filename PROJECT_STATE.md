@@ -113,6 +113,17 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 21 de noviembre de 2026 (515): DEC-45, «¿te sirve?» en Novedades
+
+- **Publicado de antes:** #655 (DEC-30) fusionado con su CI en verde a la primera (59 min, Safari incluido): main 18de42b5. «Verify and deploy Pages» **1503** en verde, publicado a las 06:33 UTC; «Published availability» **386** (la programada de las 07:00, ya tras publicarse) y **387** (lanzada a mano a las 07:02), las dos en verde. DEC-30 está en el sitio.
+- **El hogar:** «Sigue con DEC-45» (décima auditoría §4.9: «hoy se publica sin saber si se usa»).
+- **Qué:** las líneas de Novedades (menú, en los dos temas) preguntan «¿Te sirve?» con «Sí» y «No» (`aria-pressed`; tocar la marcada la quita; se cambia en su sitio, sin repintar la lista, y el foco no salta). Cada botón, nombrado por su línea (`role="group"` con `aria-labelledby` de la pregunta y el texto) y de 24 px de alto (WCAG 2.5.8).
+- **Al medidor** (`medidor-utilidad.js`, función «Novedades («¿te sirve?»)»): abrir Novedades es la vista; «sí», acción; «no», descarte; quitar la respuesta, deshecho. Aparte, la respuesta de cada línea (`novedades`: identificador, «si»/«no» y fecha; como mucho 300, sin texto ni importes, solo en este navegador). Ajustes › Uso de la app lo dice: «Respondidas N: X os sirven y Y no. No os sirven: «…»» (las tres más recientes, cortadas a 60 caracteres).
+- **Me aparto de la propuesta en una cosa:** no pregunta en «cada línea» sino en las de las dos últimas semanas (el plazo de P9 para juzgar una función) y en las ya respondidas, para poder cambiar la respuesta. El 21/11 hay 202 líneas, 128 de los últimos 30 días; en todas serían unos 400 botones en el menú. Sin medidor (si no cargara), la lista es la de siempre.
+- **Código:** `ux-shell.js` (`novedadPregunta`, `NOVEDADES_SIRVE_DIAS`, el pintado y el clic delegado), `medidor-utilidad.js` (`opinarNovedad`, `opinionNovedad`, `fraseNovedades`, `opinar`, `opinion`), `styles.css`, `novedades.js` (su línea); `app.js` sin cambios. Versiones de esos cuatro a `20261121dec45`.
+- **Pruebas:** `tests/dec45-te-sirve.test.cjs` (6); e2e «DEC-45» a 390 px (`@safari`) y 1440 px (responder, cambiar, quitar, lo antiguo sin botones, se recuerda al recargar, nada del texto en lo guardado y el informe de Uso de la app) y con el diseño de siempre; axe de Novedades con una respuesta marcada en claro y oscuro. Versiones ajustadas en `audit-svg-tablas-oscuro`, `e17-interface`, `t8-alto-contraste-y-reduced-motion`, `nielsen-2026-11`, `cierre-coste`, `dec22-enlace-repaso`, `dec23-hecho-esta-semana` y `dec30-semana-que-viene`.
+- **Validación:** `npm run verify` en verde, salida 0: `npm test` **6.834/6.834** (+6). Batería completa en local (e2e + a11y, Chromium): **483/483** (21,5 min).
+
 ## Cierre de sesión — 21 de noviembre de 2026 (514): DEC-30, la semana que viene en una frase
 
 - **Publicado de antes:** #654 (DEC-23) fusionado con su CI en verde: main 56901fb3. «Verify and deploy Pages» **1501** en verde, publicado a las 23:50 UTC del 20/11; «Published availability» **385** (lanzada a mano a las 00:02 del 21/11, tras publicarse), en verde. DEC-23 está en el sitio y se ve desde el lunes 30/11.

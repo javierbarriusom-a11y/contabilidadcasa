@@ -55,6 +55,9 @@
   const CIERRE_PAUSA_S = 180;
   const CIERRE_VISTAS = ["cierre", "movements", "registrar"];
   const KEEP_CIERRES = 12;
+  // DEC-45: «¿te sirve?» en Novedades. Una respuesta por línea (la última), con su fecha; como mucho estas.
+  const KEEP_NOVEDADES = 300;
+  const OPINIONES = ["si", "no"];
   // El primer cierre real (octubre de 2026) no se midió: lo dijo el hogar el 4/11 (docs/REVISION_POST_CIERRE_2026-11.md).
   const CIERRE_LINEA_BASE = { mes: "2026-10", minutos: 45 };
 
@@ -86,6 +89,9 @@
     // revisión de 14 días tenga un antes con que compararse.
     { id: "prevision", nombre: "Previsión", accion: ["horizonte, mes o periodo elegido", "horizontes, meses o periodos elegidos"], descarte: null, deshecho: null },
     { id: "escenarios", nombre: "Escenarios", accion: ["decisión simulada o escenario guardado", "decisiones simuladas o escenarios guardados"], descarte: null, deshecho: null },
+    // DEC-45 (21/11/2026): «¿te sirve?» en cada línea reciente de Novedades. Vista = abrir Novedades; «sí» cuenta como acción,
+    // «no» como descarte y quitar la respuesta como deshecho. Qué línea dice cada cosa se guarda aparte (`novedades`).
+    { id: "novedades", nombre: "Novedades («¿te sirve?»)", accion: ["«sí, me sirve»", "«sí, me sirve»"], descarte: ["«no me sirve»", "«no me sirve»"], deshecho: ["respuesta quitada", "respuestas quitadas"] },
     { id: "banda-dia", nombre: "Qué mueve cada día", accion: ["día de cargo buscado desde aquí", "días de cargo buscados desde aquí"], descarte: ["vez apagada", "veces apagada"], deshecho: null },
   ];
 
@@ -99,7 +105,7 @@
   }
 
   function emptyStore() {
-    return { meses: {}, ultimaVista: {}, ultimaAccion: {}, claves: {}, tiempos: {}, calibracion: [], cierres: {}, desde: "" };
+    return { meses: {}, ultimaVista: {}, ultimaAccion: {}, claves: {}, tiempos: {}, calibracion: [], cierres: {}, novedades: {}, desde: "" };
   }
 
   function normalize(raw) {
@@ -141,6 +147,13 @@
         firmado: /^\d{4}-\d{2}-\d{2}$/.test(String(c.firmado || "")) ? c.firmado : "",
         porClasificar: entero(c.porClasificar),
       };
+    }
+    if (raw.novedades && typeof raw.novedades === "object" && !Array.isArray(raw.novedades)) {
+      store.novedades = Object.fromEntries(Object.entries(raw.novedades)
+        .filter(([id, o]) => /^[\w-]{1,80}$/.test(id) && OPINIONES.includes(o?.v) && /^\d{4}-\d{2}-\d{2}$/.test(String(o?.f || "")))
+        .map(([id, o]) => [id, { v: o.v, f: o.f }])
+        .sort((a, b) => b[1].f.localeCompare(a[1].f))
+        .slice(0, KEEP_NOVEDADES));
     }
     if (/^\d{4}-\d{2}-\d{2}$/.test(String(raw.desde || ""))) store.desde = raw.desde;
     return store;
@@ -314,6 +327,41 @@
     return partes.join(" · ");
   }
 
+  // ---------- DEC-45 · «¿te sirve?» en Novedades ----------
+
+  // La respuesta a una línea de Novedades: "si", "no" o "" (quitarla). Repetir la misma no cuenta otra vez; cambiar de «sí» a «no»
+  // cuenta el «no» (el informe dice lo que se respondió, no lo que queda). Devuelve el almacén nuevo, sin tocar el que recibe.
+  function opinarNovedad(raw, id, valor, { hoy = isoDate() } = {}) {
+    let store = normalize(raw);
+    if (!/^[\w-]{1,80}$/.test(String(id || "")) || !(valor === "" || OPINIONES.includes(valor))) return store;
+    const antes = store.novedades[id]?.v || "";
+    if (antes === valor) return store;
+    if (valor) {
+      store.novedades[id] = { v: valor, f: hoy };
+      store = registrar(store, "novedades", valor === "si" ? "accion" : "descarte", { hoy });
+    } else {
+      delete store.novedades[id];
+      store = registrar(store, "novedades", "deshecho", { hoy });
+    }
+    return store;
+  }
+
+  function opinionNovedad(raw, id) {
+    return normalize(raw).novedades[id]?.v || "";
+  }
+
+  /** La línea del informe: cuántas líneas sirven y cuántas no, y cuáles no (las tres más recientes, por su texto). */
+  function fraseNovedades(raw, entries = []) {
+    const opiniones = Object.entries(normalize(raw).novedades);
+    if (!opiniones.length) return "";
+    const si = opiniones.filter(([, o]) => o.v === "si").length;
+    const no = opiniones.filter(([, o]) => o.v === "no");
+    const textos = no.slice(0, 3).map(([id]) => entries.find((entry) => entry?.id === id)?.texto).filter(Boolean)
+      .map((texto) => `«${texto.length > 60 ? `${texto.slice(0, 59).trimEnd()}…` : texto}»`);
+    const base = `Respondidas ${opiniones.length}: ${cuenta(si, ["os sirve", "os sirven"])} y ${cuenta(no.length, ["no", "no"])}`;
+    return `${base}${textos.length ? `. No os sirven: ${textos.join("; ")}${no.length > textos.length ? ` y ${no.length - textos.length} más` : ""}` : ""}.`;
+  }
+
   // ---------- Coste del cierre ----------
 
   function nuevoCierre() {
@@ -410,6 +458,18 @@
     return store.calibracion.at(-1)?.i || 0;
   }
 
+  // DEC-45: lo llama ux-shell.js al tocar «Sí» o «No» en una línea de Novedades. Devuelve la respuesta que queda.
+  function opinar(id, valor) {
+    const store = opinarNovedad(leer(), id, valor);
+    guardar(store);
+    if (globalThis.document?.getElementById("medidorUtilidadLista")) pintarInforme();
+    return store.novedades[id]?.v || "";
+  }
+
+  function opinion(id) {
+    return opinionNovedad(leer(), id);
+  }
+
   function corregir(i) {
     if (!i) return;
     guardar(corregirClasificacion(leer(), i));
@@ -442,7 +502,7 @@
     lista.innerHTML = FUNCIONES.map((f) => {
       const r = resumen(store, f.id, mesElegido);
       const tasa = r.tasa === null ? "—" : `${r.tasa} %`;
-      const dato = f.id === "clasificar-v2" ? globalThis.clasificarV2CoberturaFrase?.() || "" : f.id === "cierre-v2" ? fraseCierre(cierre(store)) : ""; // XDA-05 y coste del cierre
+      const dato = f.id === "clasificar-v2" ? globalThis.clasificarV2CoberturaFrase?.() || "" : f.id === "cierre-v2" ? fraseCierre(cierre(store)) : f.id === "novedades" ? fraseNovedades(store, globalThis.FinanceNovedades || []) : ""; // XDA-05, coste del cierre y DEC-45
       return `<li><div class="panel-uso-cabecera"><strong>${escapeHtml(f.nombre)}</strong><span class="panel-uso-valor" title="Tasa de acción">${escapeHtml(f.accion ? tasa : "—")}</span></div><p class="e19-kpi-note">${escapeHtml(frase(f.id, r))}</p>${dato ? `<p class="e19-kpi-note">${escapeHtml(dato)}</p>` : ""}</li>`;
     }).join("");
     const desde = doc.getElementById("medidorUtilidadDesde");
@@ -572,5 +632,5 @@
     else init(document);
   }
 
-  return { STORAGE_KEY, FUNCIONES, TIPOS_SIN, PUERTA_GRUPOS, PUERTA_PCT, CIERRE_PAUSA_S, CIERRE_VISTAS, CIERRE_LINEA_BASE, normalize, registrar, registrarClasificacion, corregirClasificacion, calibracion, resumen, mesesGuardados, frase, registrarTiempoCierre, registrarFirmaCierre, cierre, fraseCierre, leer, anotar, anotarClasificacion, deshacerClasificacion: corregir, pintarInforme };
+  return { STORAGE_KEY, FUNCIONES, TIPOS_SIN, PUERTA_GRUPOS, PUERTA_PCT, CIERRE_PAUSA_S, CIERRE_VISTAS, CIERRE_LINEA_BASE, normalize, registrar, opinarNovedad, opinionNovedad, fraseNovedades, opinar, opinion, registrarClasificacion, corregirClasificacion, calibracion, resumen, mesesGuardados, frase, registrarTiempoCierre, registrarFirmaCierre, cierre, fraseCierre, leer, anotar, anotarClasificacion, deshacerClasificacion: corregir, pintarInforme };
 });
