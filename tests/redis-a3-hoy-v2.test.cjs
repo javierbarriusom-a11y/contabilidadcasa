@@ -103,7 +103,7 @@ test("un cobro ya pasado no se pinta como «Cobráis en 0 días»", () => {
 // el 30 de octubre» el 1 de noviembre. La cuenta parte de los saldos, pero la cabecera, el mes y los días al cobro son de hoy.
 test("la cabecera y el mes son los de hoy; la cuenta dice de qué saldos parte y si un cobro ya pasó", () => {
   assert.match(hoy, /\$\{hoyV2Header\(hoy, model\.dataAge\)\}/);
-  assert.match(hoy, /\$\{hoyV2Month\(hoy, model\.plannedSaving\)\}/);
+  assert.match(hoy, /\$\{hoyV2Month\(hoy, model\.plannedSaving(?:, true)?\)\}/);
   assert.match(hoy, /<p class="hoy-v2-date">\$\{escapeHtml\(hoyV2LongDate\(hoy\)\)\}<\/p>/);
   const ctx = sandbox();
   assert.equal(ctx.hoyV2DaysBetween("2026-11-01", "2026-11-30"), 29);

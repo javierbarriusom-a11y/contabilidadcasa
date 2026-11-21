@@ -327,7 +327,7 @@ function hoyV2Decisions(todayRead, decisions) {
   </article>`;
 }
 
-function hoyV2Month(asOf, plannedSaving) {
+function hoyV2Month(asOf, plannedSaving, enlaceArea = false) {
   const glance = homeMonthAtAGlance(asOf, plannedSaving);
   const day = Number(String(asOf).slice(8, 10)) || 1;
   const [year, month] = String(asOf).split("-").map(Number);
@@ -347,10 +347,11 @@ function hoyV2Month(asOf, plannedSaving) {
     </div>
     <div class="hoy-v2-pace-legend"><span>día ${day} de ${daysInMonth}</span><span>${escapeHtml(money(plannedSaving))} irán a ahorro</span></div>
     ${real}
+    ${enlaceArea ? `<button type="button" class="hoy-v2-link hoy-v2-a-area" data-hoy-v2-area="mes">Detalle del mes ›</button>` : ""}
   </article>`;
 }
 
-function hoyV2Patrimonio(debtOutlook) {
+function hoyV2Patrimonio(debtOutlook, enlaceArea = false) {
   const partial = debtOutlook.estimable && / · /.test(debtOutlook.libreDeDeudaLabel);
   const free = debtOutlook.settled
     ? "sin deuda"
@@ -373,6 +374,7 @@ function hoyV2Patrimonio(debtOutlook) {
       <span>Deuda viva · ${escapeHtml(free)}</span><strong>${escapeHtml(money(debtOutlook.pendingPrincipal))}</strong>
     </button>
     ${note}
+    ${enlaceArea ? `<button type="button" class="hoy-v2-link hoy-v2-a-area" data-hoy-v2-area="patrimonio">Patrimonio y deuda ›</button>` : ""}
   </article>`;
 }
 
@@ -492,9 +494,32 @@ let hoyV2Measured = false;
 function hoyV2BindOnce(root) {
   if (root.dataset.bound) return;
   root.dataset.bound = "1";
+  root.addEventListener("keydown", (event) => {
+    const tab = event.target.closest?.('[role="tab"][data-hoy-v2-area]');
+    if (!tab || !["ArrowRight", "ArrowLeft", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const ids = HOY_V2_AREAS.map((item) => item.id);
+    const i = ids.indexOf(tab.dataset.hoyV2Area);
+    const siguiente = event.key === "Home" ? 0 : event.key === "End" ? ids.length - 1 : (i + (event.key === "ArrowRight" ? 1 : -1) + ids.length) % ids.length;
+    hoyV2ElegirArea(ids[siguiente], { foco: true });
+  });
   root.addEventListener("click", (event) => {
     // XGO-02: lo que se pulsa en Hoy es una acción (la primera de la visita, con sus segundos desde que se pintó);
     // abrir «Ver todo el detalle» es apartarse de ella.
+    const areaBoton = event.target.closest("[data-hoy-v2-area]");
+    if (areaBoton) {
+      // Cambiar de área es mirar, no actuar: no cuenta como la primera acción de la visita (XGO-02).
+      hoyV2ElegirArea(areaBoton.dataset.hoyV2Area, { foco: areaBoton.getAttribute("role") === "tab" });
+      if (areaBoton.getAttribute("role") !== "tab") qs("hoyV2Panel")?.scrollIntoView({ block: "start" });
+      return;
+    }
+    if (event.target.closest("[data-hoy-v2-plan-mes]")) {
+      globalThis.FinanceMedidor?.anotar("hoy-v2", "accion", { segundos: null });
+      history.pushState(null, "", "#plan");
+      setActiveView("plan");
+      if (typeof setPlanTab === "function") setPlanTab("mes");
+      return;
+    }
     const detalle = event.target.closest("[data-hoy-v2-detail]");
     if (detalle && !qs("home")?.classList.contains(HOY_V2_DETAIL_CLASS)) globalThis.FinanceMedidor?.anotar("hoy-v2", "descarte");
     else if (!detalle && event.target.closest("a, button")) {
@@ -534,6 +559,104 @@ function hoyV2BindOnce(root) {
   });
 }
 
+// Hoy por áreas (21/11/2026, petición del hogar: «tiene muchos datos interesantes, pero están todos en una sola página y hay que
+// prestar mucha atención; agrúpalo por áreas temáticas, como Deuda»). Cinco pestañas en la misma pantalla, con el aspecto de las de
+// Deuda pero sin número: Deuda es un recorrido en orden y estas áreas no. «Hoy» es la de siempre (cifra, gráfico, decisiones) y la de
+// entrada; las otras cuatro reparten lo que hasta ahora solo salía con «Ver todo el detalle», que sigue igual (todo a la vez). No se
+// retira nada ni se calcula nada nuevo: cada área enseña bloques que ya existían (los de la Hoy de siempre, por CSS) y lo de la v2.
+const HOY_V2_AREAS = Object.freeze([
+  { id: "hoy", label: "Hoy" },
+  { id: "mes", label: "Mes" },
+  { id: "caja", label: "Caja" },
+  { id: "patrimonio", label: "Patrimonio y deuda" },
+  { id: "seguimiento", label: "Seguimiento" },
+]);
+const HOY_V2_AREA_CLAVE = "hoy-v2-area";
+let hoyV2UltimoModelo = null;
+
+// El área elegida dura lo que la pestaña del navegador (sessionStorage): al volver otro día se entra por «Hoy».
+function hoyV2AreaActual() {
+  let area = "hoy";
+  try {
+    area = sessionStorage.getItem(HOY_V2_AREA_CLAVE) || "hoy";
+  } catch {
+    area = "hoy";
+  }
+  return HOY_V2_AREAS.some((item) => item.id === area) ? area : "hoy";
+}
+
+function hoyV2GuardarArea(area) {
+  try {
+    sessionStorage.setItem(HOY_V2_AREA_CLAVE, area);
+  } catch {
+    /* sin almacenamiento: el área vale hasta que se repinte la página */
+  }
+}
+
+function hoyV2AreasHtml(activa) {
+  return `<div class="e19-registrar-tabs hoy-v2-areas" role="tablist" aria-label="Áreas de Hoy">${HOY_V2_AREAS.map((area) => {
+    const sel = area.id === activa;
+    return `<button type="button" role="tab" class="e19-registrar-tab${sel ? " is-active" : ""}" id="hoyV2Tab-${area.id}" aria-selected="${sel}" aria-controls="hoyV2Panel" tabindex="${sel ? "0" : "-1"}" data-hoy-v2-area="${area.id}">${escapeHtml(area.label)}</button>`;
+  }).join("")}</div>`;
+}
+
+// Mes: el ritmo del mes (la misma tarjeta de la columna de Hoy) y las tres partidas de gasto que más se desvían de lo previsto (la
+// comprobación 3 de Cierre, cierreV2Desvios); debajo, por CSS, «El mes en una línea» (ingresos, previsto, real, desviación, sin
+// clasificar e irá a ahorro) y el presupuesto y los objetivos del mes de la Hoy de siempre.
+function hoyV2AreaMes(hoy, plannedSaving) {
+  const monthKey = String(hoy).slice(0, 7);
+  const desvios = typeof cierreV2Desvios === "function" ? cierreV2Desvios(monthKey) : [];
+  const tabla = desvios.length && typeof cierreV2DesviosHtml === "function"
+    ? cierreV2DesviosHtml(desvios, monthKey)
+    : `<p class="hoy-v2-area-nota">Sin reales del mes con que comparar todavía: salen al importar el extracto y clasificarlo.</p>`;
+  return `<div class="hoy-v2-area-cuerpo">
+    ${hoyV2Month(hoy, plannedSaving)}
+    <article class="hoy-v2-card hoy-v2-desvios">
+      <div class="hoy-v2-card-head"><h3>Lo previsto frente a lo real</h3></div>
+      ${tabla}
+      <button type="button" class="e19-btn e19-btn-secondary" data-hoy-v2-plan-mes>Abrir Plan › Mes</button>
+    </article>
+  </div>`;
+}
+
+function hoyV2AreaIntro(texto) {
+  return `<p class="hoy-v2-area-intro">${escapeHtml(texto)}</p>`;
+}
+
+function hoyV2AreaPanel(area, model, hoy, asOf, coverage) {
+  if (area === "mes") return hoyV2AreaMes(hoy, model.plannedSaving);
+  if (area === "caja") return hoyV2AreaIntro("Hasta cuándo llegáis sin bajar del suelo, los meses que conviene vigilar y las alertas de caja.");
+  if (area === "patrimonio") return `<div class="hoy-v2-area-cuerpo">${hoyV2Patrimonio(model.debtOutlook)}</div>${hoyV2AreaIntro("Deuda, capacidad libre, reserva, riesgo y la salud financiera del hogar.")}`;
+  if (area === "seguimiento") return `${hoyV2AreaIntro("Lo que ha cambiado desde la última vez, las decisiones abiertas, los próximos hitos y las señales que piden revisión.")}${hoyV2Waiting()}`;
+  return `<div class="hoy-v2-grid">
+      <div class="hoy-v2-main">
+        ${hoyV2Hero({ ...model, asOf, hoy, coverage })}
+        ${hoyV2Decisions(model.todayRead, [...hoyV2AvisosPrevision(hoy), ...(typeof svdPropuestasHoy === "function" ? svdPropuestasHoy(hoy) : []), ...(model.decisions || [])])}
+        ${hoyV2Repaso()}
+        ${hoyV2Esperados()}
+      </div>
+      <div class="hoy-v2-side">
+        ${hoyV2Month(hoy, model.plannedSaving, true)}
+        ${hoyV2Patrimonio(model.debtOutlook, true)}
+        ${hoyV2Waiting()}
+      </div>
+    </div>`;
+}
+
+function hoyV2AplicarArea(area) {
+  const home = qs("home");
+  if (!home) return;
+  for (const item of HOY_V2_AREAS) home.classList.toggle(`hoy-v2-area-${item.id}`, item.id === area);
+  home.classList.toggle("hoy-v2-area-clasica", area !== "hoy");
+}
+
+function hoyV2ElegirArea(area, { foco = false } = {}) {
+  if (!HOY_V2_AREAS.some((item) => item.id === area)) return;
+  hoyV2GuardarArea(area);
+  if (hoyV2UltimoModelo) hoyV2Render(hoyV2UltimoModelo);
+  if (foco) qs(`hoyV2Tab-${area}`)?.focus();
+}
+
 function hoyV2Render(model) {
   const root = qs("hoyV2");
   if (!root) return;
@@ -546,20 +669,14 @@ function hoyV2Render(model) {
   const hoy = isoLocalDate(new Date());
   const asOf = model.asOf || state?.balanceDate || hoy; // fecha de los saldos: de ahí parte la cuenta, pero la cabecera y el mes son los de hoy
   const detailOpen = qs("home")?.classList.contains(HOY_V2_DETAIL_CLASS);
+  hoyV2UltimoModelo = model;
+  const area = hoyV2AreaActual();
   root.innerHTML = `${hoyV2Header(hoy, model.dataAge)}
-    <div class="hoy-v2-grid">
-      <div class="hoy-v2-main">
-        ${hoyV2Hero({ ...model, asOf, hoy, coverage })}
-        ${hoyV2Decisions(model.todayRead, [...hoyV2AvisosPrevision(hoy), ...(typeof svdPropuestasHoy === "function" ? svdPropuestasHoy(hoy) : []), ...(model.decisions || [])])}
-        ${hoyV2Repaso()}
-        ${hoyV2Esperados()}
-      </div>
-      <div class="hoy-v2-side">
-        ${hoyV2Month(hoy, model.plannedSaving)}
-        ${hoyV2Patrimonio(model.debtOutlook)}
-        ${hoyV2Waiting()}
-      </div>
+    ${hoyV2AreasHtml(area)}
+    <div class="hoy-v2-panel" id="hoyV2Panel" role="tabpanel" aria-labelledby="hoyV2Tab-${area}">
+      ${hoyV2AreaPanel(area, model, hoy, asOf, coverage)}
     </div>`;
+  hoyV2AplicarArea(area);
   if (detailOpen) {
     root.querySelectorAll("[data-hoy-v2-detail][aria-expanded]").forEach((button) => {
       button.setAttribute("aria-expanded", "true");

@@ -830,6 +830,7 @@ function renderDeudaRuta() {
   if (capacityEl) capacityEl.innerHTML = debtCapacityHtml(debtCapacityStatus());
   renderDeudaRutaOffer();
   globalThis.renderCaminoDeuda?.(globalThis.FinanceCanonicalDebtPayoffPath, escenarioMotorDebtOptions()); // WP-19 (camino-deuda-ui.js)
+  globalThis.renderPlanOptimo?.(globalThis.FinanceCanonicalDebtPayoffPath, escenarioMotorDebtOptions(), globalThis.FinanceCanonicalDebtOptimalPlan); // plan óptimo de saldo (21/11/2026), encima del camino
   if (debtStrategyReserveValue === null) debtStrategyReserveValue = debtStrategyReserveDefault();
   const tabs = qs("deudaRutaTabs");
   if (tabs) {

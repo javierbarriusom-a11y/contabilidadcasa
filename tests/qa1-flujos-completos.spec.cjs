@@ -12229,3 +12229,144 @@ test.describe("DEC-39 · Sin conexión", () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+// Hoy por áreas (21/11/2026, petición del hogar): cinco pestañas en Hoy (Hoy, Mes, Caja, Patrimonio y deuda, Seguimiento) que reparten
+// lo que antes solo salía con «Ver todo el detalle», y el gráfico del saldo que se perdía al volver a abrir la app.
+test.describe("Hoy por áreas", () => {
+  async function abrir(page, viewport) {
+    await page.setViewportSize(viewport);
+    await page.clock.install({ time: new Date(2026, 10, 21, 10, 0, 0) });
+    await page.goto("/index.html#home");
+    await expect(page.locator("#hoyV2 .hoy-v2-figure")).toBeVisible({ timeout: 15000 });
+  }
+  const area = (page, id) => page.locator(`#hoyV2 [role="tab"][data-hoy-v2-area="${id}"]`);
+
+  for (const [nombre, viewport] of [["a 1440 px", { width: 1440, height: 900 }], ["a 390 px @safari", { width: 390, height: 844 }]]) {
+    test(`cada área enseña lo suyo, se recuerda al recargar y «Ver todo el detalle» lo enseña todo, ${nombre}`, async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await abrir(page, viewport);
+      await expect(page.locator('#hoyV2 [role="tablist"]')).toHaveAttribute("aria-label", "Áreas de Hoy");
+      await expect(area(page, "hoy")).toHaveAttribute("aria-selected", "true");
+      await expect(page.locator("#hoyV2 .hoy-v2-chart")).toBeVisible();
+      await expect(page.locator("#e6CoveragePanel")).toBeHidden();
+
+      await area(page, "mes").click();
+      await expect(area(page, "mes")).toHaveAttribute("aria-selected", "true");
+      await expect(page.locator("#hoyV2Panel")).toHaveAttribute("aria-labelledby", "hoyV2Tab-mes");
+      await expect(page.locator("#hoyV2 .hoy-v2-desvios")).toBeVisible();
+      await expect(page.locator("#homeMonthGlance")).toBeVisible();
+      await expect(page.locator("#homeMonthGlanceRows")).toContainText("Irá a ahorro");
+      await expect(page.locator("#hoyV2 .hoy-v2-chart")).toHaveCount(0);
+      await expect(page.locator("#e6CoveragePanel")).toBeHidden();
+
+      await area(page, "caja").click();
+      await expect(page.locator("#e6CoveragePanel")).toBeVisible();
+      await expect(page.locator("#homeMonthBand")).toBeVisible();
+      await expect(page.locator("#homeMonthGlance")).toBeHidden();
+      await expect(page.locator("#homeKpis")).toBeHidden();
+
+      await area(page, "patrimonio").click();
+      await expect(page.locator("#homeKpis")).toBeVisible();
+      await expect(page.locator("#hoyV2 .hoy-v2-patrimonio")).toBeVisible();
+      await expect(page.locator("#e6CoveragePanel")).toBeHidden();
+
+      await area(page, "seguimiento").click();
+      const decisiones = page.locator("#home .home-main-panel");
+      await expect(decisiones).toBeVisible();
+      await expect(page.locator("#homeKpis")).toBeHidden();
+      // En el móvil, el texto de cada decisión abierta a lo ancho (antes, la columna de 34 px del número).
+      const fila = page.locator("#homeActions .home-decision-open > div").first();
+      if (await fila.count()) expect(await fila.evaluate((el) => el.getBoundingClientRect().width)).toBeGreaterThan(150);
+
+      // El área dura lo que la pestaña del navegador.
+      await page.reload();
+      await expect(area(page, "seguimiento")).toHaveAttribute("aria-selected", "true", { timeout: 15000 });
+
+      // «Ver todo el detalle», desde un área, lo enseña todo a la vez, como siempre.
+      await page.locator("#hoyV2 [data-hoy-v2-detail][aria-expanded]").click();
+      await expect(page.locator("#homeKpis")).toBeVisible();
+      await expect(page.locator("#e6CoveragePanel")).toBeVisible();
+      await expect(page.locator("#homeMonthGlance")).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+
+  test("con el teclado: flechas, Inicio y Fin; y los enlaces de la columna de Hoy llevan a su área", async ({ page }) => {
+    await abrir(page, { width: 1440, height: 900 });
+    await area(page, "hoy").focus();
+    await page.keyboard.press("ArrowLeft");
+    await expect(area(page, "seguimiento")).toHaveAttribute("aria-selected", "true");
+    await expect(area(page, "seguimiento")).toBeFocused();
+    await page.keyboard.press("ArrowRight");
+    await expect(area(page, "hoy")).toBeFocused();
+    await page.keyboard.press("End");
+    await expect(area(page, "seguimiento")).toBeFocused();
+    await page.keyboard.press("Home");
+    await expect(area(page, "hoy")).toHaveAttribute("aria-selected", "true");
+    await page.locator('#hoyV2 .hoy-v2-a-area[data-hoy-v2-area="mes"]').click();
+    await expect(area(page, "mes")).toHaveAttribute("aria-selected", "true");
+    await page.locator("#hoyV2 [data-hoy-v2-plan-mes]").click();
+    await expect(page.locator("#plan")).toBeVisible();
+    await expect(page.locator('[data-plan-tab="mes"]')).toHaveAttribute("aria-selected", "true");
+  });
+
+  // Desde el 10/11 (#605) la previsión diaria se guardaba sin sus filas y, al volver a abrir la app con el mismo plan, se reutilizaba
+  // vacía: Hoy se quedaba sin gráfico (en la demo no se veía porque arranca sin nada guardado).
+  test("el gráfico del saldo sigue ahí al guardar y volver a abrir la app", async ({ page }) => {
+    await abrir(page, { width: 390, height: 844 });
+    await expect(page.locator("#hoyV2 .hoy-v2-chart")).toBeVisible();
+    await page.evaluate(() => saveLocalSnapshot());
+    await page.reload();
+    await expect(page.locator("#hoyV2 .hoy-v2-figure")).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("#hoyV2 .hoy-v2-chart")).toBeVisible();
+    expect(await page.evaluate(() => canonicalDailyEngineRuns.active?.rows?.length || 0)).toBeGreaterThan(30);
+  });
+});
+
+// Plan óptimo de saldo (21/11/2026, «quiero seguir con un plan optimizado de saldo de deuda»): en Deuda › Ruta, encima de «Camino a deuda
+// cero» y con su mismo motor. Contratos FICTICIOS.
+test.describe("Deuda › Ruta · plan óptimo de saldo", () => {
+  async function conContratos(page, viewport) {
+    await page.setViewportSize(viewport);
+    await page.goto("/index.html#deuda-contratos");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    const varios = page.locator("#deudaContratosDetectados .deuda-varios");
+    await varios.locator("summary").click();
+    await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
+    await varios.locator("[data-deuda-varios-alta]").click();
+    await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
+    await page.evaluate(() => { debtContractHiddenExampleIds = ["debt-1", "debt-2", "debt-3"]; saveDebtContractHiddenExampleIds(); });
+    await page.reload();
+    await page.evaluate(() => { location.hash = "deuda-ruta"; });
+    await expect(page.locator("#planOptimoResultado .cam-hero").first()).toBeVisible({ timeout: 20000 });
+  }
+
+  for (const [nombre, viewport] of [["a 1280 px", { width: 1280, height: 900 }], ["a 390 px @safari", { width: 390, height: 844 }]]) {
+    test(`orden, fecha y ahorro con el mismo motor; el pago inicial va a la primera del orden, ${nombre}`, async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await conContratos(page, viewport);
+      const plan = page.locator("#planOptimoResultado");
+      await page.fill("#planOptimoMensual", "300");
+      await expect(plan).toContainText("Orden recomendado: avalancha");
+      await expect(plan.locator(".plan-optimo-tramos li").first()).toContainText("300 € al mes de más a Banco FICTICIO");
+      // Las mismas cifras que el motor, con las cuotas liberadas redirigidas.
+      const motor = await page.evaluate(() => {
+        const r = FinanceCanonicalDebtOptimalPlan.plan(FinanceCanonicalDebtPayoffPath, escenarioMotorDebtOptions(), { startMonthKey: isoLocalDate(new Date()).slice(0, 7), monthly: 300, order: caminoOrder(escenarioMotorDebtOptions()) });
+        return { ahorro: money(r.recommended.summary.interestSaved, true), sinRedirigir: FinanceCanonicalDebtPayoffPath.project(escenarioMotorDebtOptions(), { startMonthKey: isoLocalDate(new Date()).slice(0, 7), extraMonthly: 300 }).totalInterest, conPlan: r.recommended.summary.totalInterest };
+      });
+      await expect(plan.locator(".cam-hero").nth(1)).toContainText(motor.ahorro);
+      expect(motor.conPlan).toBeLessThan(motor.sinRedirigir);
+      await page.fill("#planOptimoPago", "1000");
+      await expect(plan).toContainText("El pago inicial va a Banco FICTICIO Tarjeta (1.000 €)");
+      await page.fill("#planOptimoPago", "-5");
+      await expect(page.locator("#planOptimoNota")).toContainText("Escribe un importe");
+      await expect(page.locator("#planOptimoPago")).toHaveAttribute("aria-invalid", "true");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});

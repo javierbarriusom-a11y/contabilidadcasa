@@ -276,9 +276,41 @@
    La bandeja de decisiones (#homeDecisionInboxCard: cobros esperados, cargos que no llegaron…) NO se oculta:
    con el v2 por defecto tiene que seguir saliendo sola cuando hay algo que responder (se oculta sin preguntas,
    con su propio [hidden]). Su sitio final es la bandeja de Movimientos (referencias/png/Movimientos.png, A4). */
-:root[data-tema="v2"] #home:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) > :not(#hoyV2):not(#dex5OnboardingBanner):not(.home-secondary-section),
-:root[data-tema="v2"] #home:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) > .home-secondary-section > :not(#homeDecisionInboxCard) {
+:root[data-tema="v2"] #home:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle):not(.hoy-v2-area-clasica) > :not(#hoyV2):not(#dex5OnboardingBanner):not(.home-secondary-section),
+:root[data-tema="v2"] #home:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle):not(.hoy-v2-area-clasica) > .home-secondary-section > :not(#homeDecisionInboxCard) {
   display: none !important;
+}
+
+/* Hoy por áreas (21/11/2026): en Mes, Caja, Patrimonio y deuda y Seguimiento, de la Hoy de siempre solo se ve lo de esa área; lo
+   demás, como en «Hoy», solo con «Ver todo el detalle» (que sigue enseñándolo todo a la vez). Con la misma condición que la regla de
+   arriba (:has): si views/hoy-v2.js no carga, se ve la de siempre entera. */
+:root[data-tema="v2"] #home.hoy-v2-area-clasica:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) > :not(#hoyV2):not(#dex5OnboardingBanner):not(.home-primary-section):not(.home-secondary-section):not(#homeBudgetGlance):not(#e16-monitoring):not(#gob4-member-view),
+:root[data-tema="v2"] #home.hoy-v2-area-clasica:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) > .home-secondary-section > #homeDecisionInboxCard,
+/* Mes: «El mes en una línea» y el presupuesto y objetivos del mes. */
+:root[data-tema="v2"] #home.hoy-v2-area-mes:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) > :is(.home-secondary-section, #e16-monitoring, #gob4-member-view),
+:root[data-tema="v2"] #home.hoy-v2-area-mes:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) > .home-primary-section > :not(.home-layout),
+:root[data-tema="v2"] #home.hoy-v2-area-mes:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) > .home-primary-section > .home-layout > :not(#homeMonthGlance),
+/* .home-context-layout también lleva la clase .home-layout: por eso se nombra la de .home-primary-section. Caja: hasta el siguiente ingreso, los meses a vigilar y el seguimiento predictivo (alertas y escalera de vencimientos). */
+:root[data-tema="v2"] #home.hoy-v2-area-caja:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) > :is(#homeBudgetGlance, #gob4-member-view),
+:root[data-tema="v2"] #home.hoy-v2-area-caja:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) > .home-primary-section > :not(.home-layout),
+:root[data-tema="v2"] #home.hoy-v2-area-caja:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) > .home-primary-section > .home-layout > :not(#e6CoveragePanel),
+:root[data-tema="v2"] #home.hoy-v2-area-caja:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) > .home-secondary-section > :not(.home-context-layout),
+:root[data-tema="v2"] #home.hoy-v2-area-caja:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) .home-context-layout > :not(:has(#homeMonthBand)),
+/* Patrimonio y deuda: las cifras de deuda, capacidad, reserva y riesgo, y la salud financiera. */
+:root[data-tema="v2"] #home.hoy-v2-area-patrimonio:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) > :is(#homeBudgetGlance, #e16-monitoring, #gob4-member-view),
+:root[data-tema="v2"] #home.hoy-v2-area-patrimonio:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) > .home-primary-section > :not(#homeKpis),
+:root[data-tema="v2"] #home.hoy-v2-area-patrimonio:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) > .home-secondary-section > :not(#homeHealthScoreCard),
+/* Seguimiento: decisiones abiertas, qué cambió, próximos hitos, lectura del hogar, señales y la vista por titular. */
+:root[data-tema="v2"] #home.hoy-v2-area-seguimiento:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) > :is(#homeBudgetGlance, #e16-monitoring),
+:root[data-tema="v2"] #home.hoy-v2-area-seguimiento:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) > .home-primary-section > :not(.home-main-panel),
+:root[data-tema="v2"] #home.hoy-v2-area-seguimiento:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) > .home-secondary-section > :is(#homeHealthScoreCard, #homeDecisionInboxCard),
+:root[data-tema="v2"] #home.hoy-v2-area-seguimiento:has(> #hoyV2:not([hidden])):not(.hoy-v2-detalle) .home-context-layout > :has(#homeMonthBand) {
+  display: none !important;
+}
+
+/* En un área queda un bloque por fila: la rejilla de dos o tres columnas de la Hoy de siempre dejaría huecos. */
+:root[data-tema="v2"] #home.hoy-v2-area-clasica:not(.hoy-v2-detalle) :is(.home-layout, .home-context-layout) {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 :root[data-tema="v2"] .hoy-v2 {
@@ -5550,5 +5582,62 @@
 
   :root[data-tema="v2"] .sim-v2-mes-a-mes li > :first-child {
     grid-column: 1 / -1;
+  }
+}
+
+/* Hoy por áreas (21/11/2026): las pestañas, con el aspecto de las de Deuda (sin número: no es un recorrido en orden). */
+:root[data-tema="v2"] .hoy-v2-areas {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .hoy-v2-areas .e19-registrar-tab {
+  min-height: 40px;
+  padding: 8px 16px;
+  font-size: var(--e19-text-sm);
+}
+
+:root[data-tema="v2"] .hoy-v2-areas .e19-registrar-tab:focus-visible {
+  outline: 2px solid var(--e19-accent);
+  outline-offset: 2px;
+}
+
+:root[data-tema="v2"] .hoy-v2-panel {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .hoy-v2-area-cuerpo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+:root[data-tema="v2"] .hoy-v2-area-intro,
+:root[data-tema="v2"] .hoy-v2-area-nota {
+  margin: 0;
+  color: var(--e19-muted);
+  font-size: var(--e19-text-sm);
+}
+
+:root[data-tema="v2"] .hoy-v2-desvios {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+:root[data-tema="v2"] .hoy-v2-desvios > .e19-btn {
+  justify-self: start;
+}
+
+:root[data-tema="v2"] .hoy-v2-a-area {
+  justify-self: start;
+  margin-top: 4px;
+}
+
+@media (max-width: 259px) {
+  :root[data-tema="v2"] .hoy-v2-areas .e19-registrar-tab {
+    padding: 6px 10px;
   }
 }

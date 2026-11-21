@@ -12093,6 +12093,16 @@ tbody tr:hover {
     grid-column: 1 / -1;
   }
 
+  /* 21/11/2026 · «Decisiones abiertas» de Hoy (se ve en Hoy › Seguimiento): estas filas no llevan número, así que la columna de 34 px
+     se la quedaba el texto («8 partidas sin real» salía letra a letra) y el botón ocupaba el resto. Una columna, botón debajo. */
+  .unified-action.home-decision-open {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .unified-action.home-decision-open button {
+    grid-column: 1;
+  }
+
   .action-review-dialog {
     padding: 22px 18px 18px;
   }

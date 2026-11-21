@@ -23,6 +23,18 @@
       href: "#home",
     },
     {
+      id: "2026-11-21-plan-optimo-deuda",
+      fecha: "2026-11-21",
+      texto: "Deuda › Ruta: plan óptimo de saldo. Cuánto poner al mes, en qué orden saldar, cuándo acabáis y cuánto os ahorráis.",
+      href: "#deuda-ruta",
+    },
+    {
+      id: "2026-11-21-hoy-por-areas",
+      fecha: "2026-11-21",
+      texto: "Hoy, por áreas (Hoy, Mes, Caja, Patrimonio y deuda, Seguimiento), y vuelve el gráfico del saldo, que se perdía al reabrir la app.",
+      href: "#home",
+    },
+    {
       id: "2026-11-21-te-sirve",
       fecha: "2026-11-21",
       texto: "Novedades: las de las dos últimas semanas preguntan «¿Te sirve?». Lo que respondáis sale en Ajustes › Uso de la app.",

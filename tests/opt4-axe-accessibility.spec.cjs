@@ -320,6 +320,22 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// Hoy por áreas (21/11/2026): las pestañas y el área Mes (la barra del mes y lo previsto frente a lo real), en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`Hoy por áreas · contraste de las pestañas y del área Mes en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 390, height: 844 } });
+    test("#hoyV2: sin fallos de contraste ni de accesibilidad en las pestañas y el área Mes", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 21, 10, 0, 0) });
+      await page.goto("/index.html#home");
+      await page.locator('#hoyV2 [role="tab"][data-hoy-v2-area="mes"]').click();
+      await expect(page.locator("#hoyV2 .hoy-v2-desvios")).toBeVisible({ timeout: 15000 });
+      const results = await new AxeBuilder({ page }).include("#hoyV2 .hoy-v2-areas").include("#hoyV2Panel").analyze();
+      const nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // DEC-45 (21/11/2026): «¿te sirve?» en Novedades, con una respuesta marcada, en claro y en oscuro (la barra lateral es oscura en los dos).
 for (const scheme of ["light", "dark"]) {
   test.describe(`DEC-45 · contraste de «¿te sirve?» en Novedades en modo ${scheme}`, () => {
