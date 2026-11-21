@@ -2166,7 +2166,9 @@ test.describe("Deuda › Préstamo para saldar", () => {
       await expect(result.locator(".pre-cuota")).toHaveText("293,34 €", { timeout: 15000 });
       await expect(result.locator(".pre-tipos")).toContainText("8,84 %");
       await expect(result.locator(".pre-total")).toContainText("21.120,48 €");
-      await expect(page.locator("#deudaPrestamoScreenTabs .is-active")).toContainText("Préstamo");
+      // D-N28: Préstamo vive dentro de «Ofertas».
+      await expect(page.locator("#deudaPrestamoScreenTabs .is-active")).toContainText("Ofertas");
+      await expect(page.locator("#deudaPrestamoOfertasTabs .is-active")).toHaveText("Préstamo");
       const tarjeta = result.locator(".pre-deuda", { hasText: "Tarjeta Prueba" });
       await expect(tarjeta).toContainText("se cancela entera");
       await expect(result.locator(".pre-veredicto")).toContainText("Plan agresivo");
@@ -12335,6 +12337,49 @@ test.describe("Hoy por áreas", () => {
 
 // Plan óptimo de saldo (21/11/2026, «quiero seguir con un plan optimizado de saldo de deuda»): en Deuda › Ruta, encima de «Camino a deuda
 // cero» y con su mismo motor. Contratos FICTICIOS.
+// D-N28 (21/11/2026, decisión del hogar: «Sí» a UND-15): Deuda en tres pestañas, Plan · Contratos · Ofertas, con Comparar, Préstamo y
+// el simulador visual dentro de Ofertas. Los enlaces de siempre siguen llevando a su pantalla.
+test.describe("D-N28 · Deuda en tres pestañas", () => {
+  for (const [nombre, viewport] of [["a 1280 px", { width: 1280, height: 900 }], ["a 390 px @safari", { width: 390, height: 844 }]]) {
+    test(`Plan, Contratos y Ofertas; Ofertas lleva su segunda fila y los enlaces viejos siguen funcionando, ${nombre}`, async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#deuda-ruta");
+      const tabs = page.locator("#deudaRutaScreenTabs a");
+      await expect(tabs).toHaveCount(3, { timeout: 20000 });
+      await expect(tabs).toHaveText(["1Plan", "2Contratos", "3Ofertas"]);
+      await expect(page.locator("#deudaRutaScreenTabs a[aria-current=page]")).toHaveText("1Plan");
+      await expect(page.locator("#deuda-ruta > .section-title .e19-eyebrow")).toHaveText("Deuda · Plan");
+      await expect(page.locator("#deudaRutaFlowNav")).toContainText("Contratos →");
+      // Ofertas abre Comparar, con su fila.
+      await page.locator("#deudaRutaScreenTabs a", { hasText: "Ofertas" }).click();
+      await expect(page).toHaveURL(/#deuda-comparar$/);
+      await expect(page.locator("#deudaCompararScreenTabs a[aria-current=true]")).toHaveText("3Ofertas");
+      const fila = page.locator("#deudaCompararOfertasTabs a");
+      await expect(fila).toHaveText(["Comparar", "Préstamo", "Simulador visual"]);
+      await expect(page.locator("#deudaCompararOfertasTabs a[aria-current=page]")).toHaveText("Comparar");
+      await page.locator("#deudaCompararOfertasTabs a", { hasText: "Préstamo" }).click();
+      await expect(page).toHaveURL(/#deuda-prestamo$/);
+      await expect(page.locator("#deudaPrestamoOfertasTabs a[aria-current=page]")).toHaveText("Préstamo");
+      await expect(page.locator("#deudaPrestamoFlowNav")).toContainText("← Ofertas: Comparar");
+      await expect(page.locator("#deudaPrestamoFlowNav")).toContainText("Ofertas: Simulador visual →");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      // El enlace de siempre al simulador lleva a su sitio, ya dentro de Ofertas.
+      await page.evaluate(() => { location.hash = "deuda-simulador"; });
+      await expect(page.locator("#deudaSimuladorOfertasTabs a[aria-current=page]")).toHaveText("Simulador visual");
+      await expect(page.locator("#deudaSimuladorScreenTabs .is-active")).toHaveText("3Ofertas");
+      // Contratos, sin la fila de Ofertas.
+      await page.evaluate(() => { location.hash = "deuda-contratos"; });
+      await expect(page.locator("#deudaContratosScreenTabs a[aria-current=page]")).toHaveText("2Contratos");
+      await expect(page.locator("#deuda-contratos .deuda-ofertas-tabs")).toHaveCount(0);
+      await expect(page.locator("#deudaContratosFlowNav")).toContainText("Ofertas: Comparar →");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 test.describe("Deuda › Ruta · plan óptimo de saldo", () => {
   async function conContratos(page, viewport, texto = "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160") {
     await page.setViewportSize(viewport);

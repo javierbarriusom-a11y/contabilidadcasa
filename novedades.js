@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-21-deuda-tres-pestanas",
+      fecha: "2026-11-21",
+      texto: "Deuda, en tres pestañas: Plan, Contratos y Ofertas (dentro, Comparar, Préstamo y el simulador). Los enlaces de siempre siguen valiendo.",
+      href: "#deuda-ruta",
+    },
+    {
       id: "2026-11-21-deuda-orden-y-acuerdos",
       fecha: "2026-11-21",
       texto: "Deuda: el plan óptimo pregunta antes de empezar por la más pequeña y recuerda el orden; un acuerdo ya no paga también la cuota ese mes.",
