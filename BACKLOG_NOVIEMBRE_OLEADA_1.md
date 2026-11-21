@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**21/11/2026 · DEC-38, paso 3: Hoy, Movimientos, Previsión y Clasificar con el zoom al 200 % (195 px):** se leen sin salirse ni apretar el texto; lo vigilan el CI (Hoy y Movimientos) y una e2e (las cuatro). Siguiente tanda: Plan › Mes y Cierre (PROJECT_STATE 516).
+
 **21/11/2026 · DEC-45, «¿te sirve?» en Novedades:** las líneas de las dos últimas semanas preguntan «¿Te sirve?» (Sí / No); las respuestas van al medidor y salen en Ajustes › Uso de la app (PROJECT_STATE 515).
 
 **21/11/2026 · DEC-30, la semana que viene en una frase:** en la Previsión y en el «Listo» del repaso, lo que sale y lo que entra en los próximos 7 días y el día más justo, del motor diario. Lectura, no previsión nueva (PROJECT_STATE 514).

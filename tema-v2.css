@@ -399,6 +399,7 @@
 /* Cifra protagonista */
 :root[data-tema="v2"] .hoy-v2-hero-head {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* DEC-38: sin columnas, la implícita no bajaba de lo que mide la cifra (zoom al 200 %) */
   gap: 18px;
 }
 
@@ -4993,6 +4994,7 @@
 
 :root[data-tema="v2"] .cob-tira-tarjeta {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* DEC-38: sin columnas, la implícita no bajaba de lo que mide la fila (zoom al 200 %) */
   gap: 12px;
   padding: 14px 16px;
 }
@@ -5007,6 +5009,7 @@
 
 :root[data-tema="v2"] .cob-tira-lista {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* DEC-38 */
   gap: 12px;
   margin: 0;
   padding: 0;
@@ -5015,6 +5018,7 @@
 
 :root[data-tema="v2"] .cob-tira-fila {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* DEC-38 */
   gap: 6px;
   list-style: none;
   cursor: default;
@@ -5349,5 +5353,112 @@
 
   :root[data-tema="v2"] .sim-v2-cifras > div:last-child {
     border-right: 0;
+  }
+}
+
+/* DEC-38 · paso 3 (21/11/2026): por debajo de 260 px, el móvil de 390 px con el zoom de la página al 200 % (195 px). Hoy y
+   Movimientos, las de cada día: menos relleno, la cifra y el título más pequeños (y pueden partirse) y las dos cifras de debajo
+   una encima de otra. Solo por debajo de 260 px: a 260 px y más, como estaban. */
+@media (max-width: 259px) {
+  :root[data-tema="v2"] .hoy-v2-card {
+    padding: 14px;
+  }
+
+  :root[data-tema="v2"] .hoy-v2-figure {
+    font-size: clamp(28px, 15vw, 48px);
+    overflow-wrap: anywhere;
+  }
+
+  :root[data-tema="v2"] .hoy-v2-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :root[data-tema="v2"] .hoy-v2-card-head,
+  :root[data-tema="v2"] .hoy-v2-row {
+    flex-wrap: wrap; /* el título y su cifra, o la etiqueta y su importe: si no caben juntos, uno debajo de otro */
+  }
+
+  :root[data-tema="v2"] .mov-v2-title {
+    font-size: 20px;
+    overflow-wrap: anywhere;
+  }
+
+  /* «Decidir esta semana»: el número, el texto, el nivel y el botón, uno debajo de otro y a todo el ancho. Con el número y el
+     nivel en sus columnas, el texto se quedaba en 18 px. */
+  :root[data-tema="v2"] .hoy-v2-decision {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    padding: 12px;
+  }
+
+  :root[data-tema="v2"] .hoy-v2-decision > .hoy-v2-level,
+  :root[data-tema="v2"] .hoy-v2-decision > .e19-btn,
+  :root[data-tema="v2"] .hoy-v2-review {
+    grid-column: 1; /* «2 / -1» de siempre abriría una segunda columna implícita */
+  }
+
+  /* Cada movimiento: la inicial y el importe arriba y el concepto debajo, a todo el ancho (en fila se quedaba en una letra). */
+  :root[data-tema="v2"] .mov-v2-fila {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    padding: 10px 12px;
+  }
+
+  :root[data-tema="v2"] .mov-v2-fila > .mov-v2-importe {
+    order: 1;
+    margin-left: auto;
+  }
+
+  :root[data-tema="v2"] .mov-v2-fila > .mov-v2-main {
+    order: 2;
+    flex: 1 1 100%;
+  }
+
+  :root[data-tema="v2"] .cob-tira-cab {
+    flex-wrap: wrap;
+  }
+
+  /* Previsión › «Qué lo mueve»: el concepto y su importe, uno debajo de otro si no caben (el concepto se partía letra a letra). */
+  :root[data-tema="v2"] .prev-v2-dia-item {
+    flex-wrap: wrap;
+    gap: 2px 12px;
+  }
+
+  /* Clasificar: el nombre del grupo más pequeño (a 26 px se partía a media palabra) y los dos botones, uno encima de otro, con
+     «Aceptar y siguiente» arriba (en fila, se salía por la derecha). */
+  :root[data-tema="v2"] .clas-v2-card {
+    padding: 12px;
+  }
+
+  :root[data-tema="v2"] .clas-v2-nombre,
+  :root[data-tema="v2"] .clas-v2-nombre.is-largo {
+    font-size: 17px;
+  }
+
+  :root[data-tema="v2"] .clas-v2-botones {
+    flex-wrap: wrap;
+  }
+
+  :root[data-tema="v2"] .clas-v2-botones > .e19-btn {
+    flex: 1 1 100%;
+  }
+
+  :root[data-tema="v2"] .clas-v2-botones > .e19-btn-primary {
+    order: -1;
+  }
+
+  /* Las filas de la bandeja (y el repaso): el icono o el número arriba y el texto debajo a todo el ancho; en fila, el texto se
+     quedaba en unos 50 px y partía las palabras letra a letra. La flecha, decorativa, sobra. */
+  :root[data-tema="v2"] .mov-v2-fila-bandeja {
+    flex-wrap: wrap;
+    padding: 10px 12px;
+  }
+
+  :root[data-tema="v2"] .mov-v2-fila-bandeja > .mov-v2-main {
+    flex: 1 1 100%;
+  }
+
+  :root[data-tema="v2"] .mov-v2-fila-bandeja > span[aria-hidden="true"]:last-child {
+    display: none;
   }
 }

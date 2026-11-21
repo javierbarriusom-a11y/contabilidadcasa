@@ -9109,6 +9109,95 @@ test.describe("DEC-45 · «¿te sirve?» en Novedades", () => {
   });
 });
 
+// DEC-38 · paso 3 (21/11/2026): a 195 px (el móvil de 390 px con el zoom al 200 %), Hoy y Movimientos con movimientos FICTICIOS de
+// conceptos largos. Que nada se salga lo mira el CI (tools/check-mobile-overflow.mjs); esto mira que se lea: que los textos tengan
+// sitio y no se queden en una columna de una letra, que es lo que pasaba sin salirse.
+test.describe("DEC-38 · a 195 px (zoom al 200 %): Hoy, Movimientos, Previsión y Clasificar", () => {
+  test("los textos tienen sitio y nada queda fuera, con movimientos de conceptos largos", async ({ page }) => {
+    test.setTimeout(60000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 195, height: 900 });
+    await page.clock.install({ time: new Date(2026, 10, 21, 10, 0, 0) });
+    await page.goto("/index.html#movements");
+    await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+    await page.evaluate(() => {
+      const conceptos = ["COMPRA TARJETA SUPERMERCADO FICTICIO CENTRO COMERCIAL 1234", "BIZUM ENVIADO A PERSONA FICTICIA POR LA CENA", "RECIBO COMPAÑIA ELECTRICA FICTICIA NOVIEMBRE"];
+      const rows = conceptos.map((movement, i) => ({ date: `2026-11-${10 + i}`, valueDate: `2026-11-${10 + i}`, month: "2026-11", movement, details: "", amount: -(17.5 + i * 133.21), balance: null, account: "CaixaBank", source: "Extracto" }));
+      baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+      refreshMovementRollups();
+      render();
+    });
+    const ancho = (locator) => locator.evaluate((el) => el.getBoundingClientRect().width);
+    const fuera = (id) => page.evaluate((sid) => {
+      const vw = document.documentElement.clientWidth;
+      const recoge = (el) => { for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) if (["auto", "scroll", "hidden", "clip"].includes(getComputedStyle(p).overflowX)) return true; return false; };
+      return [...document.getElementById(sid).querySelectorAll("*")].filter((el) => { const b = el.getBoundingClientRect(); const c = getComputedStyle(el); return b.width > 1 && b.right > vw + 1 && c.visibility !== "hidden" && c.opacity !== "0" && !(c.position === "absolute" && c.clip !== "auto") && !recoge(el); }).length;
+    }, id);
+
+    // Movimientos: la fila de la bandeja y cada movimiento dejan al texto casi todo el ancho.
+    const fila = page.locator("#movimientosV2Lista .mov-v2-fila").first();
+    await expect(fila).toBeVisible();
+    expect(await ancho(fila.locator(".mov-v2-main"))).toBeGreaterThan(110);
+    const bandeja = page.locator("#movimientosV2 [data-mov-v2-clasificar] .mov-v2-main");
+    await expect(bandeja).toBeVisible();
+    expect(await ancho(bandeja)).toBeGreaterThan(110);
+    expect(await fuera("movements"), "nada fuera en Movimientos").toBe(0);
+
+    // Hoy: la cifra, las dos cifras de debajo y cada decisión, con su texto a lo ancho.
+    await page.goto("/index.html#home");
+    await expect(page.locator("#hoyV2 .hoy-v2-figure")).toBeVisible({ timeout: 15000 });
+    expect(await ancho(page.locator("#hoyV2 .hoy-v2-stat").first())).toBeGreaterThan(110);
+    const decision = page.locator("#hoyV2 .hoy-v2-decision-body").first();
+    if (await decision.count()) expect(await ancho(decision)).toBeGreaterThan(100);
+    expect(await fuera("home"), "nada fuera en Hoy").toBe(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  // Segunda tanda (21/11/2026): Previsión (el panel del día y la frase de la semana) y Clasificar (el nombre del grupo y los dos
+  // botones, que en fila se salían por la derecha del panel). Clasificar es un diálogo: la comprobación del CI no lo recorre.
+  test("Previsión y Clasificar: los textos tienen sitio y los botones caben", async ({ page }) => {
+    test.setTimeout(60000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 195, height: 900 });
+    await page.clock.install({ time: new Date(2026, 10, 21, 10, 0, 0) });
+    await page.goto("/index.html#plan");
+    await page.locator('[data-plan-tab="prevision"]').click();
+    const v2 = page.locator("#planPrevisionV2");
+    await expect(v2).toBeVisible({ timeout: 15000 });
+    const ancho = (locator) => locator.evaluate((el) => el.getBoundingClientRect().width);
+    const dentro = (locator) => locator.evaluate((el) => el.getBoundingClientRect().right <= document.documentElement.clientWidth + 1);
+    const que = v2.locator(".prev-v2-dia-item .prev-v2-dia-que").first();
+    await expect(que).toBeVisible();
+    expect(await ancho(que), "el concepto del día, a lo ancho").toBeGreaterThan(100);
+    expect(await ancho(v2.locator(".prev-v2-semana"))).toBeGreaterThan(110);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+    await page.goto("/index.html#movements");
+    await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+    await page.evaluate(() => {
+      const rows = [{ date: "2026-11-12", valueDate: "2026-11-12", month: "2026-11", movement: "CARGO TARJETA GASOLINERA FICTICIA", details: "", amount: -60, balance: null, account: "CaixaBank", source: "Extracto" }];
+      baseData.transactions = mergeTransactions(baseData.transactions || [], rows);
+      refreshMovementRollups();
+      render();
+    });
+    await page.locator("#movimientosV2 [data-mov-v2-clasificar]").click();
+    const panel = page.locator("#clasificarV2");
+    await expect(panel).toBeVisible();
+    expect(await ancho(panel.locator(".clas-v2-nombre"))).toBeGreaterThan(110);
+    for (const boton of ["[data-clas-v2-aceptar]", "[data-clas-v2-saltar]"]) {
+      await expect(panel.locator(boton)).toBeVisible();
+      expect(await dentro(panel.locator(boton)), `${boton} cabe en la pantalla`).toBe(true);
+    }
+    // «Aceptar y siguiente», encima de «Saltar».
+    const [aceptar, saltar] = await Promise.all(["[data-clas-v2-aceptar]", "[data-clas-v2-saltar]"].map((sel) => panel.locator(sel).evaluate((el) => el.getBoundingClientRect().top)));
+    expect(aceptar).toBeLessThan(saltar);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
 // DEC-22 (décima auditoría, 20/11/2026): el aviso del domingo del calendario lleva «#home?abrir=repaso». Abre la app con el repaso
 // encima de Hoy, la marca sale de la dirección (recargar no lo vuelve a abrir) y cuenta en el medidor. Con el diseño de siempre no hay
 // repaso: se queda en Hoy sin errores.
