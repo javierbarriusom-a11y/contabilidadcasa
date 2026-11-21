@@ -113,6 +113,22 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 21 de noviembre de 2026 (517): DEC-38, paso 3, tandas 3 y 4: Plan, Cierre, Ajustes y Deuda a 195 px; traspaso del 21/11
+
+- **Publicado de antes:** #657 (DEC-38 paso 3, tandas 1 y 2) fusionado con su CI en verde a la primera (54 min, Safari incluido), squash con la cabeza cd25ef21 comprobada: main 9755b60d. Su despliegue, en curso al abrir este PR; sus cifras, en la entrada siguiente.
+- **El hogar:** «Sigue con la siguiente tanda: Plan › Mes y Cierre» y «Sigue con la siguiente tanda: Ajustes y Deuda». Las dos tandas, en este PR (la misma entrega), hechas en un `git worktree` aparte mientras corría el CI de #657.
+- **Qué (solo CSS, por debajo de 260 px salvo lo dicho):**
+  - **Plan › Mes:** cada partida en una columna (el nombre del bloque, «GASTOS VARIABLES», se montaba sobre su importe), el mes a todo el ancho con las flechas debajo (se cortaba en «novien…») y la leyenda del reparto una por línea. Revisadas también Previsión (tanda 2) y «Ahorro y objetivos».
+  - **Cierre:** la columna de la firma (confianza, lo que guarda la firma, «Firmar») medía más que la pantalla: rejilla sin columnas, ahora `minmax(0, 1fr)`; y cada dato con su valor debajo si no caben.
+  - **Ajustes:** el índice de secciones deja de ir fijo arriba (a 195 px mide unos 330 px de alto y, con la cabecera, tapaba casi media pantalla todo el rato); las etiquetas de Funciones en prueba, el campo de minutos y las cifras «min/semana» del panel de uso bajan de línea.
+  - **Deuda:** las estrategias de Comparar y las cifras de Ruta, en una columna que cabe (`minmax(min(220px, 100%), 1fr)` y `min(190px, 100%)`, a cualquier ancho; no cambian nada a 260 px o más), los botones de paso («Contratos →»…) y `.e19-insight` bajan de línea. Sin tocar cifras ni funciones: D-N16 sigue abierta.
+  - **A cualquier ancho, de paso:** la fila «Ahorro» de Plan › Mes, como «Financiaciones»: su explicación salía pegada al nombre y en negrita («AHORROmeta del plan…») y la flecha, en una línea suelta. Comprobado a 390 y 1440 px.
+- **CI:** `REVISADAS_A_195` suma Plan (sus tres pestañas), Cierre, Ajustes y cuatro pestañas de Deuda: nueve pantallas. **Deuda › Simulador visual no:** con los contratos de ejemplo enseña el simulador anterior en un iframe con su propia hoja, cuyos titulares se cortan.
+- **Vistos y no hechos:** la tabla editable de Deuda › Contratos se desplaza en horizontal con campos estrechos (tabla de datos de dos dimensiones, admitida por WCAG 1.4.10); la cabecera de la app ocupa unos 117 px de alto a 195 px (el nombre del plan en tres líneas).
+- **Traspaso:** `docs/traspasos/2026-11-21_traspaso.md`, y el backlog §1 apunta a él.
+- **Pruebas:** `tests/dec38-paso3-195.test.cjs` (4, +1); e2e «DEC-38 · a 195 px» (4, +2: Plan › Mes y Cierre; Ajustes y Deuda). Versiones a `20261121dec38d`: `tema-v2.css`, `styles.css`, `design-tokens.css` y `camino-deuda.css` (ajustadas en 14 pruebas).
+- **Validación (en el worktree, mismo árbol que este PR salvo esta entrada):** `npm run verify` en verde, salida 0: `npm test` **6.838/6.838** (+1). `npm run test:mobile-overflow` en verde (346 visitas; a 195 px, las 9 revisadas). Batería completa en local (e2e + a11y, Chromium): **487/487** (24,2 min).
+
 ## Cierre de sesión — 21 de noviembre de 2026 (516): DEC-38, paso 3, primeras dos tandas: Hoy, Movimientos, Previsión y Clasificar a 195 px
 
 - **Publicado de antes:** #656 (DEC-45) fusionado con su CI en verde a la primera (70 min, Safari incluido): main 82456009. «Verify and deploy Pages» **1505** en verde, publicado a las 10:16 UTC; «Published availability» **388** (lanzada a mano a las 10:21, tras publicarse) en verde. DEC-45 está en el sitio.
