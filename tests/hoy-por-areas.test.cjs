@@ -58,7 +58,7 @@ test("«Decisiones abiertas» en el móvil: una columna (la de 34 px era para el
 test("versiones y Novedades", () => {
   const html = read("index.html");
   for (const file of ["views/hoy-v2.js", "tema-v2.css", "styles.css"]) assert.ok(html.includes(`${file}?v=20261121areas`), file);
-  assert.match(html, /novedades\.js\?v=20261121(?:areas|dn27)/, "novedades.js siguió a 20261121dn27 con D-N23 y D-N27");
+  assert.match(html, /novedades\.js\?v=20261121(?:areas|dn27|dn28)/, "novedades.js siguió a 20261121dn27 con D-N23 y D-N27");
   assert.match(read("novedades.js"), /id: "2026-11-21-hoy-por-areas"/);
 });
 

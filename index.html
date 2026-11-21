@@ -49,7 +49,7 @@
     <link rel="stylesheet" href="chart-kit.css?v=20261109fx12a" />
     <link rel="stylesheet" href="recordatorios.css?v=20261007wp32a1" />
     <link rel="stylesheet" href="deuda-tipo.css?v=20261007wp13a1" />
-    <link rel="stylesheet" href="camino-deuda.css?v=20261121dn27" />
+    <link rel="stylesheet" href="camino-deuda.css?v=20261121dn28" />
     <link rel="stylesheet" href="prestamo-deuda.css?v=20261120dec38b" />
     <link rel="stylesheet" href="nominas.css?v=20261008wp31a1" />
     <link rel="stylesheet" href="anomalias.css?v=20261012wp36a2" />
@@ -2108,11 +2108,12 @@
 
           <section class="e19-deuda-decidir view-section" id="deuda-comparar" hidden>
             <nav class="e19-registrar-tabs" id="deudaCompararScreenTabs" aria-label="Pestañas de Deuda"></nav>
-            <!-- D10: navegación de flujo (Anterior/Siguiente) entre las 4 pestañas de Deuda. -->
+            <nav class="deuda-ofertas-tabs" id="deudaCompararOfertasTabs" aria-label="Ofertas"></nav>
+            <!-- D10: navegación de flujo (Anterior/Siguiente) entre las pantallas de Deuda; D-N28: Plan, Contratos y Ofertas (Comparar, Préstamo, Simulador visual). -->
             <nav class="deuda-flow-nav" id="deudaCompararFlowNav" aria-label="Paso anterior o siguiente en Deuda"></nav>
             <div class="section-title with-action">
               <div>
-                <p class="panel-kicker e19-eyebrow">Deuda · Comparar</p>
+                <p class="panel-kicker e19-eyebrow">Deuda · Ofertas · Comparar</p>
                 <h2 class="e19-heading">Tres formas reales de organizar la deuda</h2>
                 <p class="e19-subtitle">Comparar no escribe nada en el plan. Cada estrategia se simula de verdad con el motor de Escenario sobre tu cartera actual — elige una para ver su ruta o aplicarla.</p>
               </div>
@@ -2219,7 +2220,7 @@
             <nav class="deuda-flow-nav" id="deudaRutaFlowNav" aria-label="Paso anterior o siguiente en Deuda"></nav>
             <div class="section-title with-action">
               <div>
-                <p class="panel-kicker e19-eyebrow">Deuda · Ruta</p>
+                <p class="panel-kicker e19-eyebrow">Deuda · Plan</p>
                 <h2 class="e19-heading" id="deudaRutaTitle">Ruta de deuda</h2>
                 <p class="e19-subtitle" id="deudaRutaSubtitle"></p>
               </div>
@@ -2329,10 +2330,11 @@
           <!-- Deuda › Préstamo para saldar (14/11/2026, petición del hogar): un préstamo personal que cancela las deudas más caras y un plan agresivo para saldarlo todo, para mirarlo en pareja. La pinta prestamo-deuda-ui.js con canonical-loan-payoff-plan.js (sobre el motor de «Camino a deuda cero»). Los controles no se repintan; solo #prestamoResultado. Simulación: no pide ni escribe nada (A11-4). -->
           <section class="e19-deuda-decidir view-section" id="deuda-prestamo" hidden>
             <nav class="e19-registrar-tabs" id="deudaPrestamoScreenTabs" aria-label="Pestañas de Deuda"></nav>
+            <nav class="deuda-ofertas-tabs" id="deudaPrestamoOfertasTabs" aria-label="Ofertas"></nav>
             <nav class="deuda-flow-nav" id="deudaPrestamoFlowNav" aria-label="Paso anterior o siguiente en Deuda"></nav>
             <div class="section-title">
               <div>
-                <p class="panel-kicker e19-eyebrow">Deuda · Préstamo</p>
+                <p class="panel-kicker e19-eyebrow">Deuda · Ofertas · Préstamo</p>
                 <h2 class="e19-heading">Saldar la deuda con un préstamo</h2>
                 <p class="e19-subtitle">Pedir un préstamo para cancelar las deudas más caras y, con lo que se libera, acabar antes. Cambia las condiciones y mira qué pasa: es una simulación, no pide nada al banco ni cambia el plan.</p>
               </div>
@@ -2589,10 +2591,11 @@
 
           <section class="e19-deuda-decidir view-section" id="deuda-simulador" hidden>
             <nav class="e19-registrar-tabs" id="deudaSimuladorScreenTabs" aria-label="Pestañas de Deuda"></nav>
+            <nav class="deuda-ofertas-tabs" id="deudaSimuladorOfertasTabs" aria-label="Ofertas"></nav>
             <nav class="deuda-flow-nav" id="deudaSimuladorFlowNav" aria-label="Paso anterior o siguiente en Deuda"></nav>
             <div class="section-title with-action">
               <div>
-                <p class="panel-kicker e19-eyebrow">Deuda · Simulador visual</p>
+                <p class="panel-kicker e19-eyebrow">Deuda · Ofertas · Simulador visual</p>
                 <h2 class="e19-heading">Simulador visual de estrategias de deuda</h2>
                 <p class="e19-subtitle">Explora quitas, pagos únicos, refinanciaciones y calendario sin tocar el plan real: lee en solo lectura los contratos y el forecast de Ruta y Comparar, y guarda aquí tus propias tareas, notas y supuestos de negociación.</p>
               </div>
@@ -8357,7 +8360,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20261119priv4"></script>
-    <script defer src="novedades.js?v=20261121dn27"></script>
+    <script defer src="novedades.js?v=20261121dn28"></script>
     <script defer src="ux-shell.js?v=20261121dec45"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>

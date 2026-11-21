@@ -66,105 +66,91 @@ function sandboxTabs() {
   const context = { escapeHtml: (value) => String(value ?? "") };
   vm.createContext(context);
   vm.runInContext(
-    [extractConst("DEUDA_SCREEN_TABS"), extractConst("DEUDA_SCREEN_TAB_NAV_IDS"), extractFunction("deudaScreenTabsHtml")].join("\n"),
+    [extractConst("DEUDA_SCREEN_TABS"), extractConst("DEUDA_OFERTAS_TABS"), extractConst("DEUDA_SCREEN_TAB_NAV_IDS"), extractConst("DEUDA_OFERTAS_NAV_IDS"),
+      extractFunction("deudaScreenTabOf"), extractFunction("deudaScreenTabsHtml"), extractFunction("deudaOfertasTabsHtml")].join("\n"),
     context
   );
   return context;
 }
 
-// I1 (Contabilidadcasa 2.0): «Apalancamiento» (5ª pestaña, OPT-24) salió de Deuda hacia el hub
-// Inversión — Deuda vuelve a las 4 pestañas que tenía antes de OPT-24.
-// 14/11/2026: entra «Préstamo» (préstamo para saldar la deuda, petición del hogar) entre Comparar y Contratos.
-test("D-1/D-15/I1 · las cinco pestañas son Ruta, Comparar, Préstamo, Contratos y Simulador visual, en ese orden", () => {
-  const source = extractConst("DEUDA_SCREEN_TABS");
-  const ids = [...source.matchAll(/id: "([\w-]+)"/g)].map((match) => match[1]);
-  assert.deepEqual(ids, ["deuda-ruta", "deuda-comparar", "deuda-prestamo", "deuda-contratos", "deuda-simulador"]);
+test("D-N28 · tres pestañas, Plan, Contratos y Ofertas, y dentro de Ofertas, Comparar, Préstamo y Simulador visual", () => {
+  const ids = [...extractConst("DEUDA_SCREEN_TABS").matchAll(/\{ id: "([\w-]+)", label: "([^"]+)"/g)].map((match) => `${match[1]}=${match[2]}`);
+  assert.deepEqual(ids, ["deuda-ruta=Plan", "deuda-contratos=Contratos", "deuda-comparar=Ofertas"]);
+  const ofertas = [...extractConst("DEUDA_OFERTAS_TABS").matchAll(/id: "([\w-]+)"/g)].map((match) => match[1]);
+  assert.deepEqual(ofertas, ["deuda-comparar", "deuda-prestamo", "deuda-simulador"]);
 });
 
-test("D-1/OPT-4 · deudaScreenTabsHtml marca is-active y aria-current=\"page\" solo en la pestaña activa", () => {
-  // OPT-4 (axe: aria-allowed-attr): son enlaces a rutas distintas, no pestañas ARIA sobre un único
-  // panel — aria-selected no es un atributo válido en un <a> sin role="tab". aria-current="page" es
-  // el marcador correcto de "enlace activo" para navegación real, mismo patrón que el menú lateral.
-  // D10: la pestaña anterior a la activa (Ruta) queda "is-done" — es la navegación de progreso.
+test("D-1/OPT-4/D-N28 · la pestaña activa lleva is-active y aria-current; en una pantalla de Ofertas, «Ofertas» es la activa", () => {
+  // OPT-4 (axe: aria-allowed-attr): son enlaces a rutas distintas, no pestañas ARIA; aria-current, como el menú lateral.
   const { deudaScreenTabsHtml } = sandboxTabs();
-  const result = deudaScreenTabsHtml("deuda-comparar");
-  assert.match(result, /class="e19-registrar-tab is-active" href="#deuda-comparar" aria-current="page"/);
-  assert.match(result, /class="e19-registrar-tab is-done" href="#deuda-ruta">/);
-  assert.match(result, /class="e19-registrar-tab" href="#deuda-contratos">/);
-  assert.doesNotMatch(result, /aria-selected/);
+  const plan = deudaScreenTabsHtml("deuda-ruta");
+  assert.match(plan, /class="e19-registrar-tab is-active" href="#deuda-ruta" aria-current="page"><span class="e19-registrar-tab-step" aria-hidden="true">1<\/span>Plan/);
+  assert.match(plan, /class="e19-registrar-tab" href="#deuda-contratos"><span class="e19-registrar-tab-step" aria-hidden="true">2<\/span>Contratos/);
+  assert.match(plan, /class="e19-registrar-tab" href="#deuda-comparar"><span class="e19-registrar-tab-step" aria-hidden="true">3<\/span>Ofertas/);
+  const prestamo = deudaScreenTabsHtml("deuda-prestamo");
+  assert.match(prestamo, /class="e19-registrar-tab is-active" href="#deuda-comparar" aria-current="true">/);
+  assert.match(prestamo, /class="e19-registrar-tab is-done" href="#deuda-ruta">/);
+  assert.match(prestamo, /class="e19-registrar-tab is-done" href="#deuda-contratos">/);
+  assert.doesNotMatch(prestamo, /aria-selected/);
+  assert.match(deudaScreenTabsHtml("deuda-comparar"), /href="#deuda-comparar" aria-current="page">/);
 });
 
-// D10 (Contabilidadcasa 2.0): las 4 pestañas pasan de sueltas a un flujo con navegación de
-// progreso — número de paso por pestaña, is-done en las anteriores a la activa, ninguna en las
-// siguientes.
-test("D10 · deudaScreenTabsHtml numera los 5 pasos y marca is-done solo en los anteriores al activo", () => {
-  const { deudaScreenTabsHtml } = sandboxTabs();
-  const result = deudaScreenTabsHtml("deuda-contratos");
-  assert.match(result, /<span class="e19-registrar-tab-step" aria-hidden="true">1<\/span>Ruta/);
-  assert.match(result, /<span class="e19-registrar-tab-step" aria-hidden="true">2<\/span>Comparar/);
-  assert.match(result, /<span class="e19-registrar-tab-step" aria-hidden="true">3<\/span>Préstamo/);
-  assert.match(result, /<span class="e19-registrar-tab-step" aria-hidden="true">4<\/span>Contratos/);
-  assert.match(result, /<span class="e19-registrar-tab-step" aria-hidden="true">5<\/span>Simulador visual/);
-  assert.match(result, /class="e19-registrar-tab is-done" href="#deuda-prestamo"/);
-  assert.match(result, /class="e19-registrar-tab is-done" href="#deuda-ruta"/);
-  assert.match(result, /class="e19-registrar-tab is-done" href="#deuda-comparar"/);
-  assert.match(result, /class="e19-registrar-tab is-active" href="#deuda-contratos" aria-current="page"/);
-  assert.match(result, /class="e19-registrar-tab" href="#deuda-simulador"/);
+test("D-N28 · la segunda fila de Ofertas marca su pantalla, sin número, y solo se pinta en las tres de Ofertas", () => {
+  const context = sandboxTabs();
+  const html = context.deudaOfertasTabsHtml("deuda-simulador");
+  assert.match(html, /class="deuda-ofertas-tab is-active" href="#deuda-simulador" aria-current="page">Simulador visual/);
+  assert.match(html, /class="deuda-ofertas-tab" href="#deuda-comparar">Comparar/);
+  assert.doesNotMatch(html, /tab-step/);
+  const navIds = vm.runInContext("DEUDA_OFERTAS_NAV_IDS", context);
+  assert.deepEqual(Object.keys(navIds), ["deuda-comparar", "deuda-prestamo", "deuda-simulador"]);
+  for (const id of Object.values(navIds)) assert.match(html2(), new RegExp(`<nav class="deuda-ofertas-tabs" id="${id}" aria-label="Ofertas"></nav>`));
 });
 
-// D10 (Contabilidadcasa 2.0): enlaces "Anterior/Siguiente" al pie de cada pestaña — igual que la
-// barra de pasos de arriba, son <a href> reales a la pestaña vecina (4 páginas de verdad, no un
-// wizard con estado JS propio). Sin "Anterior" en la primera, sin "Siguiente" en la última.
+function html2() {
+  return fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+}
+
 function sandboxFlowNav() {
   const context = { escapeHtml: (value) => String(value ?? "") };
   vm.createContext(context);
   vm.runInContext(
-    [extractConst("DEUDA_SCREEN_TABS"), extractFunction("deudaFlowNavHtml")].join("\n"),
+    [extractConst("DEUDA_OFERTAS_TABS"), extractConst("DEUDA_FLOW"), extractFunction("deudaFlowNavHtml")].join("\n"),
     context
   );
   return context;
 }
 
-test("D10 · deudaFlowNavHtml no ofrece «Anterior» en la primera pestaña ni «Siguiente» en la última", () => {
+test("D10/D-N28 · el recorrido es Plan, Contratos y Ofertas (Comparar, Préstamo, Simulador visual); sin «Anterior» al empezar ni «Siguiente» al acabar", () => {
   const { deudaFlowNavHtml } = sandboxFlowNav();
   const first = deudaFlowNavHtml("deuda-ruta");
   assert.doesNotMatch(first, /← /);
-  assert.match(first, /href="#deuda-comparar">Comparar →/);
+  assert.match(first, /href="#deuda-contratos">Contratos →/);
+  const contratos = deudaFlowNavHtml("deuda-contratos");
+  assert.match(contratos, /href="#deuda-ruta">← Plan/);
+  assert.match(contratos, /href="#deuda-comparar">Ofertas: Comparar →/);
+  const middle = deudaFlowNavHtml("deuda-prestamo");
+  assert.match(middle, /href="#deuda-comparar">← Ofertas: Comparar/);
+  assert.match(middle, /href="#deuda-simulador">Ofertas: Simulador visual →/);
   const last = deudaFlowNavHtml("deuda-simulador");
-  assert.match(last, /href="#deuda-contratos">← Contratos/);
+  assert.match(last, /href="#deuda-prestamo">← Ofertas: Préstamo/);
   assert.doesNotMatch(last, / →</);
-});
-
-test("D10 · deudaFlowNavHtml ofrece ambos enlaces en una pestaña intermedia", () => {
-  const { deudaFlowNavHtml } = sandboxFlowNav();
-  const middle = deudaFlowNavHtml("deuda-comparar");
-  assert.match(middle, /href="#deuda-ruta">← Ruta/);
-  assert.match(middle, /href="#deuda-prestamo">Préstamo →/);
 });
 
 test("D10 · renderDeudaFlowNav escribe en el nav correcto según la pantalla activa", () => {
   const written = {};
   const context = sandboxWith(["deudaFlowNavHtml", "renderDeudaFlowNav"], {
     escapeHtml: (value) => String(value ?? ""),
-    DEUDA_SCREEN_TABS: [
-      { id: "deuda-ruta", label: "Ruta" },
-      { id: "deuda-comparar", label: "Comparar" },
-      { id: "deuda-prestamo", label: "Préstamo" },
+    DEUDA_FLOW: [
+      { id: "deuda-ruta", label: "Plan" },
       { id: "deuda-contratos", label: "Contratos" },
-      { id: "deuda-simulador", label: "Simulador visual" },
+      { id: "deuda-comparar", label: "Ofertas: Comparar" },
     ],
-    DEUDA_FLOW_NAV_IDS: {
-      "deuda-ruta": "deudaRutaFlowNav",
-      "deuda-comparar": "deudaCompararFlowNav",
-      "deuda-prestamo": "deudaPrestamoFlowNav",
-      "deuda-contratos": "deudaContratosFlowNav",
-      "deuda-simulador": "deudaSimuladorFlowNav",
-    },
+    DEUDA_FLOW_NAV_IDS: { "deuda-ruta": "deudaRutaFlowNav", "deuda-contratos": "deudaContratosFlowNav", "deuda-comparar": "deudaCompararFlowNav" },
     qs: (id) => ({ set innerHTML(value) { written[id] = value; } }),
   });
   context.renderDeudaFlowNav("deuda-contratos");
-  assert.match(written.deudaContratosFlowNav, /← Préstamo/);
-  assert.match(written.deudaContratosFlowNav, /Simulador visual →/);
+  assert.match(written.deudaContratosFlowNav, /← Plan/);
+  assert.match(written.deudaContratosFlowNav, /Ofertas: Comparar →/);
 });
 
 test("D10 · el CSS del indicador de progreso y de la navegación de flujo existe", () => {
@@ -186,18 +172,21 @@ test("D-1 · cada pestalla enlaza con hash real, no con un manejador de clic exc
 
 test("D-1 · renderDeudaScreenTabs escribe en el nav correcto según la pantalla activa", () => {
   const written = {};
-  const context = sandboxWith(["deudaScreenTabsHtml", "renderDeudaScreenTabs"], {
+  const context = sandboxWith(["deudaScreenTabOf", "deudaScreenTabsHtml", "deudaOfertasTabsHtml", "renderDeudaScreenTabs"], {
     escapeHtml: (value) => String(value ?? ""),
     DEUDA_SCREEN_TABS: [
-      { id: "deuda-ruta", label: "Ruta" },
-      { id: "deuda-comparar", label: "Comparar" },
+      { id: "deuda-ruta", label: "Plan" },
       { id: "deuda-contratos", label: "Contratos" },
+      { id: "deuda-comparar", label: "Ofertas", screens: ["deuda-comparar", "deuda-prestamo"] },
     ],
+    DEUDA_OFERTAS_TABS: [{ id: "deuda-comparar", label: "Comparar" }, { id: "deuda-prestamo", label: "Préstamo" }],
     DEUDA_SCREEN_TAB_NAV_IDS: {
       "deuda-ruta": "deudaRutaScreenTabs",
       "deuda-comparar": "deudaCompararScreenTabs",
+      "deuda-prestamo": "deudaPrestamoScreenTabs",
       "deuda-contratos": "deudaContratosScreenTabs",
     },
+    DEUDA_OFERTAS_NAV_IDS: { "deuda-comparar": "deudaCompararOfertasTabs", "deuda-prestamo": "deudaPrestamoOfertasTabs" },
     qs: (id) => ({
       set innerHTML(value) {
         written[id] = value;
@@ -207,6 +196,9 @@ test("D-1 · renderDeudaScreenTabs escribe en el nav correcto según la pantalla
   context.renderDeudaScreenTabs("deuda-contratos");
   assert.ok(written.deudaContratosScreenTabs.includes("is-active"));
   assert.ok(!written.deudaRutaScreenTabs);
+  assert.ok(!Object.keys(written).some((id) => id.endsWith("OfertasTabs")), "Contratos no lleva la fila de Ofertas");
+  context.renderDeudaScreenTabs("deuda-prestamo");
+  assert.match(written.deudaPrestamoOfertasTabs, /is-active" href="#deuda-prestamo"/);
 });
 
 test("D-1 · las tres secciones llevan su propio contenedor de pestañas en el HTML", () => {

@@ -231,11 +231,11 @@ const HEAVY_RENDER_VIEWS = new Set([
 const VIEW_CHUNKS = {
   "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20261105pulido1", rootId: "presupuestoMesRoot" },
   "estado-semana": { src: "views/estado-semana.js?v=20260904a1", rootId: "estadoSemanaRoot" },
-  "deuda-comparar": { src: "views/deuda.js?v=20261121plan", rootId: "deuda-comparar" },
-  "deuda-ruta": { src: "views/deuda.js?v=20261121plan", rootId: "deuda-ruta" },
-  "deuda-prestamo": { src: "views/deuda.js?v=20261121plan", rootId: "deuda-prestamo" },
-  "deuda-contratos": { src: "views/deuda.js?v=20261121plan", rootId: "deuda-contratos" },
-  "deuda-simulador": { src: "views/deuda.js?v=20261121plan", rootId: "deuda-simulador" },
+  "deuda-comparar": { src: "views/deuda.js?v=20261121dn28", rootId: "deuda-comparar" },
+  "deuda-ruta": { src: "views/deuda.js?v=20261121dn28", rootId: "deuda-ruta" },
+  "deuda-prestamo": { src: "views/deuda.js?v=20261121dn28", rootId: "deuda-prestamo" },
+  "deuda-contratos": { src: "views/deuda.js?v=20261121dn28", rootId: "deuda-contratos" },
+  "deuda-simulador": { src: "views/deuda.js?v=20261121dn28", rootId: "deuda-simulador" },
   "inversion-cartera": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-cartera" },
   "inversion-rebalanceo": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-rebalanceo" },
   "inversion-fiscal": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-fiscal" },
@@ -598,15 +598,15 @@ const viewTitles = {
   // #deuda-contratos por el buscador no veía "Deuda" en ningún sitio de la cabecera. Ahora usan el
   // mismo patrón "<Grupo> · <Pestaña>" que ya usa Inversión ("Inversión · Cartera", etc.).
   "deuda-comparar": {
-    eyebrow: "Deuda · Comparar",
+    eyebrow: "Deuda · Ofertas · Comparar",
     title: "Tres formas reales de organizar la deuda",
   },
   "deuda-ruta": {
-    eyebrow: "Deuda · Ruta",
-    title: "Ruta de deuda",
+    eyebrow: "Deuda · Plan",
+    title: "Plan de deuda",
   },
   "deuda-prestamo": {
-    eyebrow: "Deuda · Préstamo",
+    eyebrow: "Deuda · Ofertas · Préstamo",
     title: "Saldar la deuda con un préstamo",
   },
   "deuda-contratos": {
@@ -614,7 +614,7 @@ const viewTitles = {
     title: "Contratos de deuda",
   },
   "deuda-simulador": {
-    eyebrow: "Deuda · Simulador visual",
+    eyebrow: "Deuda · Ofertas · Simulador visual",
     title: "Simulador visual de estrategias de deuda",
   },
   "inversion-cartera": {

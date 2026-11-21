@@ -208,3 +208,41 @@
   min-height: 44px;
   white-space: normal;
 }
+
+/* D-N28 (21/11/2026): Deuda en tres pestañas. La segunda fila de «Ofertas» (Comparar, Préstamo, Simulador visual): más pequeña y
+   subrayada, para que no se lea como el mismo nivel que Plan · Contratos · Ofertas. Sin número: no es un recorrido en orden. */
+.deuda-ofertas-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 2px 0 12px;
+  padding: 0 2px;
+  border-bottom: 1px solid var(--e19-border);
+}
+
+.deuda-ofertas-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  min-width: 0;
+  padding: 0 2px;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  font: 600 var(--e19-text-sm) / 1.2 var(--e19-font-sans);
+  color: var(--e19-muted);
+  text-decoration: none;
+}
+
+.deuda-ofertas-tab:hover {
+  color: var(--e19-ink);
+}
+
+.deuda-ofertas-tab.is-active {
+  color: var(--e19-ink);
+  border-bottom-color: var(--e19-accent, var(--e19-ink));
+}
+
+.deuda-ofertas-tab:focus-visible {
+  outline: 2px solid var(--e19-accent, var(--e19-ink));
+  outline-offset: 2px;
+}
