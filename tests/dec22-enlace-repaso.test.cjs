@@ -83,7 +83,7 @@ test("versiones y Novedades: el fichero hay que descargarlo otra vez para tener 
   const html = read("index.html");
   // views/repaso-v2.js siguió a 20261120dec23 con DEC-23 (los grupos clasificados de cada repaso).
   assert.match(html, /<script defer src="views\/repaso-v2\.js\?v=(?:20261120dec2[23]|20261121foco)"><\/script>/);
-  assert.match(html, /<script defer src="novedades\.js\?v=(?:20261120dec2[23]|20261121dec30|20261121dec45|20261121areas|20261121dn27)"><\/script>/); // 21/11: DEC-30, la semana que viene; DEC-45, «¿te sirve?»
+  assert.match(html, /<script defer src="novedades\.js\?v=(?:20261120dec2[23]|20261121dec30|20261121dec45|20261121areas|20261121dn27|20261121dn28)"><\/script>/); // 21/11: DEC-30, la semana que viene; DEC-45, «¿te sirve?»
   // medidor-utilidad.js pasó a 20261121dec45 con «¿te sirve?» en Novedades (DEC-45).
   assert.match(html, /<script defer src="medidor-utilidad\.js\?v=20261121dec45"><\/script>/);
   ["canonical-reminders.js", "recordatorios-ui.js"].forEach((file) => {

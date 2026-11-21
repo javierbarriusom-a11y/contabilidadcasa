@@ -96,7 +96,7 @@ test("DEC-30 · cableado: en la Previsión bajo el gráfico y primera en el «Li
   const html = read("index.html");
   ["canonical-forecast-contract.js", "views/prevision-v2.js"].forEach((file) => assert.ok(html.includes(`${file}?v=20261121dec30`), file));
   assert.match(html, /tema-v2\.css\?v=20261121(?:dec30|dec38c|dec38d|areas)/, "tema-v2.css siguió a 20261121dec38c y dec38d con DEC-38 a 195 px");
-  assert.match(html, /novedades\.js\?v=20261121(?:dec30|dec45|areas)/, "novedades.js siguió a 20261121dec45 con DEC-45");
+  assert.match(html, /novedades\.js\?v=20261121(?:dec30|dec45|areas|dn27|dn28)/, "novedades.js siguió a 20261121dec45 con DEC-45");
   const novedad = require("../novedades.js").find((entry) => entry.id === "2026-11-21-semana-que-viene");
   assert.equal(novedad.fecha, "2026-11-21");
   assert.equal(novedad.href, "#plan");
