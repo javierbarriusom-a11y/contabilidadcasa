@@ -549,13 +549,17 @@ function repasoV2BindOnce(dialog) {
     if (repasoV2?.fuera) return; // se ha ido a importar: la píldora lo trae de vuelta
     if (repasoV2 && repasoV2.final === undefined) globalThis.FinanceMedidor?.anotar("repaso-v2", "descarte");
     const opener = repasoV2?.opener;
+    const sobreHoy = Boolean(repasoV2?.desdeHoy); // DEC-22: abierto desde el enlace, siempre encima de Hoy
     repasoV2 = null;
     dialog.innerHTML = "";
     qs("repasoV2Volver")?.remove();
     globalThis.movimientosV2Render?.();
     // Abierto desde Hoy (cambio 2): Hoy se repinta para quitar la entrada si el repaso ya está hecho, y el foco vuelve a
     // la entrada nueva o, si ya no está, al primer botón de Hoy.
-    const desdeHoy = Boolean(opener?.hasAttribute?.("data-hoy-v2-repaso")); // por el atributo: un repintado lo desconecta
+    // Por el atributo: un repintado lo desconecta. O abierto desde el enlace del calendario: si Hoy aún no había pintado su entrada,
+    // no había opener y, sin esta marca, ni la vuelta siguiente (abajo) tenía a dónde llevar el foco: se quedaba en <body>
+    // (21/11/2026, reproducido en Chromium quitando la entrada antes del enlace).
+    const desdeHoy = sobreHoy || Boolean(opener?.hasAttribute?.("data-hoy-v2-repaso"));
     if (desdeHoy && typeof renderHomeDashboard === "function") renderHomeDashboard();
     const enfocar = () => {
       const vuelta = opener?.isConnected ? opener : desdeHoy ? qs("hoyV2")?.querySelector("[data-hoy-v2-repaso]") || qs("hoyV2")?.querySelector("button") : null;
@@ -582,10 +586,10 @@ function repasoV2Mostrar() {
   qs("repasoV2Titulo")?.focus();
 }
 
-function repasoV2Open(opener = null) {
+function repasoV2Open(opener = null, { desdeHoy = false } = {}) {
   if (!repasoV2Active()) return;
   qs("repasoV2Volver")?.remove();
-  repasoV2 = { paso: 0, inicio: Date.now(), inicioPaso: Date.now(), respuestas: {}, escritos: {}, hecho: {}, fuera: false, opener, gruposAntes: repasoV2ContarGrupos() };
+  repasoV2 = { paso: 0, inicio: Date.now(), inicioPaso: Date.now(), respuestas: {}, escritos: {}, hecho: {}, fuera: false, opener, desdeHoy, gruposAntes: repasoV2ContarGrupos() };
   globalThis.FinanceMedidor?.anotar("repaso-v2", "vista"); // XGO-02
   repasoV2Mostrar();
 }
@@ -602,7 +606,7 @@ function repasoV2DesdeEnlace() {
     return false;
   }
   if (qs("repasoV2").open) return true;
-  repasoV2Open(qs("hoyV2")?.querySelector("[data-hoy-v2-repaso]") || null);
+  repasoV2Open(qs("hoyV2")?.querySelector("[data-hoy-v2-repaso]") || null, { desdeHoy: true });
   return true;
 }
 

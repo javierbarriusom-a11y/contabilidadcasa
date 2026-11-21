@@ -9267,6 +9267,31 @@ test.describe("DEC-38 · a 195 px (zoom al 200 %): Hoy, Movimientos, Previsión,
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
+
+  // 21/11/2026, lo que #659 no cubría: en Plan › Mes el nombre de cada bloque se montaba sobre su importe y, en Ajustes, el índice
+  // (439 px de alto a 195 × 422) iba fijo y tapaba la pantalla entera al bajar.
+  test("Plan › Mes sin bloques montados y el índice de Ajustes sin tapar la pantalla", async ({ page }) => {
+    test.setTimeout(60000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 195, height: 422 });
+    await page.clock.install({ time: new Date(2026, 10, 21, 10, 0, 0) });
+    await page.goto("/index.html#plan");
+    const tabla = page.locator("#plan .plan-v2-tabla");
+    await expect(tabla).toBeVisible({ timeout: 15000 });
+    const pisados = await tabla.locator("tr.plan-v2-bloque, tr.plan-v2-fila").evaluateAll((filas) => filas.filter((tr) => {
+      const [nombre, importe] = [tr.querySelector("td:first-child"), tr.querySelector("td.plan-v2-num, td.plan-v2-previsto")].map((el) => el?.getBoundingClientRect());
+      return nombre && importe && importe.height > 0 && importe.top < nombre.bottom - 1 && importe.left < nombre.right - 1;
+    }).length);
+    expect(pisados, "ningún nombre montado sobre su importe").toBe(0);
+    await page.goto("/index.html#ajustes");
+    const indice = page.locator("#ajustes .e19-ajustes-anchors");
+    await expect(indice).toBeVisible({ timeout: 15000 });
+    expect(await indice.evaluate((el) => getComputedStyle(el).position)).toBe("static");
+    await page.locator("#panelUsoCard").scrollIntoViewIfNeeded();
+    expect(await indice.evaluate((el) => el.getBoundingClientRect().bottom), "más abajo, el índice ya no está en pantalla").toBeLessThan(0);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
 });
 
 // DEC-22 (décima auditoría, 20/11/2026): el aviso del domingo del calendario lleva «#home?abrir=repaso». Abre la app con el repaso
@@ -9302,6 +9327,24 @@ test.describe("DEC-22 · el enlace del aviso del domingo abre el repaso", () => 
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }
+
+  // 21/11/2026: si el enlace abre el repaso antes de que Hoy pinte su entrada, no había a dónde devolver el foco y se quedaba en
+  // <body> (también con el reintento de #659). Se reproduce quitando la entrada antes del enlace.
+  test("aunque Hoy no hubiera pintado aún su entrada, al cerrar el foco vuelve a ella", enSafari({ width: 390, height: 844 }), async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.clock.install({ time: new Date(2026, 10, 22, 10, 0, 0) }); // domingo
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#home");
+    await expect(page.locator("#hoyV2 [data-hoy-v2-repaso]")).toBeVisible({ timeout: 20000 });
+    await page.evaluate(() => { document.querySelector("#hoyV2 [data-hoy-v2-repaso]").remove(); location.hash = "#home?abrir=repaso"; });
+    const repaso = page.locator("#repasoV2");
+    await expect(repaso).toBeVisible();
+    await repaso.locator("[data-rep-v2-cerrar]").first().click();
+    await expect(repaso).toBeHidden();
+    await expect(page.locator("#hoyV2 [data-hoy-v2-repaso]")).toBeFocused();
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
 
   test("con el diseño de siempre se queda en Hoy, sin errores", async ({ page }) => {
     const pageErrors = [];
