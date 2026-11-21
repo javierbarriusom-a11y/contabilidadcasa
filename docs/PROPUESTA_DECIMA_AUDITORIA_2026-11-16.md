@@ -565,6 +565,12 @@ que entra en las pruebas de Clasificar y Movimientos. *Por qué:* §1.5 y P-C. S
   añade titular. **Me aparto en una cosa:** «12 grupos clasificados» se cuenta como los grupos sin partida que hay de menos al
   terminar el repaso frente a al abrirlo; si durante el repaso se importa un extracto con conceptos nuevos, se queda corto (nunca
   de más).
+- **DEC-30**, la semana que viene en una frase (21/11/2026, PROJECT_STATE 514): en la Previsión, bajo el gráfico y el panel
+  del día (en el titular sacaba el gráfico de la primera pantalla), y la primera del «Listo» del repaso: lo que sale y lo que entra de hoy a dentro de 6 días (motor diario, a la decena) y el
+  día más justo. **Me aparto en dos cosas:** es «los próximos 7 días» y no «esta semana» (en un repaso de domingo, la semana de
+  lunes a domingo sería un día); y el día más justo solo se dice si no es el último de los 7 (con el gasto del día a día repartido
+  y sin cobro, el saldo baja hasta el final y el día lo pondría el corte). En el repaso, para seguir en tres líneas (FX-42), con
+  aviso no sale la de qué ha cambiado. Sin cifra ni motor nuevos.
 - **DEC-16** (un solo contador para el repaso) no se ha hecho: sustituye cuatro tarjetas por una y eso cambia lo que se ve en
   Movimientos y en el repaso; mejor con D-N17 contestada.
 

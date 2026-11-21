@@ -83,7 +83,7 @@ test("versiones y Novedades: el fichero hay que descargarlo otra vez para tener 
   const html = read("index.html");
   // views/repaso-v2.js siguió a 20261120dec23 con DEC-23 (los grupos clasificados de cada repaso).
   assert.match(html, /<script defer src="views\/repaso-v2\.js\?v=20261120dec2[23]"><\/script>/);
-  assert.match(html, /<script defer src="novedades\.js\?v=20261120dec2[23]"><\/script>/);
+  assert.match(html, /<script defer src="novedades\.js\?v=(?:20261120dec2[23]|20261121dec30)"><\/script>/); // 21/11: DEC-30, la semana que viene
   ["canonical-reminders.js", "recordatorios-ui.js", "medidor-utilidad.js", "app.js"].forEach((file) => {
     assert.match(html, new RegExp(`<script defer src="${file.replace(/[./]/g, (c) => `\\${c}`)}\\?v=20261120dec22"></script>`), file);
   });

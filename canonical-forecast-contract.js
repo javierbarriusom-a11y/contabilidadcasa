@@ -12,6 +12,8 @@
  * - FX-04 · la precisión depende de lo lejos que esté la fecha: a la decena hasta 30 días, a la centena hasta un año, al millar
  *   después. Nunca céntimos en una previsión.
  * - FX-30 · el lenguaje de la incertidumbre, en palabras de hogar (TERMS).
+ * - DEC-30 (21/11/2026) · la semana que viene en una frase (weekAhead): lo que sale y lo que entra en los próximos 7 días y el día
+ *   más justo, de las mismas filas del motor diario. Lectura, no previsión nueva.
  */
 
 (function attachCanonicalForecastContract(root, factory) {
@@ -31,6 +33,7 @@
     Object.freeze({ id: "margen-suelo", label: "Margen sobre el suelo", unit: "€", engine: "diario", definition: "Saldo previsto menos el suelo de liquidez." }),
     Object.freeze({ id: "disponible-hasta-cobrar", label: "Disponible hasta cobrar", unit: "€", engine: "diario", definition: "El menor margen sobre el suelo entre hoy y el próximo cobro." }),
     Object.freeze({ id: "punto-mas-bajo", label: "Punto más bajo", unit: "€ y fecha", engine: "diario", definition: "El menor saldo previsto desde hoy hasta el final del horizonte, con su fecha (con día hasta 90 días; después, el mes)." }),
+    Object.freeze({ id: "semana-que-viene", label: "Los próximos 7 días", unit: "€ y día", engine: "diario", definition: "Lo que sale y lo que entra en la liquidez de hoy a dentro de 6 días (los traspasos entre cuentas propias no cuentan), y el día de saldo previsto más bajo de esos 7." }),
     Object.freeze({ id: "colchon-meses", label: "Colchón", unit: "meses", engine: "diario y mensual", definition: "Liquidez prevista dividida entre el gasto corriente medio de un mes (el de los 12 primeros meses del plan), con una décima." }),
   ]);
 
@@ -170,6 +173,42 @@
     };
   }
 
+  /** DEC-30: los días de la semana que viene. */
+  const WEEK_DAYS = 7;
+
+  function addDays(iso, days) {
+    const date = new Date(Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)) + days));
+    return date.toISOString().slice(0, 10);
+  }
+
+  /**
+   * DEC-30 · la semana que viene, de las filas del motor diario (`income` y `outflows` de cada día; los traspasos entre cuentas
+   * propias, aparte, no salen ni entran). Desde hoy, incluido, hasta dentro de 6 días, como «Lo que viene» de la Previsión. Las
+   * cifras, redondeadas como cualquier cifra a menos de 30 días (FX-04, a la decena) y con `approximate` si el redondeo quitó algo.
+   * `low` es el día de saldo previsto más bajo de los 7 (con empate, el primero). Sin las 7 filas, null: no se dice media semana.
+   * @param {Array<{date: string, total: any, income?: number, outflows?: number}>} rows
+   * @param {{today?: string}} [options]
+   */
+  function weekAhead(rows, { today } = {}) {
+    if (!isIsoDate(today)) return null;
+    const to = addDays(today, WEEK_DAYS - 1);
+    const days = (Array.isArray(rows) ? rows : []).filter((row) => row && isIsoDate(row.date) && row.date >= today && row.date <= to);
+    if (days.length !== WEEK_DAYS || days.some((row) => row.total === null || row.total === "" || !Number.isFinite(Number(row.total)))) return null;
+    const sum = (field) => days.reduce((total, row) => total + Math.max(0, number(row[field])), 0);
+    const outflows = sum("outflows");
+    const income = sum("income");
+    const low = lowPoint(days, {});
+    return {
+      from: today,
+      to,
+      outflows: roundForHorizon(outflows, 0),
+      outflowsApproximate: isApproximate(outflows, 0),
+      income: roundForHorizon(income, 0),
+      incomeApproximate: isApproximate(income, 0),
+      low: { date: low.date, daysAhead: daysBetween(today, low.date) },
+    };
+  }
+
   /**
    * FX-51: lo que mueve cada supuesto general de la previsión. Cada uno se mueve en su sentido desfavorable (un punto más de
    * inflación, un punto menos de subida de ingresos, un 5 % más de gasto, un 5 % menos de ingresos), se recalcula el plan con el
@@ -230,5 +269,7 @@
     lowPoint,
     monthLows,
     describeLow,
+    WEEK_DAYS,
+    weekAhead,
   });
 });
