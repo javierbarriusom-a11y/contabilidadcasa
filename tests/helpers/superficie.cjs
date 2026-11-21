@@ -65,7 +65,8 @@ async function contarEstable(page) {
 async function pestanas(page) {
   return page.evaluate(() => {
     const visible = (e) => e.checkVisibility({ checkVisibilityCSS: true }) && e.getClientRects().length > 0;
-    const navs = [...document.querySelectorAll("nav.e19-registrar-tabs")].filter(visible);
+    // D-N28: la segunda fila de Deuda › Ofertas (Comparar, Préstamo, Simulador visual) también son pestañas-enlace.
+    const navs = [...document.querySelectorAll("nav.e19-registrar-tabs, nav.deuda-ofertas-tabs")].filter(visible);
     return {
       enlaces: navs.flatMap((n) => [...n.querySelectorAll("a[href^='#']")]).filter(visible).map((a) => a.getAttribute("href")),
       botones: navs.flatMap((n) => [...n.querySelectorAll("button")]).filter(visible).map((b) => b.dataset.registrarTab || b.dataset.planTab || b.dataset.e17Target || b.textContent.replace(/\s+/g, " ").trim()),

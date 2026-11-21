@@ -144,7 +144,13 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - pestañas de Deuda y NAV-4, rehechas;
   - e2e nuevas: «pregunta antes de empezar por la más pequeña» y «D-N28 · Deuda en tres pestañas», las dos a 390 px (`@safari`) y a 1280; las de SVD-3/SVD-4 y Préstamo, al día.
   - Versiones a `20261121dn23` (motores de escenarios, adaptador, decisiones, `escenarios-ui.js`, el puente, `app.js` y `views/debt-control.js`), `20261121dn27` (el motor del plan óptimo) y `20261121dn28` (`views/deuda.js`, `camino-deuda-ui.js`, `camino-deuda.css` y `novedades.js`).
-- **Validación:** VALIDACION_PENDIENTE
+- **Validación:** **`npm run verify` en verde, por partes** (las 6.862 unitarias, lint, typecheck, accesibilidad, rendimiento, build, privacidad y smoke; +8). `npm run test:mobile-overflow` sobre un `dist` recién construido: **371 visitas** sin nada cortado. Además, a mano a 195 px: el plan óptimo con la pregunta y el margen abiertos, y las tres pantallas de Ofertas, sin nada fuera.
+  - **Batería en navegador** (e2e, a11y y perf-screens en Chromium): **496 pasan y 5 fallan, todas de este cambio**:
+    - el inventario de titulares (XGO-01) ya no llegaba a Préstamo ni al simulador, porque su recorrido solo seguía la primera fila de pestañas. Ahora sigue también la de Ofertas. El manifiesto solo cambia de orden, más un plegable nuevo en Plan (el del margen; los plegables no tienen techo);
+    - la e2e de D-N28 esperaba `aria-current="true"` en Comparar, que es la propia dirección de Ofertas (`"page"`);
+    - las dos de D-N27 usaban el tipo «coche», y tras recargar el plegable del margen vuelve cerrado.
+  - **Repetidas aparte** sobre una construcción nueva: lo de Deuda, Escenarios, SVD, WP-19 y XGO-01, en e2e y a11y: **67/67** y luego **4/4**.
+  - **Lo que esa pasada mezcló:** también lancé el proyecto `safari`. Sus 88 pruebas no arrancan aquí (no hay WebKit en el contenedor), y la lectura en Safari es la del CI.
 - **Sin tocar, de otra conversación:** #658 (el foco de DEC-22 sin opener, Plan › Mes y el índice de Ajustes a 195 px, la fila «Ahorro») sigue abierto en borrador, sin la main de #660 incorporada. No es mío y no lo toco: si al fusionar este se quiere integrar, que lo diga el hogar.
 
 ## Cierre de sesión — 21 de noviembre de 2026 (518): Hoy por áreas; plan óptimo de saldo en Deuda › Ruta; undécima auditoría

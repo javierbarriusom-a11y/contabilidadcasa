@@ -12355,13 +12355,15 @@ test.describe("D-N28 · Deuda en tres pestañas", () => {
       // Ofertas abre Comparar, con su fila.
       await page.locator("#deudaRutaScreenTabs a", { hasText: "Ofertas" }).click();
       await expect(page).toHaveURL(/#deuda-comparar$/);
-      await expect(page.locator("#deudaCompararScreenTabs a[aria-current=true]")).toHaveText("3Ofertas");
+      // En Comparar, «Ofertas» es su propia dirección: aria-current="page"; en Préstamo y el simulador, «true».
+      await expect(page.locator("#deudaCompararScreenTabs a[aria-current=page]")).toHaveText("3Ofertas");
       const fila = page.locator("#deudaCompararOfertasTabs a");
       await expect(fila).toHaveText(["Comparar", "Préstamo", "Simulador visual"]);
       await expect(page.locator("#deudaCompararOfertasTabs a[aria-current=page]")).toHaveText("Comparar");
       await page.locator("#deudaCompararOfertasTabs a", { hasText: "Préstamo" }).click();
       await expect(page).toHaveURL(/#deuda-prestamo$/);
       await expect(page.locator("#deudaPrestamoOfertasTabs a[aria-current=page]")).toHaveText("Préstamo");
+      await expect(page.locator("#deudaPrestamoScreenTabs a[aria-current=true]")).toHaveText("3Ofertas");
       await expect(page.locator("#deudaPrestamoFlowNav")).toContainText("← Ofertas: Comparar");
       await expect(page.locator("#deudaPrestamoFlowNav")).toContainText("Ofertas: Simulador visual →");
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -12430,6 +12432,8 @@ test.describe("Deuda › Ruta · plan óptimo de saldo", () => {
       await page.locator('input[name="planOptimoOrden"][value="avalancha"]').check();
       await expect(plan).toContainText("Orden elegido: avalancha");
       await expect(page.locator("#planOptimoNota")).toContainText("Orden guardado: primero la más cara");
+      // Tras recargar, el plegable del margen vuelve cerrado (lo guardado sí sigue).
+      await page.locator("#planOptimoMargen > summary").click();
       await page.fill("#planOptimoMargenPct", "80");
       await expect(page.locator("#planOptimoMargenPct")).toHaveAttribute("aria-invalid", "true");
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

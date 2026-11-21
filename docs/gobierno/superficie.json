@@ -54,14 +54,14 @@
     "#escenario-simular › segunda-opinion": 1,
     "#ajustes": 58,
     "#faqs-ayuda": 3,
-    "#deuda-comparar": 8,
-    "#deuda-prestamo": 4,
     "#deuda-contratos": 12,
-    "#deuda-simulador": 1,
+    "#deuda-comparar": 8,
     "#inversion-rebalanceo": 6,
     "#inversion-fiscal": 9,
     "#inversion-jubilacion": 5,
-    "#inversion-apalancamiento": 29
+    "#inversion-apalancamiento": 29,
+    "#deuda-prestamo": 4,
+    "#deuda-simulador": 1
   },
   "plegados": {
     "#home": 3,
@@ -79,7 +79,7 @@
     "#plan › estado-semana": 4,
     "#plan › planificacion-partidas": 8,
     "#cierre": 5,
-    "#deuda-ruta": 7,
+    "#deuda-ruta": 8,
     "#inversion-cartera": 6,
     "#escenario-simular": 4,
     "#escenario-simular › Simular": 4,
@@ -88,13 +88,13 @@
     "#escenario-simular › segunda-opinion": 4,
     "#ajustes": 6,
     "#faqs-ayuda": 14,
-    "#deuda-comparar": 5,
-    "#deuda-prestamo": 4,
     "#deuda-contratos": 10,
-    "#deuda-simulador": 4,
+    "#deuda-comparar": 5,
     "#inversion-rebalanceo": 4,
     "#inversion-fiscal": 4,
     "#inversion-jubilacion": 4,
-    "#inversion-apalancamiento": 4
+    "#inversion-apalancamiento": 4,
+    "#deuda-prestamo": 4,
+    "#deuda-simulador": 4
   }
 }
