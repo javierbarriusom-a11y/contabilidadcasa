@@ -21,6 +21,12 @@
       "mas": 4,
       "que": "Deuda › Préstamo para saldar, pestaña nueva: titular, «Condiciones del préstamo», «Cuota mensual» y «Qué cancela» (sin datos del hogar; con deudas que cancelar se ven también la política, los caminos, el gráfico y el calendario)",
       "porque": "Petición expresa del hogar del 14/11/2026: «haz una sección específica ligada con las de deuda, para verlo con mi mujer, que permita cambiar los parámetros». Es una pantalla para decidir un préstamo concreto; no sustituye a Comparar (su oferta de reunificación junta todas las deudas, esta cancela solo las más caras con un capital dado)."
+    },
+    {
+      "fecha": "2026-11-21",
+      "mas": 1,
+      "que": "Deuda › Ruta › «Plan óptimo de saldo», encima de «Camino a deuda cero»",
+      "porque": "Petición del hogar del 21/11/2026: «quiero seguir con un plan optimizado de saldo de deuda». Responde a qué poner al mes, en qué orden saldar, cuándo acabáis y cuánto os ahorráis, con las cuotas liberadas redirigidas; el camino sigue debajo para explorar un extra a mano. Si el medidor dice que el camino ya no se usa, se funde en el plan (propuesta UND-15 de la undécima auditoría) y la excepción se retira."
     }
   ],
   "rutas": {
@@ -39,7 +45,7 @@
     "#plan › estado-semana": 5,
     "#plan › planificacion-partidas": 9,
     "#cierre": 8,
-    "#deuda-ruta": 7,
+    "#deuda-ruta": 8,
     "#inversion-cartera": 11,
     "#escenario-simular": 4,
     "#escenario-simular › Simular": 4,

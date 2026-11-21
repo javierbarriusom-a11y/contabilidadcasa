@@ -11486,7 +11486,7 @@ test.describe("SVD-2b · «Esperar» paga la cuota de hoy y el simulador cuadra 
 
     // Lo que dice Deuda › Ruta («Camino a deuda cero», sin extra).
     await page.evaluate(() => { location.hash = "deuda-ruta"; });
-    const finRuta = (await page.locator(".cam-hero-value").first().textContent()).trim();
+    const finRuta = (await page.locator("#caminoDeudaResultado .cam-hero-value").first().textContent()).trim(); // la del camino: desde el 21/11, el plan óptimo va encima
     expect(finRuta).toMatch(/de 20\d\d$/);
 
     await page.evaluate(() => { location.hash = "deuda-simulador"; });
