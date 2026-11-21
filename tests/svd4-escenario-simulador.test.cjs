@@ -29,7 +29,7 @@ test("SVD-4 · quita → acuerdo_quita en su mes, con vigencia hasta el último 
   const { decisions, skipped } = build([{ accountKey: key1, account: { strategy: "settlement", lump: 1500, start: 4 } }]);
   assert.deepEqual(skipped, []);
   assert.deepEqual(decisions, [{
-    tipo: "acuerdo_quita", titulo: "Quita · Banco FICTICIO", activa: true, planificacion: { modo: "manual", mesManual: "2027-02" },
+    tipo: "acuerdo_quita", titulo: "Quita · Banco FICTICIO", activa: true, planificacion: { modo: "manual", mesManual: "2027-02", cuotaMesCambio: "sustituye" },
     params: { deudaId: "debt-custom-1", importePactado: 1500, modalidad: "pago-unico", vigenciaHasta: "2027-02-28" },
   }]);
 });

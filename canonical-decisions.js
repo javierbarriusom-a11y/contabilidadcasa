@@ -176,7 +176,8 @@
       addAt(rows, index, "recurringCost", decision.recurringAmount, decision, "recurring-cost");
       addAt(rows, index, decision.source === "debt" ? "debtOutflow" : "projectOutflow", decision.recurringAmount, decision, "recurring-outflow");
     }
-    const reliefStart = Math.min(rows.length, start + decision.duration);
+    // D-N23 (21/11/2026): un acuerdo aceptado (SVD-3) sustituye a la cuota de hoy desde su mes, igual que debtReliefStartIndex en app.js.
+    const reliefStart = Math.min(rows.length, decision.svdAcuerdo === true ? start : start + decision.duration);
     const reliefDuration = reliefMonths(decision, target, reliefStart, months);
     for (let offset = 0; offset < reliefDuration; offset += 1) {
       addAt(rows, reliefStart + offset, "debtRelief", decision.monthlyRelief, decision, "debt-relief");

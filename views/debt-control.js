@@ -544,7 +544,7 @@ function renderDebtControl() {
             : forecastMonths().find((candidate) => candidate.key === item.monthKey) || forecastMonths()[item.monthIndex || 0];
           const resolvedItem = placement || resolvedDebtDecisionForStart(item, item.monthIndex || 0);
           const relief = effectiveDebtDecisionMonthlyRelief(item);
-          const reliefMonths = debtReliefMonthsForItem(item, (placement?.startIndex ?? item.monthIndex ?? 0) + Math.max(1, Number(item.duration || 1)));
+          const reliefMonths = debtReliefMonthsForItem(item, debtReliefStartIndex(item, placement?.startIndex ?? item.monthIndex ?? 0));
           const detail = isDebtResumeMode(item.payoffMode || item.mode)
             ? `${debtModeLabel(item.payoffMode || item.mode)} · atrasos ${money(resolvedItem.amount || 0, true)} (${resolvedItem.resumeArrearsMonths || 0} ${(resolvedItem.resumeArrearsMonths || 0) === 1 ? "mes" : "meses"}) · retoma ${money(resolvedItem.recurringAmount || 0, true)}/mes durante ${resolvedItem.recurringDuration || 0} ${(resolvedItem.recurringDuration || 0) === 1 ? "mes" : "meses"} · desde ${escapeHtml(placement?.monthLabel || month?.label || "")}.`
             : `${debtModeLabel(item.payoffMode || item.mode)} · pactado ${money(item.amount, true)} vs deuda ${money(item.originalPrincipal || item.targetPrincipal || item.amount, true)} · mejora ${money(item.discount || 0, true)} · desde ${escapeHtml(placement?.monthLabel || month?.label || "")}, ${item.duration} ${item.duration === 1 ? "mes" : "meses"}. Pago mensual: ${money(monthly, true)}. Cuota eliminada posterior: ${money(relief, true)} durante ${reliefMonths} ${reliefMonths === 1 ? "mes" : "meses"}.`;

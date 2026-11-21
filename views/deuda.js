@@ -1124,11 +1124,18 @@ function handleDeudaRutaApply() {
 // propio hash, solo se enlazan visualmente como pestañas.
 // I1 (Contabilidadcasa 2.0): «Apalancamiento» (5ª pestaña, OPT-24) sale de aquí hacia el hub
 // Inversión (`INVERSION_SCREEN_TABS`, views/inversion.js) — vuelve a las 4 pestañas de siempre.
+// D-N28 (21/11/2026, decisión del hogar: «Sí» a UND-15): tres pestañas, Plan · Contratos · Ofertas. Plan es la de siempre de Ruta (el
+// plan óptimo arriba, el camino y el calendario); Ofertas agrupa Comparar, Préstamo y el simulador visual, que responden a «¿y si
+// aceptamos esta oferta?», en una segunda fila. Las cinco pantallas siguen siendo `view-section` propias con su hash de siempre: los
+// enlaces viejos (#deuda-ruta, #deuda-comparar…) llevan a su sitio y no se retira nada.
 const DEUDA_SCREEN_TABS = [
-  { id: "deuda-ruta", label: "Ruta" },
+  { id: "deuda-ruta", label: "Plan" },
+  { id: "deuda-contratos", label: "Contratos" },
+  { id: "deuda-comparar", label: "Ofertas", screens: ["deuda-comparar", "deuda-prestamo", "deuda-simulador"] },
+];
+const DEUDA_OFERTAS_TABS = [
   { id: "deuda-comparar", label: "Comparar" },
   { id: "deuda-prestamo", label: "Préstamo" },
-  { id: "deuda-contratos", label: "Contratos" },
   { id: "deuda-simulador", label: "Simulador visual" },
 ];
 const DEUDA_SCREEN_TAB_NAV_IDS = {
@@ -1138,33 +1145,47 @@ const DEUDA_SCREEN_TAB_NAV_IDS = {
   "deuda-contratos": "deudaContratosScreenTabs",
   "deuda-simulador": "deudaSimuladorScreenTabs",
 };
+const DEUDA_OFERTAS_NAV_IDS = {
+  "deuda-comparar": "deudaCompararOfertasTabs",
+  "deuda-prestamo": "deudaPrestamoOfertasTabs",
+  "deuda-simulador": "deudaSimuladorOfertasTabs",
+};
 
-// D10 (Contabilidadcasa 2.0): las 4 pestañas pasan de "sueltas" a un flujo con navegación de
-// progreso — cada pestaña lleva ahora un número de paso, y las anteriores a la activa se marcan
-// "is-done" (mismo lenguaje visual que ya usa el asistente de importación en 4 pasos,
-// .datos-importar-steps). "Progreso" es solo la posición en esta secuencia fija: Ruta, Comparar y
-// Contratos leen todas la misma puerta (debtContractBundle(), ver nota de D-2 más abajo) sin
-// depender de un orden real, así que "completado" nunca valida que el paso anterior tenga datos
-// reales declarados — solo que ya se visitó en este recorrido de pestañas.
+// La pestaña de arriba a la que pertenece una pantalla (Ofertas para Comparar, Préstamo y el simulador).
+function deudaScreenTabOf(screenId) {
+  return DEUDA_SCREEN_TABS.find((tab) => tab.id === screenId || (tab.screens || []).includes(screenId)) || null;
+}
+
+// D10 (Contabilidadcasa 2.0): las pestañas llevan número de paso y las anteriores a la activa se marcan "is-done" (mismo lenguaje
+// visual que el asistente de importación). "Progreso" es solo la posición en esta secuencia: todas leen la misma puerta
+// (debtContractBundle(), ver D-2 más abajo), así que "completado" no valida datos, solo el recorrido.
 function deudaScreenTabsHtml(activeId) {
-  // OPT-4 (axe: aria-allowed-attr, crítico): cada pestaña es un enlace real a otra ruta con su
-  // propio hash (Ruta/Comparar/Contratos/Simulador son cuatro view-section independientes, no un
-  // único panel que cambia de contenido), así que `aria-selected` no es válido aquí — ese atributo
-  // solo lo admiten elementos con role="tab"/"option"/etc. `aria-current="page"` es el marcador
-  // correcto para "enlace activo dentro de esta navegación", mismo patrón que ya usa setActiveView
-  // para el menú lateral.
-  const activeIndex = DEUDA_SCREEN_TABS.findIndex((tab) => tab.id === activeId);
+  // OPT-4 (axe: aria-allowed-attr, crítico): cada pestaña es un enlace real a otra ruta con su propio hash (son view-section
+  // independientes, no un único panel), así que `aria-selected` no vale; `aria-current="page"` marca el enlace activo, como el menú.
+  const activeTab = deudaScreenTabOf(activeId);
+  const activeIndex = activeTab ? DEUDA_SCREEN_TABS.indexOf(activeTab) : -1;
   return DEUDA_SCREEN_TABS.map((tab, index) => {
-    const isActive = tab.id === activeId;
+    const isActive = tab === activeTab;
     const isDone = activeIndex >= 0 && index < activeIndex;
     const stateClass = isActive ? " is-active" : isDone ? " is-done" : "";
-    return `<a class="e19-registrar-tab${stateClass}" href="#${tab.id}"${isActive ? ' aria-current="page"' : ""}><span class="e19-registrar-tab-step" aria-hidden="true">${index + 1}</span>${escapeHtml(tab.label)}</a>`;
+    const current = isActive ? (tab.id === activeId ? ' aria-current="page"' : ' aria-current="true"') : "";
+    return `<a class="e19-registrar-tab${stateClass}" href="#${tab.id}"${current}><span class="e19-registrar-tab-step" aria-hidden="true">${index + 1}</span>${escapeHtml(tab.label)}</a>`;
+  }).join("");
+}
+
+// D-N28: la segunda fila de Ofertas (sin número: no es un recorrido en orden, como las áreas de Hoy).
+function deudaOfertasTabsHtml(activeId) {
+  return DEUDA_OFERTAS_TABS.map((tab) => {
+    const isActive = tab.id === activeId;
+    return `<a class="deuda-ofertas-tab${isActive ? " is-active" : ""}" href="#${tab.id}"${isActive ? ' aria-current="page"' : ""}>${escapeHtml(tab.label)}</a>`;
   }).join("");
 }
 
 function renderDeudaScreenTabs(activeId) {
   const nav = qs(DEUDA_SCREEN_TAB_NAV_IDS[activeId]);
   if (nav) nav.innerHTML = deudaScreenTabsHtml(activeId);
+  const ofertas = qs(DEUDA_OFERTAS_NAV_IDS[activeId]);
+  if (ofertas) ofertas.innerHTML = deudaOfertasTabsHtml(activeId);
 }
 
 const DEUDA_FLOW_NAV_IDS = {
@@ -1175,16 +1196,20 @@ const DEUDA_FLOW_NAV_IDS = {
   "deuda-simulador": "deudaSimuladorFlowNav",
 };
 
-// D10: además de la barra de pestañas de arriba, un par de enlaces "Anterior/Siguiente" al pie de
-// cada pestaña — mismo lenguaje de botones que ya usa el asistente de importación ("Atrás"/
-// "Continuar") y el modo reunión ("← Anterior"/"Siguiente →"), aquí como enlaces reales al hash
-// de la pestaña vecina en vez de un manejador JS propio, porque son 4 páginas reales, no un único
-// panel. Sin botón "Anterior" en la primera pestaña ni "Siguiente" en la última.
+// D10: un par de enlaces "Anterior/Siguiente" al pie de cada pantalla, como enlaces reales al hash de la vecina. D-N28: el recorrido
+// es Plan → Contratos → Comparar → Préstamo → Simulador visual (las tres últimas, dentro de Ofertas). Sin "Anterior" en la primera
+// ni "Siguiente" en la última.
+const DEUDA_FLOW = [
+  { id: "deuda-ruta", label: "Plan" },
+  { id: "deuda-contratos", label: "Contratos" },
+  ...DEUDA_OFERTAS_TABS.map((tab) => ({ id: tab.id, label: `Ofertas: ${tab.label}` })),
+];
+
 function deudaFlowNavHtml(activeId) {
-  const index = DEUDA_SCREEN_TABS.findIndex((tab) => tab.id === activeId);
+  const index = DEUDA_FLOW.findIndex((tab) => tab.id === activeId);
   if (index < 0) return "";
-  const prev = index > 0 ? DEUDA_SCREEN_TABS[index - 1] : null;
-  const next = index < DEUDA_SCREEN_TABS.length - 1 ? DEUDA_SCREEN_TABS[index + 1] : null;
+  const prev = index > 0 ? DEUDA_FLOW[index - 1] : null;
+  const next = index < DEUDA_FLOW.length - 1 ? DEUDA_FLOW[index + 1] : null;
   const prevHtml = prev ? `<a class="e19-btn e19-btn-secondary" href="#${prev.id}">← ${escapeHtml(prev.label)}</a>` : "<span></span>";
   const nextHtml = next ? `<a class="e19-btn e19-btn-primary" href="#${next.id}">${escapeHtml(next.label)} →</a>` : "<span></span>";
   return `${prevHtml}${nextHtml}`;
