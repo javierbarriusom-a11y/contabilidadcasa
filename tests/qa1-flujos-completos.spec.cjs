@@ -6759,7 +6759,7 @@ test.describe("FX-50 · Hasta 2036, año a año", () => {
 
 test.describe("FX-42 · la previsión en el Listo del Repaso", () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
-    test(`tres líneas como mucho, sin foto nueva, con aviso y el camino a la Previsión, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+    test(`tres líneas como mucho (con la semana que viene, DEC-30), sin foto nueva, con aviso y el camino a la Previsión, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
       test.setTimeout(60000);
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
@@ -6781,18 +6781,24 @@ test.describe("FX-42 · la previsión en el Listo del Repaso", () => {
       await expect(tarjeta).toBeVisible();
       await expect(tarjeta.locator(".rep-v2-prevision-titulo")).toHaveText("La previsión");
       const lineas = tarjeta.locator("li");
+      // DEC-30 (21/11/2026): primero, la semana que viene en una frase.
+      await expect(lineas.first()).toHaveText(/^En los próximos 7 días [^;]+(?:; (?:hoy|mañana|el \S+) es el día más justo)?\.$/);
+      const bajo = lineas.nth(1);
       // A 29 días, el contrato de cifras redondea a la decena (FX-04), como el titular de la Previsión ese día.
-      await expect(lineas.first()).toHaveText(/^Lo más bajo en 30 días: unos 6\.900\s€ el 9 dic, 5\.400\s€ por encima del suelo inicial\.$/);
+      await expect(bajo).toHaveText(/^Lo más bajo en 30 días: unos 6\.900\s€ el 9 dic, 5\.400\s€ por encima del suelo inicial\.$/);
       const titular = await page.evaluate(() => { const c = FinanceCanonicalForecastContract; const hoy = isoLocalDate(new Date()); return money(c.describeLow(c.lowPoint(canonicalDailyEngineRuns.active.rows.filter((r) => r.date >= hoy && r.date <= "2026-12-09"), {}), { today: hoy }).value); });
-      await expect(lineas.first()).toContainText(titular);
-      await expect(lineas.nth(1)).toHaveText(/frente a tu visita del 6 nov|^Igual que en tu visita del 6 nov\.$/);
-      await expect(lineas).toHaveCount(2);
+      await expect(bajo).toContainText(titular);
+      await expect(lineas.nth(2)).toHaveText(/frente a tu visita del 6 nov|^Igual que en tu visita del 6 nov\.$/);
+      await expect(lineas).toHaveCount(3);
       await expect(tarjeta).not.toHaveClass(/is-bad/);
       expect(await fotos(), "el repaso no deja foto de la previsión").toEqual(antes);
       // Con un suelo de 8.000 € (INVENTADO), el aviso del día en que se baja.
+      // Con aviso, el qué ha cambiado se queda en la Previsión (DEC-30): siguen siendo tres líneas.
       await page.evaluate(() => { state.liquidityFloor = 8000; repasoV2Render(); });
       await expect(lineas).toHaveCount(3);
-      await expect(lineas.first()).toContainText("por debajo del suelo.");
+      await expect(lineas.first()).toHaveText(/^En los próximos 7 días /);
+      await expect(bajo).toContainText("por debajo del suelo.");
+      await expect(tarjeta).not.toContainText("frente a tu visita");
       await expect(lineas.nth(2)).toHaveText(/^Ojo: el \d+ (nov|dic) bajáis del suelo\. En la Previsión está el arreglo más barato\.$/);
       await expect(tarjeta).toHaveClass(/is-bad/);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
@@ -8960,6 +8966,63 @@ test.describe("DEC-23 · «Hecho esta semana» en Hoy", () => {
       await page.reload();
       await expect(page.locator("#hoyV2 [data-hoy-v2-repaso]")).toBeVisible({ timeout: 20000 });
       await expect(linea).toHaveCount(0);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
+// DEC-30 (décima auditoría §4.6, 21/11/2026): la semana que viene en una frase, en la Previsión (bajo el gráfico) y
+// la primera del «Listo» del repaso. Dos cifras como mucho, las del motor diario (lo que sale y lo que entra de hoy a dentro de 6 días)
+// y el día más justo. Lectura, no previsión nueva: la cifra del titular no cambia.
+test.describe("DEC-30 · la semana que viene en una frase", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`en la Previsión y en el Listo del repaso, con las cifras del motor diario, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 21, 9, 0, 0) }); // sábado
+      await page.goto("/index.html#plan");
+      await page.locator('[data-plan-tab="prevision"]').click();
+      const v2 = page.locator("#planPrevisionV2");
+      await expect(v2).toBeVisible({ timeout: 15000 });
+      const semana = v2.locator(".prev-v2-card .prev-v2-semana");
+      await expect(semana).toHaveCount(1);
+      await expect(semana).toHaveText(/^En los próximos 7 días [^;]+(?:; (?:hoy|mañana|el (?:lunes|martes|miércoles|jueves|viernes|sábado|domingo)) es el día más justo)?\.$/);
+      // Fuera del titular y debajo del gráfico (y, en el móvil, del panel del día): la cifra y el gráfico siguen en la primera pantalla.
+      await expect(v2.locator(".prev-v2-hero .prev-v2-semana")).toHaveCount(0);
+      const cajaSemana = await semana.boundingBox();
+      const cajaGrafico = await v2.locator('[data-ck-id="prevision-v2"]').boundingBox();
+      expect(cajaSemana.y, "debajo del gráfico").toBeGreaterThan(cajaGrafico.y + cajaGrafico.height - 1);
+      // Las cifras son las del motor diario, de hoy a dentro de 6 días.
+      const esperado = await page.evaluate(() => {
+        const w = FinanceCanonicalForecastContract.weekAhead(canonicalDailyEngineRuns.active.rows, { today: isoLocalDate(new Date()) });
+        return { ...w, salen: money(w.outflows), entran: money(w.income) };
+      });
+      expect(esperado.from).toBe("2026-11-21");
+      expect(esperado.to).toBe("2026-11-27");
+      // El día más justo, solo si no es el último de los 7 (si lo es, lo pone el corte de la semana).
+      if (esperado.low.date === esperado.to) await expect(semana).not.toContainText("día más justo");
+      else await expect(semana).toContainText("es el día más justo.");
+      const texto = (await semana.textContent()).replace(/\s/g, " ");
+      if (esperado.outflows > 0) expect(texto).toContain(`salen ${esperado.outflowsApproximate ? "unos " : ""}${esperado.salen.replace(/\s/g, " ")}`);
+      else expect(texto).toContain("no sale nada");
+      if (esperado.income > 0) expect(texto).toContain(`entran ${esperado.incomeApproximate ? "unos " : ""}${esperado.entran.replace(/\s/g, " ")}`);
+      else expect(texto).toContain("no entra nada");
+      expect((texto.match(/\d[\d.]*(?:,\d+)? €/g) || []).length, "dos cifras como mucho").toBeLessThanOrEqual(2);
+      // Es lectura: cambiar de horizonte no la cambia.
+      const antes = await semana.textContent();
+      await v2.locator('[data-prevision-v2-horizonte="12m"]').click();
+      await expect(v2.locator('[data-prevision-v2-horizonte="12m"]')).toHaveAttribute("aria-pressed", "true");
+      await expect(semana).toHaveText(antes);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      // La misma frase, la primera del «Listo» del repaso.
+      await page.goto("/index.html#home");
+      await expect(page.locator("#home")).toBeVisible({ timeout: 15000 });
+      await page.evaluate(() => { repasoV2Open(); repasoV2.paso = 3; repasoV2Avanzar(); });
+      const lineas = page.locator("#repasoV2 .rep-v2-prevision li");
+      await expect(lineas.first()).toHaveText(texto.trim());
+      expect(await lineas.count()).toBeLessThanOrEqual(3);
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }

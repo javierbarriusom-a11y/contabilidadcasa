@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**21/11/2026 · DEC-30, la semana que viene en una frase:** en la Previsión y en el «Listo» del repaso, lo que sale y lo que entra en los próximos 7 días y el día más justo, del motor diario. Lectura, no previsión nueva (PROJECT_STATE 514).
+
 **20/11/2026 · DEC-23, «Hecho esta semana» (activo desde el 30/11):** con el repaso de la semana hecho, Hoy lo dice en el sitio de su entrada, con los grupos clasificados y el % del gasto con partida. Es el cambio de Hoy de la semana del 30/11 (PROJECT_STATE 513).
 
 **20/11/2026 · DEC-22: el aviso del domingo del calendario abre la app en el repaso semanal.** Hay que descargar otra vez los recordatorios en Ajustes para tenerlo (PROJECT_STATE 511).

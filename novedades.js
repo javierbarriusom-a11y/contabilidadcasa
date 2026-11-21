@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-21-semana-que-viene",
+      fecha: "2026-11-21",
+      texto: "Previsión y el final del repaso: una frase con lo que sale y lo que entra en los próximos 7 días y el día más justo.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-20-repaso-desde-calendario",
       fecha: "2026-11-20",
       texto: "El aviso del domingo en el calendario abre la app en el repaso semanal. Descargad otra vez los recordatorios en Ajustes para tenerlo.",

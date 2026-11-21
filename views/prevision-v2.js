@@ -1226,10 +1226,38 @@ function previsionV2CambioHtml(cambios, { today, horizonte }) {
     </div>`)}`;
 }
 
+// ---- DEC-30 · La semana que viene en una frase (21/11/2026) ----------------------------------------------------------------
+// Décima auditoría §4.6: el horizonte que se gestiona es la semana. Una frase determinista con dos cifras como mucho (lo que sale y
+// lo que entra) y el día más justo, de las filas del motor diario (canonical-forecast-contract.js weekAhead): en la Previsión, bajo
+// el gráfico y el panel del día, y en el «Listo» del repaso. Lectura, no previsión nueva: ni cifra ni motor nuevos.
+
+const PREVISION_V2_DIAS_SEMANA = Object.freeze(["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"]);
+
+/**
+ * «En los próximos 7 días salen unos 640 € y no entra nada; el jueves es el día más justo.» Sin las 7 filas, "". El día más justo
+ * solo se dice si no es el último de los 7: si lo es, el saldo baja hasta el final de la semana y el día lo pone el corte, no la
+ * semana (con el gasto del día a día repartido, sería casi siempre el último).
+ */
+function previsionV2SemanaFrase(rows, today) {
+  const semana = globalThis.FinanceCanonicalForecastContract?.weekAhead?.(rows, { today });
+  if (!semana) return "";
+  const unos = (aprox) => (aprox ? "unos " : "");
+  const sale = semana.outflows > 0 ? `salen ${unos(semana.outflowsApproximate)}${money(semana.outflows)}` : "";
+  const entra = semana.income > 0 ? `entran ${unos(semana.incomeApproximate)}${money(semana.income)}` : "";
+  if (!sale && !entra) return "En los próximos 7 días no hay previsto ningún cobro ni pago.";
+  const base = `En los próximos 7 días ${sale || "no sale nada"} y ${entra || "no entra nada"}`;
+  if (semana.low.date === semana.to) return `${base}.`;
+  const dias = semana.low.daysAhead;
+  const dia = dias === 0 ? "hoy" : dias === 1 ? "mañana" : `el ${PREVISION_V2_DIAS_SEMANA[new Date(`${semana.low.date}T00:00:00Z`).getUTCDay()]}`;
+  return `${base}; ${dia} es el día más justo.`;
+}
+
 // ---- FX-42 · La previsión en el «Listo» del Repaso semanal (9/11/2026) ----------------------------------------------------
 // No es un paso nuevo (el Repaso se retira si se abandona a medias): tres líneas como mucho en «Listo». El punto más bajo de los
 // próximos 30 días con su margen, qué ha cambiado en esos 30 días desde la visita anterior a la Previsión (FX-40, sin dejar foto) y,
 // si lo hay, el aviso: el día que se baja del suelo o, si no, el descubierto de la cuenta corriente. Mismo motor, suelo y redondeo.
+// DEC-30 (21/11/2026): la semana que viene va primero, y para seguir en tres líneas, con aviso no se dice qué ha cambiado (sigue
+// en la Previsión, a un toque con «Ver la previsión»): el aviso importa más que la diferencia con la última visita.
 
 function previsionV2ResumenRepaso() {
   const contract = globalThis.FinanceCanonicalForecastContract;
@@ -1244,8 +1272,11 @@ function previsionV2ResumenRepaso() {
     const floor = globalThis.FinanceCanonicalHomeMargin?.normalizeFloor(state?.liquidityFloor) ?? 0;
     const margen = low.value - floor;
     const margenSaid = contract.roundForHorizon(Math.abs(margen), said.daysAhead);
-    const lineas = [`Lo más bajo en 30 días: ${said.approximate ? "unos " : ""}${money(said.value)} ${said.when}, ${money(margenSaid)} ${margen < 0 ? "por debajo" : "por encima"} del ${previsionV2SueloInicial() ? "suelo inicial" : "suelo"}.`];
-    const cambios = previsionV2Cambios({ rows, tramo, today, horizonte: { dias: 30 }, guardar: false });
+    const lineas = [previsionV2SemanaFrase(rows, today), `Lo más bajo en 30 días: ${said.approximate ? "unos " : ""}${money(said.value)} ${said.when}, ${money(margenSaid)} ${margen < 0 ? "por debajo" : "por encima"} del ${previsionV2SueloInicial() ? "suelo inicial" : "suelo"}.`];
+    const cruce = tramo.find((row) => Number(row.total) < floor);
+    const cuenta = cruce ? null : globalThis.FinanceCanonicalStressScenarios?.checkingShortfall(tramo, { today, to: tramo.at(-1).date, checkingFloor: previsionV2SueloCuenta() });
+    const aviso = Boolean(cruce || cuenta?.crossDate);
+    const cambios = aviso ? null : previsionV2Cambios({ rows, tramo, today, horizonte: { dias: 30 }, guardar: false });
     if (cambios?.calculable) {
       const visto = contract.roundDifference(cambios.after.value - cambios.before.value);
       const cuando = previsionV2Visita(cambios.previousDate, today);
@@ -1253,11 +1284,9 @@ function previsionV2ResumenRepaso() {
       const causa = principal ? `, sobre todo por ${principal.id === "datos" && principal.label !== "Datos nuevos" ? "el saldo de hoy (calculado)" : PREVISION_V2_CAUSA[principal.id]}` : "";
       lineas.push(visto ? `${visto < 0 ? "−" : "+"}${money(Math.abs(visto))} frente a tu visita ${cuando}${causa}.` : `Igual que en tu visita ${cuando}.`);
     }
-    const cruce = tramo.find((row) => Number(row.total) < floor);
-    const cuenta = cruce ? null : globalThis.FinanceCanonicalStressScenarios?.checkingShortfall(tramo, { today, to: tramo.at(-1).date, checkingFloor: previsionV2SueloCuenta() });
     if (cruce) lineas.push(`Ojo: el ${previsionV2Fecha(cruce.date, today)} bajáis del suelo. En la Previsión está el arreglo más barato.`);
     else if (cuenta?.crossDate) lineas.push(`Ojo: ${previsionV2CuentaFrase(cuenta, today)}.`);
-    return { lineas, aviso: Boolean(cruce || cuenta?.crossDate) };
+    return { lineas: lineas.filter(Boolean), aviso };
   } catch {
     return null;
   }
@@ -2266,12 +2295,16 @@ function previsionV2Html({ rows, today, floor, horizonte }) {
   const rango = horizonte.id === "3m" ? previsionV2Rango(rows, today) : null; // FX-10 PR-3
   previsionV2Ultimo = { tramo, puntos, today, floor, horizonte, prueba, rows, rango };
   const cambios = previsionV2Cambios({ rows, tramo, today, horizonte });
+  // DEC-30: con las filas del plan, no las de una prueba. Debajo del gráfico y del panel del día: dentro del titular empujaba el
+  // gráfico fuera de la primera pantalla (a 1440 × 900, y en el móvil).
+  const semana = previsionV2SemanaFrase(rows, today);
   return `${segmentado}
     <article class="e19-card prev-v2-card con-dia">
       ${previsionV2HeroHtml({ tramo, horizonte, floor, today, confianza: previsionV2Confianza(tramo, today), cambios })}
       ${previsionV2GraficoHtml({ puntos, floor, today, horizonte, prueba, hitos: hitos.hitos, rango })}
       <div class="prev-v2-dia-hueco">${previsionV2DiaHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo))}</div>
       <div class="prev-v2-atajos-hueco">${previsionV2AtajosHtml(previsionV2Ultimo, previsionV2DiaElegido(previsionV2Ultimo))}</div>
+      ${semana ? `<p class="prev-v2-semana">${escapeHtml(semana)}</p>` : ""}
       <div class="prev-v2-comparar-bloque">${previsionV2VistaHtml()}${previsionV2CompararHtml(prueba, today)}</div>
     </article>
     ${previsionV2GastoVariableHtml(today)}
