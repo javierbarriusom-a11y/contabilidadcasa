@@ -320,6 +320,25 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// DEC-45 (21/11/2026): «¿te sirve?» en Novedades, con una respuesta marcada, en claro y en oscuro (la barra lateral es oscura en los dos).
+for (const scheme of ["light", "dark"]) {
+  test.describe(`DEC-45 · contraste de «¿te sirve?» en Novedades en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 1440, height: 900 } });
+    test("#versionStamp: sin fallos de contraste ni de accesibilidad con los botones y uno pulsado", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 10, 21, 10, 0, 0) });
+      await page.goto("/index.html#home");
+      await page.locator("#versionStamp > summary").click();
+      const si = page.locator('#novedadesList li[data-novedad="2026-11-21-te-sirve"] [data-novedad-sirve="si"]');
+      await si.click();
+      await expect(si).toHaveAttribute("aria-pressed", "true");
+      await page.mouse.move(0, 0); // sin el borde del ratón encima
+      const results = await new AxeBuilder({ page }).include("#versionStamp").analyze();
+      const nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // XDA-02 · PR-2: el buzón de extractos (lo que espera y los datos del Atajo) en Importar, en claro y en oscuro. Sin red: el
 // estado del buzón se pone a mano con una sesión falsa.
 for (const scheme of ["light", "dark"]) {

@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-21-te-sirve",
+      fecha: "2026-11-21",
+      texto: "Novedades: las de las dos últimas semanas preguntan «¿Te sirve?». Lo que respondáis sale en Ajustes › Uso de la app.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-11-21-semana-que-viene",
       fecha: "2026-11-21",
       texto: "Previsión y el final del repaso: una frase con lo que sale y lo que entra en los próximos 7 días y el día más justo.",

@@ -49,7 +49,7 @@ test("los dos diálogos afectados siguen con «Cancelar» delante y ux-shell.js 
   assert.match(ux, /api\.mountDialogEnter\(document\);/);
   // Esc deja «cancel»: WebKit conservaba el «confirm» del cierre anterior (la e2e lo comprueba en Safari).
   assert.match(ux, /doc\.addEventListener\(\s*"cancel",[\s\S]{0,260}dialog\.returnValue = "cancel"/);
-  assert.ok(html.includes('src="ux-shell.js?v=20261123fx41a"')); // FX-41 cambió ux-shell.js (novedades con fecha futura): sello nuevo
+  assert.ok(html.includes('src="ux-shell.js?v=20261121dec45"')); // FX-41 cambió ux-shell.js (novedades con fecha futura): sello nuevo; DEC-45, «¿te sirve?»
 });
 
 // Misma revisión (heurísticos 1 y 2): Registrar › «Frescura de tus datos» decía «Todo al día» sin ningún dato, con las

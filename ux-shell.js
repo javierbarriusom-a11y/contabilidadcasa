@@ -18,6 +18,9 @@
   const BUILD_INFO = { version: "dev", builtAt: "" };
   const CACHE_PREFIX = "finanzas-casa-shell-";
   const NOVEDADES_SEEN_KEY = "novedades-ultima-vista";
+  // DEC-45: «¿te sirve?» solo en las líneas de las dos últimas semanas (el plazo de P9 para juzgar una función) y en las ya
+  // respondidas, para poder cambiar la respuesta. En las 202 del 21/11/2026 serían 400 botones; en dos semanas, unas 130.
+  const NOVEDADES_SIRVE_DIAS = 14;
   const VERSION_CHECK_MIN_INTERVAL_MS = 60 * 1000;
   const UPDATE_READY_POLL_MS = 3000;
   const UPDATE_READY_MAX_WAIT_MS = 60 * 1000;
@@ -151,15 +154,45 @@
     }
   }
 
-  function renderNovedades(doc, entries, storage) {
+  /** El día `dias` antes de `today` (AAAA-MM-DD), o "" sin fecha válida. */
+  function diasAntes(today, dias) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(today || ""))) return "";
+    const date = new Date(`${today}T00:00:00Z`);
+    date.setUTCDate(date.getUTCDate() - dias);
+    return date.toISOString().slice(0, 10);
+  }
+
+  /** DEC-45: si una línea lleva «¿te sirve?»: de las dos últimas semanas, o ya respondida. */
+  function novedadPregunta(entry, today, respuesta = "") {
+    if (respuesta) return true;
+    const desde = diasAntes(today, NOVEDADES_SIRVE_DIAS);
+    return Boolean(desde && /^\d{4}-\d{2}-\d{2}$/.test(String(entry?.fecha || "")) && entry.fecha > desde && entry.fecha <= today);
+  }
+
+  function novedadSirveHtml(entry, respuesta) {
+    const base = `novedad-${escapeHtml(entry.id)}`;
+    const boton = (valor, texto) => `<button type="button" class="novedad-sirve-btn" data-novedad-sirve="${valor}" aria-pressed="${respuesta === valor}">${texto}</button>`;
+    return `<span class="novedad-sirve" role="group" aria-labelledby="${base}-q ${base}-t"><span id="${base}-q">¿Te sirve?</span> ${boton("si", "Sí")} ${boton("no", "No")}</span>`;
+  }
+
+  function renderNovedades(doc, entries, storage, { today = "", medidor = null } = {}) {
     const list = doc.getElementById("novedadesList");
     const badge = doc.getElementById("novedadesBadge");
     if (!list) return;
     list.innerHTML = entries.length
       ? entries.map((entry) => {
         const text = escapeHtml(entry.texto);
-        const body = entry.href ? `<a href="${escapeHtml(entry.href)}">${text}</a>` : text;
-        return `<li><time datetime="${escapeHtml(entry.fecha)}">${formatNovedadDate(entry.fecha)}</time> ${body}</li>`;
+        const respuesta = (() => {
+          try {
+            return medidor?.opinion?.(entry.id) || "";
+          } catch {
+            return "";
+          }
+        })();
+        const pregunta = medidor?.opinar && novedadPregunta(entry, today, respuesta);
+        const idTexto = pregunta ? ` id="novedad-${escapeHtml(entry.id)}-t"` : "";
+        const body = entry.href ? `<a href="${escapeHtml(entry.href)}"${idTexto}>${text}</a>` : pregunta ? `<span${idTexto}>${text}</span>` : text;
+        return `<li${pregunta ? ` data-novedad="${escapeHtml(entry.id)}"` : ""}><time datetime="${escapeHtml(entry.fecha)}">${formatNovedadDate(entry.fecha)}</time> ${body}${pregunta ? ` ${novedadSirveHtml(entry, respuesta)}` : ""}</li>`;
       }).join("")
       : "<li>Aún no hay novedades anotadas.</li>";
     if (badge) {
@@ -195,12 +228,23 @@
     })();
     const label = doc.getElementById("versionStampLabel");
     if (label) label.textContent = formatBuildStamp(buildInfo);
-    renderNovedades(doc, entries, storage);
+    const medidor = win.FinanceMedidor || null;
+    renderNovedades(doc, entries, storage, { today, medidor });
     const details = doc.getElementById("versionStamp");
     details?.addEventListener("toggle", () => {
       if (!details.open || !entries.length) return;
       writeSeen(storage, entries[0].id);
-      renderNovedades(doc, entries, storage);
+      medidor?.anotar?.("novedades", "vista"); // DEC-45: abrir Novedades es la vista de «¿te sirve?»
+      renderNovedades(doc, entries, storage, { today, medidor });
+    });
+    // DEC-45: «Sí» o «No»; tocar la que ya está marcada la quita. Se cambia en su sitio, sin repintar la lista (el foco no salta).
+    doc.getElementById("novedadesList")?.addEventListener?.("click", (event) => {
+      const boton = event.target?.closest?.("[data-novedad-sirve]");
+      const li = boton?.closest?.("[data-novedad]");
+      if (!boton || !li || !medidor?.opinar) return;
+      const valor = boton.getAttribute("aria-pressed") === "true" ? "" : boton.dataset.novedadSirve;
+      const queda = medidor.opinar(li.dataset.novedad, valor);
+      li.querySelectorAll("[data-novedad-sirve]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.novedadSirve === queda)));
     });
 
     const toast = doc.getElementById("updateToast");
@@ -463,6 +507,8 @@
     validateNovedades,
     mountReleaseInfo,
     novedadesVigentes,
+    novedadPregunta,
+    NOVEDADES_SIRVE_DIAS,
     parseAmountInput,
     formatAmountInput,
     readAmountInput,

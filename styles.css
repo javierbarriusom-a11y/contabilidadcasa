@@ -1351,6 +1351,40 @@ main {
   color: #ffffff;
 }
 
+/* DEC-45: «¿te sirve?» en las líneas recientes de Novedades. Botones pequeños pero de 24 px (WCAG 2.5.8), sobre la barra
+   lateral oscura en los dos temas; el elegido, relleno (aria-pressed). Si no cabe en la línea, baja entero. */
+.novedad-sirve {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin-left: 4px;
+  color: #aabdc4;
+}
+
+.version-stamp-list .novedad-sirve-btn {
+  min-height: 24px;
+  min-width: 36px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  background: transparent;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.version-stamp-list .novedad-sirve-btn:hover {
+  border-color: #ffffff;
+}
+
+.version-stamp-list .novedad-sirve-btn[aria-pressed="true"] {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #131f26;
+}
+
 /* WP-02 (NXP-01): barra de la prueba cronometrada de Hoy — abajo (arriba la tapa la cabecera fija en
    móvil y deja el titular a la vista); solo existe mientras dura una prueba. */
 .finding-test-bar {

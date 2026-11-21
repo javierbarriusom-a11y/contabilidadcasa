@@ -100,8 +100,9 @@ test("estilos, versiones y Novedades", () => {
   assert.doesNotMatch(css.match(/:root\[data-tema="v2"\] \.hoy-v2-hecho \{[^}]*\}/)[0], /cursor/);
   const html = read("index.html");
   ["views/hoy-v2.js", "views/repaso-v2.js"].forEach((file) => assert.ok(html.includes(`${file}?v=20261120dec23`), file));
-  // tema-v2.css y novedades.js pasaron a 20261121dec30 con la frase de la semana que viene (DEC-30).
-  ["tema-v2.css", "novedades.js"].forEach((file) => assert.match(html, new RegExp(`${file.replace(".", "\\.")}\\?v=20261121dec30`), file));
+  // tema-v2.css pasó a 20261121dec30 con la frase de la semana que viene (DEC-30) y novedades.js, también a 20261121dec45 (DEC-45).
+  assert.match(html, /tema-v2\.css\?v=20261121dec30/);
+  assert.match(html, /novedades\.js\?v=20261121dec(?:30|45)/);
   const novedad = require("../novedades.js").find((entry) => entry.id === "2026-11-30-repaso-hecho");
   assert.equal(novedad.fecha, "2026-11-30");
   assert.equal(novedad.href, "#home");

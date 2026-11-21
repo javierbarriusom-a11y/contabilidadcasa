@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**21/11/2026 · DEC-45, «¿te sirve?» en Novedades:** las líneas de las dos últimas semanas preguntan «¿Te sirve?» (Sí / No); las respuestas van al medidor y salen en Ajustes › Uso de la app (PROJECT_STATE 515).
+
 **21/11/2026 · DEC-30, la semana que viene en una frase:** en la Previsión y en el «Listo» del repaso, lo que sale y lo que entra en los próximos 7 días y el día más justo, del motor diario. Lectura, no previsión nueva (PROJECT_STATE 514).
 
 **20/11/2026 · DEC-23, «Hecho esta semana» (activo desde el 30/11):** con el repaso de la semana hecho, Hoy lo dice en el sitio de su entrada, con los grupos clasificados y el % del gasto con partida. Es el cambio de Hoy de la semana del 30/11 (PROJECT_STATE 513).
