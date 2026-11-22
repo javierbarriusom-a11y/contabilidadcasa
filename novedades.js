@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-22-kit-entidad",
+      fecha: "2026-11-22",
+      texto: "Deuda › Contratos: «Kit para la entidad» en cada contrato, con qué pedir, un guion para llamar y una carta lista para imprimir.",
+      href: "#deuda-contratos",
+    },
+    {
       id: "2026-11-22-ocultar-cifras",
       fecha: "2026-11-22",
       texto: "Un ojo junto a «Menú» tapa todas las cifras con «•••» hasta volver a tocarlo; se recuerda en este móvil.",

@@ -12456,6 +12456,57 @@ test.describe("UND-01 · Arranque en caliente", () => {
   }
 });
 
+// UND-13 (undécima auditoría; DEC-26, 22/11/2026): el kit para hablar con cada entidad, desde la fila del contrato: qué pedir, guion y
+// carta con los datos del contrato; «Lo hemos pedido» se apunta con su fecha y se recuerda; imprimir deja solo la hoja.
+test.describe("UND-13 · Kit para hablar con la entidad", () => {
+  for (const [nombre, viewport] of [["a 1280 px", { width: 1280, height: 900 }], ["a 390 px @safari", { width: 390, height: 844 }]]) {
+    test(`abre la hoja desde la fila, apunta el certificado pedido, imprime solo la hoja y devuelve el foco, ${nombre}`, async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#deuda-contratos");
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const varios = page.locator("#deudaContratosDetectados .deuda-varios");
+      await varios.locator("summary").click();
+      await page.fill("#deudaContratosVarios", "Banco FICTICIO; préstamo; 5.100; 9,5; 160");
+      await varios.locator("[data-deuda-varios-alta]").click();
+      await expect(page.locator("#deudaVariosAviso")).toContainText("1 contratos dados de alta");
+      const boton = page.getByRole("button", { name: "Kit para hablar con Banco FICTICIO" });
+      await boton.click();
+      const kit = page.locator("#kitEntidad");
+      await expect(kit).toBeVisible();
+      await expect(kit.locator("h2")).toHaveText("Para hablar con Banco FICTICIO");
+      await expect(kit.locator("h2")).toBeFocused();
+      await expect(kit).toContainText("Certificado de deuda a fecha de hoy");
+      await expect(kit.locator("#kitEntidadCarta")).toContainText("A la atención de Banco FICTICIO");
+      await expect(kit.locator("#kitEntidadCarta")).toContainText("[Nombre y apellidos], con DNI [número]");
+      await kit.getByRole("button", { name: "Lo hemos pedido" }).click();
+      await expect(kit.locator('[data-kit-hecho="pedido"]')).toContainText("Certificado pedido el");
+      await expect(kit.getByRole("button", { name: "Lo hemos recibido" })).toBeFocused();
+      // Imprimir: mientras imprime, solo la hoja (la clase y los antepasados marcados); al acabar, todo vuelve.
+      await page.evaluate(() => { window.print = () => { window.__kitImpreso = { clase: document.body.classList.contains("imprimiendo-kit-entidad"), ancestros: document.querySelectorAll("[data-kit-entidad-ancestro]").length }; window.dispatchEvent(new Event("afterprint")); }; });
+      await kit.getByRole("button", { name: "Imprimir" }).click();
+      const impreso = await page.evaluate(() => window.__kitImpreso);
+      expect(impreso.clase).toBe(true);
+      expect(impreso.ancestros).toBeGreaterThan(0);
+      expect(await page.evaluate(() => document.body.classList.contains("imprimiendo-kit-entidad"))).toBe(false);
+      expect(await page.evaluate(() => document.querySelectorAll("[data-kit-entidad-ancestro]").length)).toBe(0);
+      await kit.getByRole("button", { name: "Cerrar", exact: true }).click();
+      await expect(kit).toBeHidden();
+      await expect(page.getByRole("button", { name: "Kit para hablar con Banco FICTICIO" })).toBeFocused();
+      // Se recuerda en el navegador; lo cuenta el medidor.
+      await page.reload();
+      await page.getByRole("button", { name: "Kit para hablar con Banco FICTICIO" }).click();
+      await expect(page.locator('#kitEntidad [data-kit-hecho="pedido"]')).toBeVisible();
+      expect(await page.evaluate(() => FinanceMedidor.resumen(FinanceMedidor.leer(), "kit-entidad").acciones)).toBe(1);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 // UND-06 (undécima auditoría; 22/11/2026, activo desde el 7/12): el indicador de cada área de Hoy. Lo que enseña cada pestaña es lo que
 // calcula hoyV2IndicadoresDe; su texto entra en el nombre de la pestaña, y abrir un área con indicador lo cuenta el medidor.
 test.describe("UND-06 · Indicador por área de Hoy", () => {

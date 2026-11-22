@@ -336,6 +336,24 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// UND-13 (22/11/2026): el kit para hablar con la entidad, con el certificado pedido, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`UND-13 · contraste del kit para hablar con la entidad en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 390, height: 844 } });
+    test("#kitEntidad: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.goto("/index.html#deuda-contratos");
+      const boton = page.locator("[data-kit-entidad]").first();
+      await expect(boton).toBeVisible({ timeout: 15000 });
+      await boton.click();
+      await page.locator('#kitEntidad [data-kit-marcar="pedido"]').click();
+      await expect(page.locator('#kitEntidad [data-kit-hecho="pedido"]')).toBeVisible();
+      const results = await new AxeBuilder({ page }).include("#kitEntidad").analyze();
+      const nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // UND-06 (activo desde el 7/12) y UND-17 (22/11/2026): los indicadores de las áreas de Hoy y el ojo de la cabecera (puesto y sin poner),
 // en claro y en oscuro.
 for (const scheme of ["light", "dark"]) {
