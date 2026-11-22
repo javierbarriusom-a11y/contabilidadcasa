@@ -128,7 +128,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 - **Pruebas:**
   - `tests/dec29-ruta-sin-contradiccion.test.cjs` (4) y `tests/und23-und26-medidor.test.cjs` (4), nuevas;
   - e2e de UND-02 en «Hoy por áreas»: sin filas, el aviso; con «Recalcular», el gráfico vuelve y el medidor lo cuenta.
-- **Validación:** VALIDACION_522
+- **Validación:** `npm test` **6.874/6.874** (+8), lint y typecheck en verde. `npm run test:mobile-overflow` sobre un `dist` nuevo: **371 visitas** sin nada cortado. Batería en navegador (e2e, a11y y perf-screens en Chromium, servidor y `dist` nuevos): **503 pasan y 1 falla, la e2e nueva de UND-02**. Detectó un fallo real: «Recalcular» no volvía a dibujar nada, porque `render()` solo recalcula si cambia la firma del modelo (`simulationSignature`) y no se borraba. Ahora se borra. Repetidas aparte las de Hoy (áreas, cambios 1 y 2, FX-01, DEC-20, DEC-23, XGO-02) en e2e y a11y: **26/26**. Safari, en el CI.
 
 ## Cierre de sesión — 22 de noviembre de 2026 (521): Safari repintaba la sección entera al desplazarse (despliegues 1518 y 1521 en rojo)
 

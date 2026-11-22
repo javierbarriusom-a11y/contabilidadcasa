@@ -521,6 +521,7 @@ function hoyV2BindOnce(root) {
       // UND-02: se rehace la previsión diaria desde cero (la copia en memoria se descarta) y se repinta todo.
       globalThis.FinanceMedidor?.anotar("hoy-sin-grafico", "accion");
       canonicalDailyEngineRuns = { base: null, active: null, planned: null };
+      simulationSignature = ""; // sin esto, render() da el modelo por calculado y no rehace nada
       if (typeof render === "function") render();
       return;
     }
