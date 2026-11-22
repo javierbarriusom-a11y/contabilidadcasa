@@ -107,6 +107,8 @@
     { id: "hoy-area-seguimiento", nombre: "Hoy · área «Seguimiento»", accion: ["acción desde el área", "acciones desde el área"], descarte: null, deshecho: null },
     // UND-02: los días en que Hoy no pudo dibujar la previsión (vista) y las veces que se pulsó «Recalcular» (acción). Objetivo: 0.
     { id: "hoy-sin-grafico", nombre: "Hoy · «No he podido dibujar la previsión»", accion: ["vez «Recalcular»", "veces «Recalcular»"], descarte: null, deshecho: null },
+    // UND-17 (DEC-36): el ojo de la cabecera. Acción = ocultar las cifras; descarte = volver a enseñarlas. Vista = días en que se tocó.
+    { id: "ocultar-cifras", nombre: "Ocultar cifras", accion: ["vez ocultadas", "veces ocultadas"], descarte: ["vez enseñadas de nuevo", "veces enseñadas de nuevo"], deshecho: null },
   ];
 
   function cuenta(n, [uno, varios]) {

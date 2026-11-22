@@ -42,7 +42,7 @@
          nativo de PWA (criterio de instalabilidad exige al menos un icono) y la pestaña mostraba el
          icono en blanco por defecto. `icon.svg` es el mismo icono para las dos cosas. -->
     <link rel="icon" href="icon.svg?v=20260919t11a1" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=20261121d658" />
+    <link rel="stylesheet" href="styles.css?v=20261122und17" />
     <link rel="stylesheet" href="p2.css?v=20260918t7a1" />
     <link rel="stylesheet" href="design-tokens.css?v=20261120dec38b" />
     <link rel="stylesheet" href="fiscal-campana.css?v=20261120dec38b" />
@@ -86,6 +86,10 @@
             <p>Finanzas Casa</p>
             <strong>Plan 2026-2036</strong>
           </div>
+          <!-- UND-17 (DEC-36): ocultar las cifras con un toque (ocultar-cifras.js); se recuerda en este dispositivo. -->
+          <button class="ocultar-cifras-toggle" id="ocultarCifrasToggle" type="button" aria-pressed="false" aria-label="Ocultar las cifras" title="Ocultar las cifras">
+            <svg class="ocultar-cifras-ojo" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M12 5C6.5 5 2.7 9.1 1.5 12c1.2 2.9 5 7 10.5 7s9.3-4.1 10.5-7C21.3 9.1 17.5 5 12 5Zm0 11.5A4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 0 1 0 9Zm0-7a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z" fill="currentColor"/><path class="ocultar-cifras-tachado" d="M3.3 2 22 20.7 20.7 22 2 3.3Z" fill="currentColor"/></svg>
+          </button>
           <button class="mobile-nav-toggle" id="mobileNavToggle" type="button" aria-expanded="false" aria-controls="primarySidebar">Menú</button>
         </div>
 
@@ -8082,7 +8086,8 @@
 
     <script defer src="tema-v2.js?v=20261019v2defecto"></script>
     <script defer src="household-members.js?v=20261119priv4"></script>
-    <script defer src="medidor-utilidad.js?v=20261122und"></script>
+    <script defer src="medidor-utilidad.js?v=20261122und17"></script>
+    <script defer src="ocultar-cifras.js?v=20261122und17"></script>
     <script defer src="views/plegados-medidor.js?v=20261118dec40"></script>
     <script defer src="funciones-en-prueba.js?v=20261118svd6"></script>
     <script defer src="vendor/supabase-js-2.117.2.umd.js"></script>
@@ -8372,7 +8377,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20261119priv4"></script>
-    <script defer src="novedades.js?v=20261122und11"></script>
+    <script defer src="novedades.js?v=20261122und17"></script>
     <script defer src="ux-shell.js?v=20261121dec45"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>

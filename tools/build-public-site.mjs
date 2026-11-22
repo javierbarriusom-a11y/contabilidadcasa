@@ -303,6 +303,7 @@ const files = [
   "antes-de-decidir-ui.js",
   "funciones-en-prueba.js",
   "medidor-utilidad.js",
+  "ocultar-cifras.js",
   "views/cobertura-ajuste.js",
 ];
 

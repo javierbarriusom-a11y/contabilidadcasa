@@ -12456,6 +12456,56 @@ test.describe("UND-01 · Arranque en caliente", () => {
   }
 });
 
+// UND-17 (undécima auditoría; DEC-36, 22/11/2026): el ojo de la cabecera tapa todos los importes con «•••» hasta volver a tocarlo, en
+// cualquier pantalla y en lo que se pinte después; se recuerda al recargar. Los campos numéricos, borrosos mientras no se usan.
+test.describe("UND-17 · Ocultar cifras con un toque", () => {
+  const IMPORTE = /\d[\d.,]*\s?€/;
+  for (const [nombre, viewport] of [["a 1280 px", { width: 1280, height: 900 }], ["a 390 px @safari", { width: 390, height: 844 }]]) {
+    test(`tapa los importes, sigue tapando lo que se pinta, se recuerda y vuelve, ${nombre}`, async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#home");
+      await page.evaluate(() => { try { localStorage.removeItem("ocultar-cifras"); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      const hoy = page.locator("#hoyV2");
+      await expect(hoy.locator(".hoy-v2-figure")).toBeVisible({ timeout: 15000 });
+      await expect(hoy).toContainText(IMPORTE);
+      const ojo = page.locator("#ocultarCifrasToggle");
+      await expect(ojo).toBeVisible();
+      await expect(ojo).toHaveAttribute("aria-pressed", "false");
+      await expect(ojo).toHaveAccessibleName("Ocultar las cifras");
+      await ojo.click();
+      await expect(ojo).toHaveAttribute("aria-pressed", "true");
+      await expect(page.locator("html")).toHaveClass(/cifras-ocultas/);
+      await expect(hoy).not.toContainText(IMPORTE);
+      await expect(hoy).toContainText("••• €");
+      // Lo que se pinta después también sale tapado: otra pantalla con importes.
+      await page.evaluate(() => { location.hash = "deuda-ruta"; });
+      await expect(page.locator("#planOptimoResultado .cam-hero").first()).toBeVisible({ timeout: 20000 });
+      await expect(page.locator("#deuda-ruta")).not.toContainText(IMPORTE);
+      await expect(page.locator("#planOptimoResultado")).toContainText("••• €");
+      // Se recuerda en el dispositivo.
+      await page.reload();
+      await page.evaluate(() => { location.hash = "home"; });
+      await expect(hoy.locator(".hoy-v2-figure")).toBeVisible({ timeout: 15000 });
+      await expect(page.locator("#ocultarCifrasToggle")).toHaveAttribute("aria-pressed", "true");
+      await expect(hoy).not.toContainText(IMPORTE);
+      // Al volver a tocarlo, las cifras vuelven, y el medidor lo ha contado.
+      await page.locator("#ocultarCifrasToggle").click();
+      await expect(page.locator("#ocultarCifrasToggle")).toHaveAttribute("aria-pressed", "false");
+      await expect(hoy).toContainText(IMPORTE);
+      await expect(page.locator("html")).not.toHaveClass(/cifras-ocultas/);
+      const medido = await page.evaluate(() => FinanceMedidor.resumen(FinanceMedidor.leer(), "ocultar-cifras"));
+      expect(medido.acciones).toBeGreaterThanOrEqual(1);
+      expect(medido.descartes).toBeGreaterThanOrEqual(1);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 // D-N28 (21/11/2026, decisión del hogar: «Sí» a UND-15): Deuda en tres pestañas, Plan · Contratos · Ofertas, con Comparar, Préstamo y
 // el simulador visual dentro de Ofertas. Los enlaces de siempre siguen llevando a su pantalla.
 test.describe("D-N28 · Deuda en tres pestañas", () => {
