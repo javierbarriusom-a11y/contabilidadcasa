@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-22-ocultar-cifras",
+      fecha: "2026-11-22",
+      texto: "Un ojo junto a «Menú» tapa todas las cifras con «•••» hasta volver a tocarlo; se recuerda en este móvil.",
+      href: "#home",
+    },
+    {
       id: "2026-11-22-plan-optimo-v2",
       fecha: "2026-11-22",
       texto: "Deuda › Plan: el extra de cada mes sale de la previsión sin bajar del suelo, y una oferta de quita entra en el plan por lo que rinde.",

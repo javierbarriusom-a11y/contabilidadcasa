@@ -34,6 +34,7 @@ const EXCLUDED = {
   "period-selector-preference": "preferencia de cadencia por pantalla de este dispositivo",
   "visit-counts": "contador de uso de este dispositivo (ARQ-0), no un dato financiero",
   "theme-preference": "tema claro/oscuro de este dispositivo",
+  "ocultar-cifras": "si este dispositivo enseña las cifras o las tapa con «•••» (UND-17): como el tema, una preferencia de quien mira este móvil",
   "usage-days": "panel de uso de este móvil (WP-03): qué días se abrió, edad de los saldos y minutos declarados; sin importes. Un solo móvil (3/10/2026): no se sincroniza",
   "finding-test": "prueba cronometrada de Hoy en este dispositivo (WP-02): segundos y «misma cifra sí/no», sin importes; mide este móvil, no es un dato del hogar",
   "balance-pulse-times": "tiempos del Pulso de saldos en este dispositivo (WP-26): segundos y recuentos de «Coincide»/«Corregir», sin importes; mide este móvil, no es un dato del hogar",

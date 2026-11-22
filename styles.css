@@ -13603,3 +13603,71 @@ input[data-amount-input][aria-invalid="true"] {
     position: static;
   }
 }
+
+/* UND-17 (DEC-36, 22/11/2026): el ojo de la cabecera que oculta las cifras, en los dos temas. En el escritorio va junto al nombre de
+   la app; en el móvil, junto a «Menú». Con las cifras ocultas, el ojo sale tachado y los campos numéricos, borrosos mientras no se
+   usan (al tocarlos para escribir, se ven). Los importes los cambia por «•••» ocultar-cifras.js. */
+.brand-block {
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+}
+
+.ocultar-cifras-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.09);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.ocultar-cifras-toggle[aria-pressed="true"] {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.ocultar-cifras-ojo {
+  min-height: 0;
+  width: 22px;
+  height: 22px;
+}
+
+.ocultar-cifras-tachado {
+  display: none;
+}
+
+.ocultar-cifras-toggle[aria-pressed="true"] .ocultar-cifras-tachado {
+  display: inline;
+}
+
+.cifras-ocultas input[type="number"]:not(:focus) {
+  filter: blur(6px);
+}
+
+@media (max-width: 860px) {
+  .sidebar .brand-block {
+    grid-template-columns: 46px minmax(0, 1fr) auto auto;
+  }
+}
+
+@media (width < 260px) { /* = max-width: 259px; con esta forma, el bloque de DEC-38 sigue siendo el último «259px» */
+  .sidebar .brand-block {
+    grid-template-columns: 34px minmax(0, 1fr) auto auto;
+  }
+
+  .ocultar-cifras-toggle {
+    min-width: 34px;
+    min-height: 34px;
+  }
+
+  .sidebar .brand-block > .ocultar-cifras-toggle {
+    grid-column: 3;
+  }
+
+  .sidebar .brand-block > .mobile-nav-toggle {
+    grid-column: 4;
+  }
+}

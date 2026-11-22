@@ -5658,6 +5658,36 @@
   }
 }
 
+/* UND-06 (22/11/2026; activo desde el 7/12): el indicador de cada área de Hoy. Número en tinta sobre gris; en rojo solo lo que rompe
+   una regla del hogar (decisión 2); el de Caja es un punto de 8 px. Su texto lo lee el lector de pantalla con la pestaña. */
+:root[data-tema="v2"] .hoy-v2-insignia {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--e19-surface-sunken);
+  border: 1px solid var(--e19-border-strong);
+  color: var(--e19-ink);
+  font: 700 11px / 1 var(--e19-font-sans);
+  vertical-align: middle;
+}
+
+:root[data-tema="v2"] .hoy-v2-insignia.is-rojo {
+  background: var(--e19-danger);
+  border-color: var(--e19-danger);
+  color: var(--e19-surface); /* en claro, blanco sobre rojo oscuro; en oscuro, fondo oscuro sobre rojo claro */
+}
+
+:root[data-tema="v2"] .hoy-v2-insignia.is-punto {
+  min-width: 8px;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+}
+
 /* UND-02 (22/11/2026): el gráfico de la previsión que no sale, dicho. Como .hoy-v2-pending (borde discontinuo), con ⚠ en vez de ○. */
 :root[data-tema="v2"] .hoy-v2-fallo {
   display: flex;

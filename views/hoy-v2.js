@@ -614,10 +614,54 @@ function hoyV2GuardarArea(area) {
   }
 }
 
-function hoyV2AreasHtml(activa) {
+// UND-06 (undécima auditoría; 22/11/2026): un indicador en la pestaña del área que tiene algo, para que esconder no sea olvidar.
+// Mes: las partidas de gasto de este mes por encima de lo previsto (número, en rojo: rompe una regla del hogar). Caja: un punto rojo si
+// la previsión baja del suelo, del mínimo de la cuenta o del colchón en los próximos 30 días (los avisos de FX-41). Seguimiento: las
+// decisiones abiertas (número, sin rojo). Patrimonio y deuda no lleva: no hay una señal suya que no esté ya en otra.
+// Puerta de fecha: desde el 7/12, después de la revisión de las áreas a las dos semanas (UND-23, desde el 22/11). Con indicadores
+// antes, lo medido diría qué áreas abre el indicador y no cuáles busca el hogar; y la semana del 30/11 ya tiene su cambio de Hoy
+// (DEC-23, ESTADO §8.7: uno por semana).
+const HOY_V2_INDICADORES_DESDE = "2026-12-07";
+let hoyV2Indicadores = {};
+
+function hoyV2IndicadoresDe(model, hoy) {
+  if (String(hoy) < HOY_V2_INDICADORES_DESDE) return {};
+  const out = {};
+  try {
+    const monthKey = String(hoy).slice(0, 7);
+    const month = (typeof cuadroMandosAllMonths === "function" ? cuadroMandosAllMonths() : []).find((item) => item.key === monthKey);
+    const pasadas = month && typeof planMesCollect === "function" ? planMesCollect(month).expense.filter((entry) => entry.hasActual && Number(entry.variance) >= 0.5) : [];
+    if (pasadas.length) out.mes = { n: pasadas.length, rojo: true, texto: `${pasadas.length} ${pasadas.length === 1 ? "partida" : "partidas"} por encima de lo previsto` };
+  } catch {
+    /* sin plan del mes: sin indicador */
+  }
+  try {
+    const A = globalThis.FinanceCanonicalForecastAlerts;
+    const entrada = A ? hoyV2AvisosEntrada(hoy) : null;
+    if (entrada) {
+      const limite = new Date(`${hoy}T12:00:00`);
+      limite.setDate(limite.getDate() + 30);
+      const hasta = isoLocalDate(limite);
+      const n = A.evaluate(entrada).alerts.filter((alert) => HOY_V2_AVISO_TITULO[alert.id] && alert.date && alert.date <= hasta).length;
+      if (n) out.caja = { n, punto: true, rojo: true, texto: n === 1 ? "un aviso de caja en los próximos 30 días" : `${n} avisos de caja en los próximos 30 días` };
+    }
+  } catch {
+    /* sin previsión: sin indicador */
+  }
+  const abiertas = Array.isArray(model?.decisions) ? model.decisions.length : 0;
+  if (abiertas) out.seguimiento = { n: abiertas, rojo: false, texto: `${abiertas} ${abiertas === 1 ? "decisión abierta" : "decisiones abiertas"}` };
+  return out;
+}
+
+function hoyV2InsigniaHtml(ind) {
+  if (!ind) return "";
+  return `<span class="hoy-v2-insignia${ind.rojo ? " is-rojo" : ""}${ind.punto ? " is-punto" : ""}" aria-hidden="true">${ind.punto ? "" : ind.n}</span><span class="sr-only">, ${escapeHtml(ind.texto)}</span>`;
+}
+
+function hoyV2AreasHtml(activa, indicadores = {}) {
   return `<div class="e19-registrar-tabs hoy-v2-areas" role="tablist" aria-label="Áreas de Hoy">${HOY_V2_AREAS.map((area) => {
     const sel = area.id === activa;
-    return `<button type="button" role="tab" class="e19-registrar-tab${sel ? " is-active" : ""}" id="hoyV2Tab-${area.id}" aria-selected="${sel}" aria-controls="hoyV2Panel" tabindex="${sel ? "0" : "-1"}" data-hoy-v2-area="${area.id}">${escapeHtml(area.label)}</button>`;
+    return `<button type="button" role="tab" class="e19-registrar-tab${sel ? " is-active" : ""}" id="hoyV2Tab-${area.id}" aria-selected="${sel}" aria-controls="hoyV2Panel" tabindex="${sel ? "0" : "-1"}" data-hoy-v2-area="${area.id}">${escapeHtml(area.label)}${hoyV2InsigniaHtml(indicadores[area.id])}</button>`;
   }).join("")}</div>`;
 }
 
@@ -673,6 +717,8 @@ function hoyV2AplicarArea(area) {
 
 function hoyV2ElegirArea(area, { foco = false } = {}) {
   if (!HOY_V2_AREAS.some((item) => item.id === area)) return;
+  // UND-06: las aperturas de un área con indicador, para compararlas con todas las del área (UND-23).
+  if (hoyV2Indicadores[area] && area !== hoyV2AreaActual()) globalThis.FinanceMedidor?.anotar("hoy-indicador", "accion");
   hoyV2GuardarArea(area);
   if (hoyV2UltimoModelo) hoyV2Render(hoyV2UltimoModelo);
   if (foco) qs(`hoyV2Tab-${area}`)?.focus();
@@ -692,8 +738,9 @@ function hoyV2Render(model) {
   const detailOpen = qs("home")?.classList.contains(HOY_V2_DETAIL_CLASS);
   hoyV2UltimoModelo = model;
   const area = hoyV2AreaActual();
+  hoyV2Indicadores = hoyV2IndicadoresDe(model, hoy);
   root.innerHTML = `${hoyV2Header(hoy, model.dataAge)}
-    ${hoyV2AreasHtml(area)}
+    ${hoyV2AreasHtml(area, hoyV2Indicadores)}
     <div class="hoy-v2-panel" id="hoyV2Panel" role="tabpanel" aria-labelledby="hoyV2Tab-${area}">
       ${hoyV2AreaPanel(area, model, hoy, asOf, coverage)}
     </div>`;
