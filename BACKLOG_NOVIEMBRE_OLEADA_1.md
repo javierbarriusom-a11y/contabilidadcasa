@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**22/11/2026 · Fiabilidad (undécima auditoría §6): DEC-29, UND-02, UND-23 y UND-26.** El titular de Deuda › Plan ya no se contradice con deudas sin cuota; Hoy dice «No he podido dibujar la previsión» con «Recalcular» en lugar de dejar el hueco; el medidor cuenta cada área de Hoy y los fallos de JavaScript por fichero, sin mensajes. Antes, #663 arregló el repintado en Safari al desplazarse y el despliegue 1523 publicó #661 a #663 (PROJECT_STATE 521 y 522).
+
 **21/11/2026 · D-N23, D-N27 y D-N28 decididas y hechas:** un acuerdo aceptado sustituye a la cuota de hoy desde su mes, en el plan y en las estrategias del simulador guardadas en Escenarios (paridad exacta con el simulador); el plan óptimo ya no elige solo la bola de nieve: lo pregunta, recuerda el orden y deja cambiar el margen; Deuda en tres pestañas (Plan · Contratos · Ofertas, con Comparar, Préstamo y el simulador dentro de Ofertas), sin retirar ninguna pantalla (PROJECT_STATE 519).
 
 **21/11/2026 · Hoy por áreas, plan óptimo de saldo y undécima auditoría (propuesta):** Hoy en cinco pestañas (Hoy, Mes, Caja, Patrimonio y deuda, Seguimiento) sin retirar nada; en Deuda › Ruta, el plan óptimo de saldo (orden, fecha, ahorro y tramos con las cuotas liberadas redirigidas). `docs/PROPUESTA_UNDECIMA_AUDITORIA_2026-11-21.md`: la fiabilidad silenciosa (UND-01 a UND-03 primero), 26 funciones y las decisiones D-N27 y D-N28 (la propuesta las llamó D-N24 y D-N25, números ya usados por privacidad; PROJECT_STATE 518 y 519).

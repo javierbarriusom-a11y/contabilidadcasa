@@ -62,6 +62,17 @@ function hoyV2Trajectory(asOf, todayTotal, nextIncomeDate) {
   return slice.map((row) => ({ date: row.date, value: round2(Number(row.total || 0) + shift) }));
 }
 
+// UND-02 (undécima auditoría; 22/11/2026): si el gráfico de la previsión no sale (motor diario sin filas, fechas fuera de su tramo,
+// un fallo al calcular), se dice, en vez de dejar el hueco: un hueco y un «sin datos» se veían igual y el hogar no podía distinguir
+// un fallo. ⚠ y no ○ (la forma dice el estado además del color), y «Recalcular» rehace la previsión diaria.
+function hoyV2SinGraficoHtml() {
+  return `<div class="hoy-v2-fallo" role="status" data-hoy-v2-sin-grafico>
+      <span class="hoy-v2-fallo-icono" aria-hidden="true">⚠</span>
+      <span>No he podido dibujar la previsión de estos días.</span>
+      <button type="button" class="secondary-button" data-hoy-v2-recalcular>Recalcular</button>
+    </div>`;
+}
+
 function hoyV2ChartSvg(points, floor, nextIncomeDate) {
   if (points.length < 2) return "";
   const width = 640;
@@ -157,7 +168,7 @@ function hoyV2Hero({ balances, protectedReserve, reserveStatus, asOf, hoy = isoL
     eom.available ? `<div class="hoy-v2-stat hoy-v2-stat-prevision${eom.margin < 0 ? " is-danger" : ""}"><div class="hoy-v2-stat-cabecera"><span>Fin de ${escapeHtml(eom.monthLabel)}</span>${hoyV2ConfianzaHtml()}</div><strong>${escapeHtml(money(eom.projected))}</strong><small>${escapeHtml(eom.margin < 0 ? `${money(Math.abs(eom.margin))} por debajo del suelo` : `${money(eom.margin)} sobre el suelo`)}</small></div>` : "",
     `<div class="hoy-v2-stat is-${escapeHtml(reserveStatus)}"><span>Reserva protegida</span><strong>${escapeHtml(money(protectedReserve))}</strong><small>${escapeHtml(reserveWord)}</small></div>`,
   ].join("");
-  const chart = hoyV2ChartSvg(hoyV2Trajectory(asOf, balances?.total, payday?.nextIncomeDate), today.floor, payday?.nextIncomeDate);
+  const chart = hoyV2ChartSvg(hoyV2Trajectory(asOf, balances?.total, payday?.nextIncomeDate), today.floor, payday?.nextIncomeDate) || hoyV2SinGraficoHtml();
   const provenance = [
     dataAge?.known === false ? "saldos sin fecha" : state?.balanceMode === "manual" ? "saldos declarados" : "estimado",
     "calendario de cobros y pagos",
@@ -506,6 +517,13 @@ function hoyV2BindOnce(root) {
   root.addEventListener("click", (event) => {
     // XGO-02: lo que se pulsa en Hoy es una acción (la primera de la visita, con sus segundos desde que se pintó);
     // abrir «Ver todo el detalle» es apartarse de ella.
+    if (event.target.closest("[data-hoy-v2-recalcular]")) {
+      // UND-02: se rehace la previsión diaria desde cero (la copia en memoria se descarta) y se repinta todo.
+      globalThis.FinanceMedidor?.anotar("hoy-sin-grafico", "accion");
+      canonicalDailyEngineRuns = { base: null, active: null, planned: null };
+      if (typeof render === "function") render();
+      return;
+    }
     const areaBoton = event.target.closest("[data-hoy-v2-area]");
     if (areaBoton) {
       // Cambiar de área es mirar, no actuar: no cuenta como la primera acción de la visita (XGO-02).
@@ -515,6 +533,7 @@ function hoyV2BindOnce(root) {
     }
     if (event.target.closest("[data-hoy-v2-plan-mes]")) {
       globalThis.FinanceMedidor?.anotar("hoy-v2", "accion", { segundos: null });
+      globalThis.FinanceMedidor?.anotar(`hoy-area-${hoyV2AreaActual()}`, "accion"); // UND-23
       history.pushState(null, "", "#plan");
       setActiveView("plan");
       if (typeof setPlanTab === "function") setPlanTab("mes");
@@ -526,6 +545,7 @@ function hoyV2BindOnce(root) {
       const segundos = hoyV2PaintedAt !== null ? (performance.now() - hoyV2PaintedAt) / 1000 : null;
       hoyV2PaintedAt = null;
       globalThis.FinanceMedidor?.anotar("hoy-v2", "accion", { segundos });
+      globalThis.FinanceMedidor?.anotar(`hoy-area-${hoyV2AreaActual()}`, "accion"); // UND-23: desde qué área se actúa
     }
     if (event.target.closest("[data-hoy-v2-prevision], [data-hoy-v2-a-prevision]")) {
       history.pushState(null, "", "#plan");
@@ -687,6 +707,8 @@ function hoyV2Render(model) {
   hoyV2BindOnce(root);
   if (qs("home")?.hidden === false) {
     globalThis.FinanceMedidor?.anotar("hoy-v2", "vista"); // XGO-02
+    globalThis.FinanceMedidor?.anotar(`hoy-area-${hoyV2AreaActual()}`, "vista"); // UND-23: el área abierta (un día cuenta una vez)
+    if (root.querySelector("[data-hoy-v2-sin-grafico]")) globalThis.FinanceMedidor?.anotar("hoy-sin-grafico", "vista"); // UND-02: días en que salta
     if (!hoyV2Measured) {
       hoyV2Measured = true;
       hoyV2PaintedAt = performance.now();
