@@ -208,6 +208,11 @@ function attachCaminoDeuda(doc) {
 let planOptimoMensual = null; // null: aún sin tocar, se parte de la capacidad libre
 let planOptimoPago = 0;
 let planOptimoLast = null;
+// UND-12 (22/11/2026): «prevision» (el extra de cada mes sale de la previsión, sin bajar del suelo) o «fijo». null: la previsión si la
+// hay. Vive en memoria, como el importe; escribir un importe pasa a «fijo».
+let planOptimoModo = null;
+// UND-11 (22/11/2026): las ofertas de quita que teclea el hogar, por contrato, en este navegador.
+const PLAN_OPTIMO_QUITAS_KEY = "plan-optimo-quitas";
 
 // D-N27 (21/11/2026, «ok, pero me preguntas antes y poder modificar»): el orden elegido y el margen para preguntar se recuerdan en
 // este navegador. Sin elegir, la avalancha; si la bola de nieve cuesta poco más y salda antes la primera, se pregunta.
@@ -222,6 +227,59 @@ function planOptimoOrdenGuardado() {
 function planOptimoMargenGuardado() {
   const parsed = planOptimoGuard(() => JSON.parse(storageGet(storageKey(PLAN_OPTIMO_MARGEN_KEY), "null")), null);
   return parsed && typeof parsed === "object" ? parsed : null;
+}
+
+// La oferta registrada en Contratos (un acuerdo «propuesto» de pago único, sin cuotas) sirve de partida si no se ha escrito otra.
+function planOptimoQuitaRegistrada(contract) {
+  const agreement = contract?.agreement;
+  if (!agreement || String(agreement.status || "").toLowerCase() !== "proposed") return null;
+  const lump = Number(agreement.settlementAmount);
+  const schedule = Number(agreement.payment) > 0 && Number(agreement.duration) > 0;
+  return Number.isFinite(lump) && lump > 0 && !schedule ? Math.round(lump * 100) / 100 : null;
+}
+
+// Las quitas que entran en el cálculo: lo escrito y, si no, lo registrado. Un campo vaciado a propósito guarda 0 y no usa la registrada.
+function planOptimoQuitas(contracts) {
+  const guardadas = planOptimoGuard(() => JSON.parse(storageGet(storageKey(PLAN_OPTIMO_QUITAS_KEY), "{}")), {}) || {};
+  const out = [];
+  (contracts || []).forEach((contract) => {
+    const id = String(contract?.id || "");
+    if (!id || !(Number(contract.currentPrincipal) > 0)) return;
+    if (Object.prototype.hasOwnProperty.call(guardadas, id)) {
+      const n = Number(guardadas[id]);
+      if (Number.isFinite(n) && n > 0) out.push({ id, amount: Math.round(n * 100) / 100 });
+      return;
+    }
+    const registrada = planOptimoQuitaRegistrada(contract);
+    if (registrada) out.push({ id, amount: registrada, registrada: true });
+  });
+  return out;
+}
+
+// Una fila por deuda con capital (las de acuerdo aceptado no: lo pactado ya fija lo que se paga). Solo se rehace si cambian las deudas,
+// para no perder el foco ni lo que se está escribiendo.
+function planOptimoQuitasListaHtml(contracts) {
+  const guardadas = planOptimoGuard(() => JSON.parse(storageGet(storageKey(PLAN_OPTIMO_QUITAS_KEY), "{}")), {}) || {};
+  const filas = (contracts || []).filter((c) => Number(c?.currentPrincipal) > 0 && String(c?.agreement?.status || "").toLowerCase() !== "accepted").map((c) => {
+    const id = String(c.id || "");
+    const registrada = planOptimoQuitaRegistrada(c);
+    const propia = Object.prototype.hasOwnProperty.call(guardadas, id) ? Number(guardadas[id]) : null;
+    const valor = propia !== null ? (propia > 0 ? String(propia) : "") : registrada ? String(registrada) : "";
+    const nombre = [c.entity, c.type].filter(Boolean).join(" ").trim() || c.label || id;
+    const nota = registrada && propia === null ? " · la oferta registrada en Contratos" : "";
+    return `<label class="month-picker"><span>${escapeHtml(nombre)} <small>(debéis ${escapeHtml(money(Number(c.currentPrincipal), true))}${escapeHtml(nota)})</small></span>
+      <input type="number" min="0" max="100000" step="10" inputmode="decimal" data-plan-optimo-quita="${escapeHtml(id)}" value="${escapeHtml(valor)}" placeholder="sin oferta" /></label>`;
+  });
+  return filas.length ? `<div class="cam-control plan-optimo-quitas-filas">${filas.join("")}</div>` : `<p class="e19-kpi-note">No hay deudas con capital pendiente.</p>`;
+}
+
+function planOptimoPintarQuitas(contracts) {
+  const lista = qs("planOptimoQuitasLista");
+  if (!lista) return;
+  const firma = JSON.stringify((contracts || []).map((c) => [c?.id, c?.currentPrincipal, c?.agreement?.status, c?.agreement?.settlementAmount]));
+  if (lista.__firma === firma) return;
+  lista.__firma = firma;
+  lista.innerHTML = planOptimoQuitasListaHtml(contracts);
 }
 
 function planOptimoGuardar(key, value) {
@@ -246,7 +304,15 @@ function planOptimoReferencias() {
     const model = proxEuroIdleModel(globalThis.FinanceCanonicalNextEuro, { idleOptions: [] });
     return model?.status === "ok" ? model.windows.find((row) => row.months === 12 && row.calculable)?.idle ?? null : null;
   }, null);
-  return { capacity: Number.isFinite(capacity) ? capacity : null, available: Number.isFinite(idle) ? idle : null };
+  // UND-12: la previsión mensual (la línea que se pinta, con las cuotas de hoy ya restadas) y el suelo de Hoy.
+  const rows = planOptimoGuard(() => (typeof canonicalEngineRuns !== "undefined" ? canonicalEngineRuns.active?.rows || canonicalEngineRuns.base?.rows || [] : []), []);
+  const floor = planOptimoGuard(() => globalThis.FinanceCanonicalHomeMargin?.normalizeFloor?.(state?.liquidityFloor) ?? null, null);
+  return { capacity: Number.isFinite(capacity) ? capacity : null, available: Number.isFinite(idle) ? idle : null, rows: Array.isArray(rows) ? rows : [], floor: Number.isFinite(floor) ? floor : null };
+}
+
+function planOptimoModoEfectivo(liquidez) {
+  if (planOptimoModo === "fijo") return "fijo";
+  return liquidez?.ok ? "prevision" : "fijo";
 }
 
 function planOptimoRazonHtml(r) {
@@ -281,9 +347,68 @@ function planOptimoTramosHtml(periods) {
   if (!periods.length) return "";
   const items = periods.map((p) => {
     const acaba = p.settledId !== p.targetId ? ` <small>(ese mes acaba ${escapeHtml(p.settledLabel)} por su calendario y su cuota se suma)</small>` : "";
-    return `<li><strong>Hasta ${escapeHtml(caminoMonthText(p.payoffMonthKey))}:</strong> ${escapeHtml(money(p.extra, true))} al mes de más a ${escapeHtml(p.targetLabel)}${acaba}</li>`;
+    // UND-12: con la previsión, lo de cada mes cambia: se dice el mínimo, el máximo y el total del tramo.
+    const cuanto = p.extraMin !== undefined && p.extraMin !== p.extraMax
+      ? `entre ${escapeHtml(money(p.extraMin, true))} y ${escapeHtml(money(p.extraMax, true))} al mes de más (${escapeHtml(money(p.extraTotal, true))} en total)`
+      : `${escapeHtml(money(p.extra, true))} al mes de más`;
+    if (p.quita && p.targetId === p.settledId) {
+      // Lo que se junta es lo que pide la quita: lo que sobra del último mes ya va a la siguiente deuda, no a la quita.
+      const perdon = p.quita.forgiven > 0 ? `; os perdonan ${escapeHtml(money(p.quita.forgiven, true))}` : "";
+      return `<li><strong>Hasta ${escapeHtml(caminoMonthText(p.payoffMonthKey))}:</strong> juntáis ${escapeHtml(money(p.quita.paid, true))} para la quita de ${escapeHtml(p.targetLabel)} (${p.fromIndex === p.toIndex ? "en un mes" : `en ${caminoMonths(p.toIndex - p.fromIndex + 1)}`}${perdon})</li>`;
+    }
+    return `<li><strong>Hasta ${escapeHtml(caminoMonthText(p.payoffMonthKey))}:</strong> ${cuanto} a ${escapeHtml(p.targetLabel)}${acaba}</li>`;
   }).join("");
   return `<ol class="plan-optimo-tramos" aria-label="Qué se paga de más cada mes y a qué deuda">${items}</ol>`;
+}
+
+function planOptimoPct(value) {
+  return `${String(Math.round(Number(value) * 10) / 10).replace(".", ",")} %`;
+}
+
+// UND-11: lo que dice cada quita: cuánto se paga, cuánto se perdona, cuánto rinde y el paso siguiente (proponerla, en el simulador).
+function planOptimoQuitasHtml(r, ofertas, contracts) {
+  const items = (r.quitas || []).map((q) => {
+    const rinde = q.method === "cuotas"
+      ? `rinde como amortizar una deuda al ${planOptimoPct(q.yieldPct)} (frente a las cuotas que os quitáis)`
+      : `rinde un ${planOptimoPct(q.yieldPct)} (lo perdonado entre lo pagado, como si se pagara en un año: hoy no tiene cuota que comparar)`;
+    let cuando;
+    if (!q.settled) cuando = "con lo que ponéis no se llega a juntar dentro del plan";
+    else if (q.forgiven > 0) cuando = `se paga en ${escapeHtml(caminoMonthText(q.payoffMonthKey))} y os perdonan ${escapeHtml(money(q.forgiven, true))}`;
+    else cuando = `para cuando se junta (${escapeHtml(caminoMonthText(q.payoffMonthKey))}), con las cuotas ya debéis menos de lo ofrecido: no os perdonaría nada`;
+    return `<li><strong>${escapeHtml(q.label)}:</strong> pagar ${escapeHtml(money(q.amount, true))} de ${escapeHtml(money(q.principal, true))} ${rinde}; ${cuando}.</li>`;
+  });
+  const ignoradas = (r.quitasIgnoradas || []).map((id) => {
+    const oferta = ofertas.find((o) => o.id === id);
+    const c = (contracts || []).find((row) => String(row?.id) === id);
+    const nombre = c ? [c.entity, c.type].filter(Boolean).join(" ").trim() || c.label || "esa deuda" : "esa deuda";
+    return `<li>La oferta${oferta ? ` de ${escapeHtml(money(oferta.amount, true))}` : ""} para ${escapeHtml(nombre)} no baja de lo que debéis (o la deuda ya tiene un acuerdo aceptado): no entra como quita.</li>`;
+  });
+  if (!items.length && !ignoradas.length) return "";
+  return `<div class="plan-optimo-quitas-resultado"><p class="cam-frase"><strong>Quitas en el plan</strong></p><ul class="plan-optimo-tramos">${items.join("")}${ignoradas.join("")}</ul>
+    <p class="e19-kpi-note">Proponer una quita a la entidad se hace en <a href="#deuda-simulador">Ofertas › Simulador visual</a>, que antes os enseña «Qué ocurrirá». Desde aquí no se propone ni se acepta nada.</p></div>`;
+}
+
+// UND-12: cuánto pone cada mes y la comparación honesta con un importe fijo que tampoco baja del suelo (la v1 con la misma liquidez mínima).
+function planOptimoLiquidezHtml(r, liquidez, fijo) {
+  if (!liquidez?.ok) return "";
+  const doce = liquidez.byMonth.slice(0, 12);
+  const min = Math.min(...doce);
+  const max = Math.max(...doce);
+  const partes = [`<p class="cam-frase"><strong>Lo que permite la previsión</strong> sin bajar del suelo (${escapeHtml(money(liquidez.floor, true))}): ${min === max ? `${escapeHtml(money(min, true))} al mes` : `de ${escapeHtml(money(min, true))} a ${escapeHtml(money(max, true))} según el mes`}, ${escapeHtml(money(liquidez.total12, true))} en los próximos 12 meses. Los meses de recibos fuertes ponen menos y los de pagas extra, más.</p>`];
+  if (liquidez.belowFloor) partes.push(`<p class="e19-kpi-note"><strong>La previsión ya baja del suelo en ${escapeHtml(caminoMonthText(liquidez.belowFloor.monthKey))}</strong> sin poner nada de más: hasta ese mes no se pone extra. Miradlo en Plan › Previsión.</p>`);
+  const s = r.recommended.summary;
+  const f = fijo?.ok && !fijo.nothing && !fijo.sinDatos ? fijo.recommended.summary : null;
+  if (f && s.totalInterest !== null && f.totalInterest !== null && s.debtFreeMonthKey && f.debtFreeMonthKey) {
+    const dif = Math.round((f.totalInterest - s.totalInterest) * 100) / 100;
+    const meses = (f.monthsToDebtFree || 0) - (s.monthsToDebtFree || 0);
+    const veredicto = dif > 0 || meses > 0
+      ? `mes a mes acabáis ${meses > 0 ? `${caminoMonths(meses)} antes` : "en la misma fecha"} y pagáis ${escapeHtml(money(Math.max(0, dif), true))} menos de intereses.`
+      : dif < 0 || meses < 0
+        ? `aquí el importe fijo sale mejor: ${meses < 0 ? `acaba ${caminoMonths(-meses)} antes y ` : ""}paga ${escapeHtml(money(Math.max(0, -dif), true))} menos de intereses. Podéis elegirlo en «Un importe fijo».`
+        : "sale igual.";
+    partes.push(`<p class="e19-kpi-note">Frente a un importe fijo que tampoco baja del suelo ningún mes (${escapeHtml(money(fijo.monthly, true))} al mes: libres en ${escapeHtml(caminoMonthText(f.debtFreeMonthKey))}): ${veredicto}</p>`);
+  }
+  return partes.join("");
 }
 
 function planOptimoAvisosHtml(r, refs) {
@@ -295,31 +420,43 @@ function planOptimoAvisosHtml(r, refs) {
     if (w.id === "fuera") notes.push(`<strong>No entran en la cuenta</strong> ${w.count === 1 ? "una deuda" : `${w.count} deudas`} (${escapeHtml(money(w.principal, true))}) sin cuota activa o sin TAE ni plazo; las fechas son las de las demás. Completadlas en Contratos.`);
   }
   if (refs.available !== null && !r.lump && refs.available > 0) notes.push(`Por encima del suelo del colchón tenéis unos ${escapeHtml(money(refs.available, true))} que la previsión no toca en 12 meses: probad a poner parte como pago inicial.`);
-  notes.push("Se calcula con «Camino a deuda cero» (capital, cuota y TAE de cada contrato), pero aquí las cuotas que se liberan al saldar una deuda <strong>sí</strong> pasan a la siguiente. A lo pactado con una entidad no se le adelanta nada. Sin comisiones por amortizar antes ni cambios de tipo. Es una propuesta: no ejecuta nada.");
+  notes.push("Se calcula con «Camino a deuda cero» (capital, cuota y TAE de cada contrato), pero aquí las cuotas que se liberan al saldar una deuda <strong>sí</strong> pasan a la siguiente. A lo pactado con una entidad no se le adelanta nada. Sin comisiones por amortizar antes ni cambios de tipo. Una quita se supone en pie hasta que se paga, y mientras se junta la deuda sigue con su cuota. Es una propuesta: no ejecuta nada.");
   return notes.map((note) => `<p class="e19-kpi-note">${note}</p>`).join("");
 }
 
 function planOptimoHtml(engine, contracts, todayKey, refs, Plan) {
   if (!Plan) return "";
-  const monthly = planOptimoMensual === null ? Math.max(0, Math.floor((refs.capacity || 0) / 10) * 10) : planOptimoMensual;
-  const r = Plan.plan(engine, contracts, {
-    startMonthKey: todayKey, monthly, lump: planOptimoPago, order: caminoOrder(contracts), capacity: refs.capacity, available: refs.available,
-    strategy: planOptimoOrdenGuardado(), tolerance: planOptimoMargenGuardado(),
-  });
+  const fijoMensual = planOptimoMensual === null ? Math.max(0, Math.floor((refs.capacity || 0) / 10) * 10) : planOptimoMensual;
+  const liquidez = typeof Plan.liquidityPlan === "function" && refs.floor !== null ? Plan.liquidityPlan(refs.rows, { startMonthKey: todayKey, floor: refs.floor, lump: planOptimoPago }) : { ok: false };
+  const modo = planOptimoModoEfectivo(liquidez);
+  const ofertas = planOptimoQuitas(contracts);
+  const comunes = {
+    startMonthKey: todayKey, lump: planOptimoPago, order: caminoOrder(contracts), available: refs.available,
+    strategy: planOptimoOrdenGuardado(), tolerance: planOptimoMargenGuardado(), settlements: ofertas,
+  };
+  const r = modo === "prevision"
+    ? Plan.plan(engine, contracts, { ...comunes, monthly: liquidez.after, monthlyByMonth: liquidez.byMonth })
+    : Plan.plan(engine, contracts, { ...comunes, monthly: fijoMensual, capacity: refs.capacity });
+  const fijo = modo === "prevision" && r.ok ? Plan.plan(engine, contracts, { ...comunes, monthly: liquidez.fixedSafe, strategy: r.recommended.strategy }) : null;
   if (!r.ok) return `<p class="e19-kpi-note">${escapeHtml(r.error)}</p>`;
   if (r.nothing) return `<p class="e19-kpi-note">No hay deudas con capital pendiente: no hay plan que hacer.</p>`;
   if (r.sinDatos) return `<p class="e19-kpi-note"><strong>No se puede calcular.</strong> Ninguna deuda tiene cuota activa con TAE o plazo: completadlas en Contratos.</p>`;
   const s = r.recommended.summary;
   const base = r.baseline;
+  // UND-11: con quitas, lo que se ahorra son los intereses más lo perdonado.
+  const ahorroHero = s.forgiven > 0
+    ? caminoHeroHtml("Lo que os ahorráis", s.totalSaved === null ? "—" : money(s.totalSaved, true), `${s.interestSaved === null ? "" : `${money(s.interestSaved, true)} de intereses + `}${money(s.forgiven, true)} que os perdonan`)
+    : caminoHeroHtml("Intereses que os ahorráis", s.interestSaved === null ? "—" : money(s.interestSaved, true), s.totalInterest === null ? "alguna deuda no acaba" : `pagaréis ${money(s.totalInterest, true)} en lugar de ${money(base.totalInterest ?? 0, true)}`);
   const heroes = `<div class="cam-heroes">
       ${caminoHeroHtml("Libre de deuda", s.debtFreeMonthKey ? caminoMonthText(s.debtFreeMonthKey) : "sin fecha", s.monthsSaved > 0 ? `${caminoMonths(s.monthsSaved)} antes que hoy (${caminoMonthText(base.debtFreeMonthKey)})` : base.beyondHorizon ? "hoy alguna deuda no acaba" : "como el calendario actual")}
-      ${caminoHeroHtml("Intereses que os ahorráis", s.interestSaved === null ? "—" : money(s.interestSaved, true), s.totalInterest === null ? "alguna deuda no acaba" : `pagaréis ${money(s.totalInterest, true)} en lugar de ${money(base.totalInterest ?? 0, true)}`)}
+      ${ahorroHero}
       ${caminoHeroHtml("Primera deuda saldada", s.firstPayoff ? s.firstPayoff.label : "—", s.firstPayoff ? caminoMonthText(s.firstPayoff.payoffMonthKey) : "")}
     </div>`;
   const pago = r.recommended.lumpApplied.length
     ? `<p class="e19-kpi-note">El pago inicial va a ${r.recommended.lumpApplied.map((x) => `${escapeHtml(x.label)} (${escapeHtml(money(x.amount, true))}${x.settles ? ", la salda" : ""})`).join(" y ")}.</p>`
     : "";
-  return `${planOptimoPreguntaHtml(r)}${heroes}${planOptimoRazonHtml(r)}${planOptimoTramosHtml(r.recommended.periods)}${pago}${planOptimoAvisosHtml(r, refs)}`;
+  const sinPrevision = modo === "fijo" && planOptimoModo !== "fijo" ? `<p class="e19-kpi-note">Sin previsión mensual todavía, el plan pone un importe fijo (de entrada, la capacidad libre).</p>` : "";
+  return `${planOptimoPreguntaHtml(r)}${heroes}${planOptimoRazonHtml(r)}${modo === "prevision" ? planOptimoLiquidezHtml(r, liquidez, fijo) : sinPrevision}${planOptimoTramosHtml(r.recommended.periods)}${pago}${planOptimoQuitasHtml(r, ofertas, contracts)}${planOptimoAvisosHtml(r, refs)}`;
 }
 
 // La llama renderDeudaRuta (views/deuda.js) junto a la del camino, con el motor del camino y el del plan.
@@ -333,6 +470,7 @@ function renderPlanOptimo(engine, contracts, Plan) {
     const mensual = qs("planOptimoMensual");
     if (mensual && planOptimoMensual === null && document.activeElement !== mensual) mensual.value = String(Math.max(0, Math.floor((refs.capacity || 0) / 10) * 10));
     planOptimoSincronizarControles();
+    planOptimoPintarQuitas(contracts || []);
     const html = planOptimoHtml(engine, contracts || [], isoLocalDate(new Date()).slice(0, 7), refs, Plan);
     if (box.__planHtml !== html) {
       box.innerHTML = html;
@@ -345,6 +483,8 @@ function renderPlanOptimo(engine, contracts, Plan) {
 
 // Los controles de orden y margen dicen lo guardado (sin pisar lo que se está escribiendo).
 function planOptimoSincronizarControles() {
+  const modo = planOptimoModo || "prevision";
+  document.querySelectorAll('input[name="planOptimoModo"]').forEach((radio) => { radio.checked = radio.value === modo; });
   const orden = planOptimoOrdenGuardado() || "avalancha";
   document.querySelectorAll('input[name="planOptimoOrden"]').forEach((radio) => { radio.checked = radio.value === orden; });
   const margen = globalThis.FinanceCanonicalDebtOptimalPlan?.tolerance?.(planOptimoMargenGuardado());
@@ -389,6 +529,28 @@ function planOptimoOnMargen(target) {
 function planOptimoOnChange(event) {
   const target = event.target;
   if (target?.name === "planOptimoOrden") planOptimoElegirOrden(target.value, false);
+  if (target?.name === "planOptimoModo" && (target.value === "prevision" || target.value === "fijo")) {
+    planOptimoModo = target.value;
+    planOptimoRepintar();
+  }
+}
+
+// UND-11: una quita escrita se guarda al momento (vaciarla guarda 0: «sin oferta», también frente a la registrada en Contratos).
+function planOptimoOnQuita(target) {
+  const raw = String(target.value || "").replace(",", ".").trim();
+  const value = raw === "" ? 0 : Number(raw);
+  const note = qs("planOptimoNota");
+  if (!Number.isFinite(value) || value < 0 || value > 100000) {
+    target.setAttribute("aria-invalid", "true");
+    if (note) note.textContent = "Escribe la quita como un importe de 0 € o más, por ejemplo 1500 (vacío: sin oferta).";
+    return;
+  }
+  target.removeAttribute("aria-invalid");
+  if (note) note.textContent = "";
+  const actuales = planOptimoGuard(() => JSON.parse(storageGet(storageKey(PLAN_OPTIMO_QUITAS_KEY), "{}")), {}) || {};
+  actuales[target.dataset.planOptimoQuita] = Math.round(value * 100) / 100;
+  planOptimoGuardar(PLAN_OPTIMO_QUITAS_KEY, JSON.stringify(actuales));
+  planOptimoRepintar();
 }
 
 function planOptimoOnClick(event) {
@@ -399,6 +561,7 @@ function planOptimoOnClick(event) {
 function planOptimoOnInput(event) {
   const target = event.target;
   if (target && (target.id === "planOptimoMargenPct" || target.id === "planOptimoMargenAbs")) { planOptimoOnMargen(target); return; }
+  if (target?.dataset?.planOptimoQuita !== undefined) { planOptimoOnQuita(target); return; }
   if (!target || (target.id !== "planOptimoMensual" && target.id !== "planOptimoPago")) return;
   const parsed = caminoParseExtra(target.value);
   const note = qs("planOptimoNota");
@@ -409,8 +572,10 @@ function planOptimoOnInput(event) {
   }
   target.removeAttribute("aria-invalid");
   if (note) note.textContent = "";
-  if (target.id === "planOptimoMensual") planOptimoMensual = parsed;
-  else planOptimoPago = parsed;
+  if (target.id === "planOptimoMensual") {
+    planOptimoMensual = parsed;
+    planOptimoModo = "fijo"; // UND-12: escribir un importe es elegir el importe fijo
+  } else planOptimoPago = parsed;
   planOptimoRepintar();
 }
 

@@ -113,6 +113,27 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 22 de noviembre de 2026 (524): UND-11 y UND-12, plan óptimo v2 (quitas dentro del cálculo y la liquidez mes a mes)
+
+- **Publicado de antes:** «Verify and deploy Pages» **1525 en verde** (main 9856a114, #664: DEC-29, UND-02, UND-23 y UND-26 ya en el sitio); «Published availability» **394 en verde**, lanzada a mano. #665 (UND-01) con su CI 1526 en verde, Safari incluido: marcado listo y fusionado comprobada la cabeza 9dd02ee0, **main 13d4b69f**. Su despliegue, el 1527, en curso al escribir esto (e2e ya en verde): lo anota la entrada siguiente.
+- **El hogar:** «empieza» con el traspaso del 22/11: tras #665, la semana del 30/11 de la undécima auditoría (§6). Esta es la primera de sus entregas.
+- **UND-12, la liquidez mes a mes** (`liquidityPlan` en `canonical-debt-optimal-plan.js`):
+  - «Al mes» pasa a «Lo que permita la previsión (sin bajar del suelo)», por defecto, o «Un importe fijo» (escribir un importe lo elige);
+  - cada mes pone lo que sobra ese mes en la previsión mensual (los meses en negativo ponen 0), siempre que lo puesto hasta entonces no deje **ningún** mes, ni ese ni los siguientes, por debajo del suelo de Hoy. La liquidez de hoy no se toca: es la del pago inicial;
+  - se compara con **el importe fijo más alto que tampoco baja del suelo** (la v1 con la misma liquidez mínima, la métrica de la ficha) y se dice cuál sale mejor, también si gana el fijo;
+  - los tramos dicen el mínimo, el máximo y el total de cada uno; si la previsión ya baja del suelo sin poner nada, se avisa.
+- **UND-11, quitas dentro del cálculo** (`settlements` en `canonical-debt-payoff-path.js`; NTC-05, mismo motor):
+  - «Ofertas de quita», plegable, una casilla por contrato (recordada en el navegador y en la copia: `plan-optimo-quitas`); parte de la oferta registrada en Contratos si la hay;
+  - una quita es un destino más del extra: se junta y, al llegar a lo ofrecido (o al saldo, si con las cuotas baja de ahí), la deuda se cancela; lo que faltaba es lo perdonado. Una deuda sin cuota activa entra con el saldo quieto (la convención de SVD-3);
+  - se ordena por su **rendimiento equivalente** (`settlementYield`): con cuota, la tasa a la que pagar la quita vale las cuotas que quedan (exacta); sin cuota, lo perdonado entre lo pagado. **Me aparto del texto de la ficha:** decía que un 40 % de quita sobre 1.000 € «vale como una deuda al 40 %»; lo que se compara es dónde rinde más cada euro puesto, y son 400 € por 600 €: un 66,7 %;
+  - el pago inicial puede ir a la quita; «Lo que os ahorráis» = intereses + lo perdonado; si las cuotas dejan la deuda por debajo de lo ofrecido antes de juntarlo, se dice que no perdona nada;
+  - **no propone ni acepta nada** (decisión 6): enlaza a Ofertas › Simulador visual, que tiene su «Qué ocurrirá».
+- **XGO-01:** Deuda › Plan pasa de 8 a 9 plegados (el de las quitas); los titulares no cambian. Manifiesto al día.
+- **Versiones:** los dos motores, `camino-deuda-ui.js` y `camino-deuda.css` a `20261122und11`; `novedades.js` y `app.js` (la clave nueva en la copia) a `20261122und11`, con las 28 pruebas que comprueban la de `app.js`.
+- **Pruebas:** `tests/und11-und12-plan-optimo-v2.test.cjs` (8), nueva; e2e «UND-11 y UND-12» a 1280 y 390 px `@safari`, con paridad de motor y la comprobación de que ningún mes baja del suelo.
+- **Validación:** `npm run verify` en verde: `npm test` **6.882/6.882** (+8), lint y typecheck. Batería en navegador (e2e, a11y y perf-screens en Chromium, `dist` y servidor nuevos): **505/508** en 30,1 min. Los 3 fallos, de este cambio: el inventario de XGO-01 (el plegable nuevo) y mi e2e nueva a los dos anchos, que esperaba un espacio normal antes del «€» (es duro). Corregidos y repetidos: **3/3**. `npm run test:mobile-overflow`: **371 visitas** sin nada cortado. Safari, en el CI.
+- **Lo siguiente, ya hecho en local y validado por separado:** UND-17 (ocultar cifras) con UND-06 (indicador por área, activo desde el 7/12), y UND-13 (kit para hablar con la entidad), cada uno en su PR detrás de este.
+
 ## Cierre de sesión — 22 de noviembre de 2026 (523): UND-01, pruebas de arranque en caliente
 
 - **Qué:** `tests/helpers/arranque-en-caliente.cjs` (`arrancarEnCaliente(page)`) deja un estado sintético con la forma del dato real y vuelve a abrir la app con lo guardado y nada en memoria. El estado:

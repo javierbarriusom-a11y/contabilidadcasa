@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**22/11/2026 · Plan óptimo v2 (undécima auditoría §6, semana del 30/11): UND-11 y UND-12.** En Deuda › Plan, el extra de cada mes sale de la previsión sin bajar del suelo (comparado con el importe fijo más alto que tampoco baja), y una oferta de quita entra en el plan por lo que rinde, con lo perdonado en el ahorro; proponerla sigue siendo del simulador. Antes, UND-01 (#665) y la availability de #664 (PROJECT_STATE 524).
+
 **22/11/2026 · Fiabilidad (undécima auditoría §6): DEC-29, UND-02, UND-23 y UND-26.** El titular de Deuda › Plan ya no se contradice con deudas sin cuota; Hoy dice «No he podido dibujar la previsión» con «Recalcular» en lugar de dejar el hueco; el medidor cuenta cada área de Hoy y los fallos de JavaScript por fichero, sin mensajes. Antes, #663 arregló el repintado en Safari al desplazarse y el despliegue 1523 publicó #661 a #663 (PROJECT_STATE 521 y 522).
 
 **21/11/2026 · D-N23, D-N27 y D-N28 decididas y hechas:** un acuerdo aceptado sustituye a la cuota de hoy desde su mes, en el plan y en las estrategias del simulador guardadas en Escenarios (paridad exacta con el simulador); el plan óptimo ya no elige solo la bola de nieve: lo pregunta, recuerda el orden y deja cambiar el margen; Deuda en tres pestañas (Plan · Contratos · Ofertas, con Comparar, Préstamo y el simulador dentro de Ofertas), sin retirar ninguna pantalla (PROJECT_STATE 519).
