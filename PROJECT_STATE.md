@@ -113,6 +113,17 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 22 de noviembre de 2026 (523): UND-01, pruebas de arranque en caliente
+
+- **Qué:** `tests/helpers/arranque-en-caliente.cjs` (`arrancarEnCaliente(page)`) deja un estado sintético con la forma del dato real y vuelve a abrir la app con lo guardado y nada en memoria. El estado:
+  - dos contratos dados de alta por «varios a la vez», con los de ejemplo ocultos;
+  - seis meses de movimientos (nómina, súper y luz) y un apunte a mano.
+  La e2e «UND-01 · Arranque en caliente» recorre, a 1280 y a 390 px `@safari`, **9 pantallas v2**: Hoy (cifra, gráfico y la previsión diaria con filas), Movimientos (los 19 movimientos guardados y la bandeja), Plan › Mes, Plan › Previsión, Cierre, Deuda › Plan (plan óptimo y camino, titular sin «sin fecha estimable»), el simulador visual, Registrar › Importar y Deuda › Contratos. En cada una, sin «No he podido recalcular» y sin errores de página.
+- **Por qué:** todas las pruebas en navegador arrancaban sin nada guardado, y el gráfico de Hoy estuvo once días perdido. Solo fallaba al volver a abrir la app con datos.
+- **Métrica de la ficha:** pantallas v2 con prueba en caliente / total = **9 / 11**. Quedan Clasificar (diálogo sobre Movimientos) y el Repaso semanal (diálogo con puerta de semana), que piden su propio estado.
+- **Lo que enseñó al escribirla:** con movimientos sin clasificar, Movimientos v2 abre por la bandeja y no por la lista de días. No es un fallo: la e2e comprueba lo que de verdad sale.
+- **Validación:** VALIDACION_523
+
 ## Cierre de sesión — 22 de noviembre de 2026 (522): DEC-29, UND-02, UND-23 y UND-26 (fiabilidad de la undécima auditoría)
 
 - **Publicado de antes:** #663 (Safari repintaba la sección al desplazarse) con su CI en verde, Safari incluido. Fusionado comprobada la cabeza 08c83c08: main 62ed19fc. **«Verify and deploy Pages» 1523 en verde:** se publican por fin #661, #662 y #663. «Published availability» **392 en verde**, lanzada a mano.
