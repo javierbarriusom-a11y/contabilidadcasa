@@ -113,6 +113,20 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 22 de noviembre de 2026 (526): UND-13, kit para hablar con cada entidad; despliegue 1529 en rojo (Chromium del CI se cae al arrancar)
+
+- **«Verify and deploy Pages» 1529 (main 2fef2fbf, #666) en rojo: no publicó.** Falló 1 de 345 e2e, «DEC-22 · con el diseño de siempre se queda en Hoy, sin errores», que no toca #666. **Causa:** el Chromium del CI se cayó al arrancar (`Received signal 11 SEGV_MAPERR` en el proceso de la GPU, tras «InitializeSandbox() called with multiple threads in process gpu-process») y la prueba acabó con «browserContext.close: Test ended». Es un fallo del navegador del ejecutor, no de la app: la misma prueba pasó en el CI de #666 y en el de #667, y no hay código que arreglar. **No se relanzó.** #666 se publica con el despliegue de #667, como en el 1518.
+- **#667 (UND-17 y UND-06)** con su CI en verde a la primera, Safari incluido: marcado listo y fusionado comprobada la cabeza e26dd910, **main 65f70670**. Su despliegue publica #666 y #667: lo anota la entrada siguiente.
+- **UND-13, kit para hablar con cada entidad** (`kit-entidad-ui.js`, nuevo; DEC-26): «Kit para la entidad» en cada fila de Deuda › Contratos abre una hoja con:
+  - los datos del contrato;
+  - qué pedir según el estado: siempre el certificado de deuda con el desglose (capital, intereses ordinarios, de demora, comisiones y gastos) y el cuadro de pagos; con impago, cuánto aceptarían para cancelarla y un plan de pagos; al día, cuánto cuesta amortizar antes; tarjeta, los intereses y la TAE de cada periodo; al terminar, la carta de saldo cero y la baja de los ficheros;
+  - un guion para la llamada y una carta con los datos del contrato y **huecos para lo personal** (la app no pone nombres ni DNI en ningún papel);
+  - «Imprimir» (solo la hoja, sin `:has()`, como el informe de la Renta), «Copiar la carta» y el seguimiento «Lo hemos pedido» / «Lo hemos recibido», con fecha, en este navegador (fuera de la copia, como «lo he pedido» de XPR-11). El medidor los cuenta: es la métrica de la ficha. **Nada se envía.**
+- **Versiones:** `kit-entidad-ui.js` a `20261122und13`; `views/deuda.js` (en el mapa de `app.js`), `styles.css`, `medidor-utilidad.js` y `novedades.js` a `20261122und13`.
+- **Pruebas:** `tests/und13-kit-entidad.test.cjs` (5), nueva; e2e a 1280 y 390 px `@safari` (abre, apunta el pedido, imprime solo la hoja, devuelve el foco, se recuerda, medidor); axe del kit en claro y oscuro.
+- **Validación:** el código de esta rama es **idéntico** al árbol validado en local con UND-17 y UND-06 (`git diff` solo en documentación): `npm test` 6.896/6.896, lint y typecheck; batería en navegador **517/519**, los 2 fallos en mi e2e de UND-13 (esperaba «1 contratos dados de alta»; la app dice «Un contrato dado de alta.»), corregida y **2/2**; `test:mobile-overflow` **371 visitas** sin nada cortado. Safari, en el CI.
+- **Con esto, la semana del 30/11 de la undécima auditoría queda hecha** (UND-11, UND-12, UND-13, UND-17 y UND-06). Lo siguiente es la del 7/12: UND-04 (Ajustes por áreas), UND-08 («¿Me lo puedo permitir?») y DEC-38 en Inversión y Escenarios.
+
 ## Cierre de sesión — 22 de noviembre de 2026 (525): UND-17 (ocultar cifras) y UND-06 (indicador por área de Hoy, activo desde el 7/12)
 
 - **Publicado de antes:** «Verify and deploy Pages» **1527 en verde** (main 13d4b69f, #665: UND-01 en el sitio); «Published availability» **395 en verde**, lanzada a mano. #666 (UND-11 y UND-12) con su CI en verde a la primera, Safari incluido: marcado listo y fusionado comprobada la cabeza d20057f6, **main 2fef2fbf**. Su despliegue, en curso al escribir esto: lo anota la entrada siguiente.

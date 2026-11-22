@@ -1362,12 +1362,14 @@ function deudaContratosRowHtml(contract) {
       <td><input type="number" min="0" max="100" step="1" inputmode="numeric" data-deuda-contrato-id="${id}" data-deuda-contrato-field="fiscalDeductionPct" value="${contract.fiscalDeductionPct > 0 ? contract.fiscalDeductionPct : ""}" placeholder="0" aria-label="Deducción fiscal de ${entityLabel} (%)" /></td>
       <td><input type="number" min="0" step="1" inputmode="numeric" data-deuda-contrato-id="${id}" data-deuda-contrato-field="remainingInstallments" value="${installments}" aria-label="Plazos restantes de ${entityLabel}" /></td>
       <td><select data-deuda-contrato-id="${id}" data-deuda-contrato-field="paymentStatus" aria-label="Estado de ${entityLabel}">${deudaContratosStatusOptionsHtml(contract.paymentStatus)}</select></td>
-      <td><span class="e19-badge ${quality.tone}">${escapeHtml(quality.label)}</span>${edited ? ' <span class="e19-badge e19-badge-neutral">Editado</span>' : ""}${deudaContratosAcuerdoHtml(contract)}</td>
+      <td><span class="e19-badge ${quality.tone}">${escapeHtml(quality.label)}</span>${edited ? ' <span class="e19-badge e19-badge-neutral">Editado</span>' : ""}${deudaContratosAcuerdoHtml(contract)}
+        <button type="button" class="secondary-button deuda-kit-boton" data-kit-entidad="${id}" aria-label="Kit para hablar con ${entityLabel}">Kit para la entidad</button></td>
       <td><button type="button" class="deuda-contratos-row-remove" data-deuda-contrato-remove="${id}" aria-label="Eliminar el contrato de ${entityLabel}">×</button></td>
     </tr>`;
 }
 
 function renderDeudaContratos() {
+  globalThis.attachKitEntidad?.(document); // UND-13 (kit-entidad-ui.js): el kit para hablar con cada entidad, desde la fila
   renderDeudaScreenTabs("deuda-contratos");
   renderDeudaFlowNav("deuda-contratos");
   const body = qs("deudaContratosTable");
