@@ -4423,6 +4423,27 @@ function setupViewNavigation() {
 // muchas de ellas con render diferido (loadViewChunk); en vez de tocar cada una a mano, un único
 // observador cubre las que ya existen y las que aparezcan después. Solo marca las que de verdad
 // desbordan — no añade una parada de tabulación a una tabla que ya cabe entera.
+// 22/11/2026 (despliegues 1518 y 1521 en rojo, en Safari a 390 px): en el móvil, la barra del navegador se esconde o aparece al
+// desplazarse y Safari lanza «resize» cambiando solo el alto. Repintar entera la sección activa por eso cerraba los plegables
+// abiertos (se vuelven a crear cerrados) y movía lo que se iba a tocar, una y otra vez mientras se desplazaba. Lo que depende del
+// tamaño (gráficos, tablas, el menú del móvil) depende del ancho: solo se repinta si cambia el ancho.
+let lastResizeWidth = typeof window !== "undefined" ? window.innerWidth : 0;
+function resizeChangesLayout(width) {
+  if (width === lastResizeWidth) return false;
+  lastResizeWidth = width;
+  return true;
+}
+
+function handleWindowResize() {
+  if (!resizeChangesLayout(window.innerWidth)) return;
+  if (renderFrame) window.cancelAnimationFrame(renderFrame);
+  renderFrame = window.requestAnimationFrame(() => {
+    renderFrame = 0;
+    if (window.innerWidth > 860) setMobileNavOpen(false);
+    scheduleActiveSectionRender(viewFromHash(), { force: true });
+  });
+}
+
 function markScrollableTableWraps(root = document) {
   root.querySelectorAll(".table-wrap:not([tabindex])").forEach((el) => {
     if (el.scrollWidth > el.clientWidth) el.setAttribute("tabindex", "0");
@@ -31999,14 +32020,7 @@ async function init() {
   document.querySelectorAll(".scenario-buttons button").forEach((button) => {
     button.addEventListener("click", () => applyScenario(button.dataset.scenario));
   });
-  window.addEventListener("resize", () => {
-    if (renderFrame) window.cancelAnimationFrame(renderFrame);
-    renderFrame = window.requestAnimationFrame(() => {
-      renderFrame = 0;
-      if (window.innerWidth > 860) setMobileNavOpen(false);
-      scheduleActiveSectionRender(viewFromHash(), { force: true });
-    });
-  });
+  window.addEventListener("resize", handleWindowResize);
   updateProjectModeUi();
   updateDebtModeUi();
   setupE17Experience();
