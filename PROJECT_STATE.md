@@ -124,7 +124,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 - **Arreglo:** solo se repinta si cambia el **ancho** (`resizeChangesLayout`/`handleWindowResize`). Lo que depende del tamaño (gráficos, tablas, el menú del móvil) depende del ancho. La e2e de D-N27 pasa a 60 s: dos recargas y el alta de tres contratos superan 30 s en Safari. `app.js` a `20261122resize`. **No se relanzó para conseguir el verde.**
 - **El arreglo del 1518 sigue:** el `scroll-margin-top` evita que el foco quede bajo la cabecera fija (WCAG 2.4.11), y la activación por teclado de la e2e sigue siendo válida.
 - **Pruebas:** `tests/resize-solo-ancho.test.cjs` (2), nueva.
-- **Validación:** VALIDACION_521
+- **Validación:** `npm test` **6.866/6.866** (+2) y lint en verde. Batería en navegador en local (e2e, a11y y perf-screens en Chromium, con servidor y `dist` recién construidos): **503/503** en 26,7 min. En Chromium no se reproduce (no esconde barra al desplazarse); la lectura en Safari es la de este CI.
 
 ## Cierre de sesión — 21 de noviembre de 2026 (520): lo que dejó #658 (otra conversación), portado y publicado desde aquí
 
