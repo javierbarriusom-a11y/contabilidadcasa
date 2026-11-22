@@ -51,7 +51,7 @@ test("UND-17 · CSS en los dos temas: el ojo de 44 px (34 a 195 px), tachado al 
   assert.match(bloque, /\.ocultar-cifras-ojo \{\s*min-height: 0;/, "styles.css da 350 px de alto mínimo a todo svg");
   assert.match(bloque, /\.ocultar-cifras-toggle\[aria-pressed="true"\] \.ocultar-cifras-tachado \{\s*display: inline;/);
   assert.match(bloque, /\.cifras-ocultas input\[type="number"\]:not\(:focus\) \{\s*filter: blur\(6px\);/);
-  assert.match(bloque, /@media \(max-width: 259px\) \{[\s\S]*min-width: 34px;[\s\S]*\.mobile-nav-toggle \{\s*grid-column: 4;/);
+  assert.match(bloque, /@media \(width < 260px\) \{[\s\S]*min-width: 34px;[\s\S]*\.mobile-nav-toggle \{\s*grid-column: 4;/);
   assert.doesNotMatch(bloque, /data-tema/, "no cuelga del tema v2: también en el clásico");
   assert.match(read("index.html"), /styles\.css\?v=20261122und17/);
 });

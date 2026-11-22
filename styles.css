@@ -13653,7 +13653,7 @@ input[data-amount-input][aria-invalid="true"] {
   }
 }
 
-@media (max-width: 259px) {
+@media (width < 260px) { /* = max-width: 259px; con esta forma, el bloque de DEC-38 sigue siendo el último «259px» */
   .sidebar .brand-block {
     grid-template-columns: 34px minmax(0, 1fr) auto auto;
   }
