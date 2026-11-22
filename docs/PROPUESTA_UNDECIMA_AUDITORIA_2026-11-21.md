@@ -354,5 +354,6 @@ a lo pactado con una entidad no se le adelanta nada; no ejecuta nada (A11-4).
    *(22/11: hechas UND-17 y UND-06, PROJECT_STATE 525; UND-06 activo desde el 7/12, tras la revisión de las áreas de UND-23.)*
    *(22/11: hecha UND-13, PROJECT_STATE 526: la semana del 30/11, completa.)*
 3. **Semana del 7/12 — carga:** UND-04 (Ajustes por áreas), UND-08 («¿Me lo puedo permitir?»), DEC-38 en Inversión y Escenarios.
+   *(22/11: UND-08 hecha, PROJECT_STATE 528, la línea de Hoy desde el 14/12; DEC-38 en Inversión y Escenarios, sin nada cortado y vigilado por el CI, PROJECT_STATE 529; UND-04, decidida D-N29: «Áreas solo en el móvil».)*
 
 Lo demás, tras el cierre de noviembre y la revisión de D-N11 (4/12).

@@ -11,7 +11,11 @@ const read = (file) => fs.readFileSync(path.join(__dirname, "..", file), "utf8")
 test("DEC-38 · paso 3: el CI mira a 195 px las pantallas revisadas (Hoy, Movimientos, Plan, Cierre, Ajustes y Deuda)", () => {
   const tool = read("tools/check-mobile-overflow.mjs");
   assert.match(tool, /const WIDTHS = \[195, 260, 320, 360, 768, 1280\];/);
-  assert.match(tool, /const REVISADAS_A_195 = new Set\(\["home", "movements", "plan", "cierre", "ajustes", "deuda-ruta", "deuda-comparar", "deuda-prestamo", "deuda-contratos", "deuda-simulador"\]\);/);
+  assert.match(tool, /const REVISADAS_A_195 = new Set\(\["home", "movements", "plan", "cierre", "ajustes", "deuda-ruta", "deuda-comparar", "deuda-prestamo", "deuda-contratos", "deuda-simulador",\n/);
+  // DEC-38 en Inversión y Escenarios (undécima §6, semana del 7/12): las nueve pantallas, medidas sin nada cortado a 195 px.
+  for (const id of ["inversion-cartera", "inversion-rebalanceo", "inversion-fiscal", "inversion-jubilacion", "inversion-apalancamiento", "escenario-simular", "escenario-aplicar", "escenario-guardados", "escenario-comparar"]) {
+    assert.ok(tool.slice(tool.indexOf("const REVISADAS_A_195"), tool.indexOf("]);", tool.indexOf("const REVISADAS_A_195"))).includes(`"${id}"`), id);
+  }
   assert.match(tool, /if \(width === 195 && !REVISADAS_A_195\.has\(id\)\) continue;/, "a 195 px, solo las revisadas");
 });
 
