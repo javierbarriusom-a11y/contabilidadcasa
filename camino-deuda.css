@@ -257,3 +257,19 @@
 .deuda-ofertas-tab {
   scroll-margin-top: 88px;
 }
+
+/* UND-11 (22/11/2026): las ofertas de quita, una por deuda, en tantas columnas como quepan; y los textos largos del plan no se salen a
+   195 px. */
+.plan-optimo-quitas-filas {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+}
+
+.plan-optimo-quitas-filas small {
+  color: var(--e19-muted);
+  font-weight: 400;
+}
+
+.plan-optimo-tramos li,
+.plan-optimo-quitas-resultado .cam-frase {
+  overflow-wrap: anywhere;
+}

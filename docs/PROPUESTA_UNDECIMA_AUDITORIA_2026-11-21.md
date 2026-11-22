@@ -348,6 +348,9 @@ a lo pactado con una entidad no se le adelanta nada; no ejecuta nada (A11-4).
    *(22/11: hechas UND-02, UND-23, UND-26 y DEC-29, PROJECT_STATE 522; UND-01, 9 de 11 pantallas v2 en caliente, PROJECT_STATE 523.)*
 2. **Semana del 30/11 — deuda y uso:** UND-11 y UND-12 (plan v2, tras D-N23), UND-13 (kit para hablar con la entidad), UND-17
    (ocultar cifras), UND-06 (indicador por área).
+   *(22/11: hechas UND-11 y UND-12, el plan óptimo v2, PROJECT_STATE 524. Me aparto en una cosa del texto de UND-11: el rendimiento
+   equivalente de una quita sin cuota es lo perdonado entre lo pagado (40 % sobre 1.000 € = 66,7 %, no 40 %), porque lo que se
+   compara es dónde rinde más cada euro que se pone.)*
 3. **Semana del 7/12 — carga:** UND-04 (Ajustes por áreas), UND-08 («¿Me lo puedo permitir?»), DEC-38 en Inversión y Escenarios.
 
 Lo demás, tras el cierre de noviembre y la revisión de D-N11 (4/12).

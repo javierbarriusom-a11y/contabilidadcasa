@@ -12,6 +12,12 @@
  *    deuda, su cuota se suma al extra y va a la siguiente del orden (bola de nieve). Sin la opción, el resultado no cambia.
  *  - No incluye comisiones de amortización anticipada ni cambios de tipo en deudas variables.
  *  - Una deuda sin cuota activa, o sin TAE ni plazo del que deducirlo, NO entra en la cuenta (dato ausente no es cero) y se lista.
+ *  - UND-11 (plan óptimo v2, 22/11/2026): con `settlements` ([{id, amount, prepaid}]), una oferta de quita («pagad X y cancelamos la
+ *    deuda») es un destino más del extra. Lo que se pone de más se va juntando para esa quita y, el mes en que llega a X (o al saldo,
+ *    si con las cuotas baja de X), la deuda se cancela: lo que faltaba es lo que se perdona (`forgiven`). Mientras tanto la deuda sigue
+ *    con su cuota y su interés; una deuda sin cuota activa entra con el saldo quieto (la convención de los acuerdos de SVD-3: no se
+ *    proyectan intereses de demora). En el orden, cuenta su rendimiento equivalente (`settlementYield`), no su TAE.
+ *  - UND-12 (22/11/2026): con `extraByMonth`, el extra de cada mes es el de esa posición (y `extraMonthly` pasado el último).
  *
  * Motor puro: sin DOM, sin red ni almacenamiento. Nada de esto ejecuta ninguna operación (A11-4).
  */
@@ -102,6 +108,57 @@
     return { included: { id: base.id, label: base.label, principal: base.principal, payment, aprPct: 0, monthlyRate: 0, rateSource: "acuerdo", tolerance: DECLARED_TOLERANCE, installments: 0, agreement } };
   }
 
+  /**
+   * UND-11: lo que rinde cada euro puesto en una quita, como una TAE para poder ordenarla con las demás deudas.
+   *  - Con cuota activa y TAE: la TAE a la que el pago de la quita vale lo mismo que las cuotas que quedan (la tasa interna: pagar X hoy
+   *    en vez de esas cuotas). Es exacta.
+   *  - Sin cuota activa (la deuda está parada o en impago, que es cuando suele haber quita): lo perdonado entre lo pagado, como si se
+   *    pagara en un año (40 % de quita sobre 1.000 €: 400 € de ahorro por 600 € puestos, un 66,7 %). Es una convención y se dice.
+   * null si no es quita (pagar X no baja de lo que se debe).
+   */
+  function settlementYield(row, amount) {
+    const offer = round2(finite(amount) ?? 0);
+    if (!(offer > 0) || !(row?.principal > 0) || offer >= row.principal - DECLARED_TOLERANCE) return null;
+    if (row.payment > 0 && Number.isFinite(row.monthlyRate) && row.rateSource !== "quita") {
+      let balance = row.principal;
+      let months = 0;
+      while (balance > DECLARED_TOLERANCE && months < MAX_MONTHS) {
+        const interest = balance * row.monthlyRate;
+        if (row.payment <= interest) return { aprPct: 100, method: "cuotas", forgiven: round2(row.principal - offer) };
+        balance = balance + interest - row.payment;
+        months += 1;
+      }
+      const lastPayment = row.payment + Math.min(0, balance);
+      const payments = row.payment * (months - 1) + lastPayment;
+      const rate = impliedMonthlyRate(offer, payments / months, months);
+      return { aprPct: rate === null ? 0 : round2(rate * 1200), method: "cuotas", forgiven: round2(row.principal - offer) };
+    }
+    return { aprPct: round2(((row.principal - offer) / offer) * 100), method: "un-ano", forgiven: round2(row.principal - offer) };
+  }
+
+  // UND-11: una deuda con oferta de quita entra en la cuenta aunque hoy no tenga cuota activa (con el saldo quieto).
+  function withSettlement(contract, classified, offer) {
+    if (!offer || !(offer.amount > 0)) return classified;
+    if (classified?.included?.agreement) return classified;
+    const plainRow = classified?.included || (() => {
+      const base = classified.excluded;
+      const payment = contract.paymentStatus === "active" ? Math.max(0, round2(finite(contract.currentPayment) ?? 0)) : 0;
+      return { id: base.id, label: base.label, principal: base.principal, payment, aprPct: 0, monthlyRate: 0, rateSource: "quita", tolerance: DECLARED_TOLERANCE, installments: 0 };
+    })();
+    const yieldInfo = settlementYield(plainRow, offer.amount);
+    if (!yieldInfo) return classified;
+    return { included: { ...plainRow, settlement: { amount: round2(offer.amount), prepaid: Math.min(round2(offer.amount), Math.max(0, round2(finite(offer.prepaid) ?? 0))), yieldPct: yieldInfo.aprPct, method: yieldInfo.method } } };
+  }
+
+  function settlementMap(list) {
+    const map = new Map();
+    (Array.isArray(list) ? list : []).forEach((item) => {
+      const amount = finite(item?.amount);
+      if (item && item.id !== undefined && amount !== null && amount > 0) map.set(String(item.id), { amount: round2(amount), prepaid: finite(item.prepaid) ?? 0 });
+    });
+    return map;
+  }
+
   function classifyPlain(contract) {
     const principal = round2(finite(contract?.currentPrincipal) ?? 0);
     if (!(principal > 0)) return null;
@@ -120,18 +177,33 @@
     return { included: { ...base, payment, aprPct: round2(monthlyRate * 1200), monthlyRate, rateSource: "implied", tolerance: IMPLIED_TOLERANCE, installments } };
   }
 
+  // UND-11: una quita se ordena por su rendimiento equivalente (avalancha) o por lo que hay que pagar (bola de nieve).
+  function orderApr(row) {
+    return row.settlement ? row.settlement.yieldPct : row.aprPct;
+  }
+
+  function orderPrincipal(row) {
+    return row.settlement ? row.settlement.amount - row.settlement.prepaid : row.principal;
+  }
+
   function orderOf(included, strategy, order) {
     const byStrategy = included.slice().sort((a, b) => (strategy === "bola-nieve"
-      ? a.principal - b.principal || b.aprPct - a.aprPct
-      : b.aprPct - a.aprPct || a.principal - b.principal) || a.id.localeCompare(b.id));
+      ? orderPrincipal(a) - orderPrincipal(b) || orderApr(b) - orderApr(a)
+      : orderApr(b) - orderApr(a) || orderPrincipal(a) - orderPrincipal(b)) || a.id.localeCompare(b.id));
     if (!Array.isArray(order) || !order.length) return byStrategy;
     const rank = new Map(order.map((id, index) => [String(id), index]));
-    return byStrategy.slice().sort((a, b) => {
+    const ranked = byStrategy.filter((row) => !row.settlement).sort((a, b) => {
       const ra = rank.has(a.id) ? rank.get(a.id) : Infinity;
       const rb = rank.has(b.id) ? rank.get(b.id) : Infinity;
       if (ra === rb) return byStrategy.indexOf(a) - byStrategy.indexOf(b);
       return ra - rb;
     });
+    // Las quitas no están en el orden de DEB5: entran delante de la primera deuda que rinda menos que ellas.
+    byStrategy.filter((row) => row.settlement).forEach((row) => {
+      const at = ranked.findIndex((other) => !other.settlement && other.aprPct < row.settlement.yieldPct);
+      ranked.splice(at === -1 ? ranked.length : at, 0, row);
+    });
+    return ranked;
   }
 
   // SVD-3: un mes de una deuda con acuerdo aceptado, desde el mes del acuerdo. El primer mes, lo que quede de deuda pasa a ser
@@ -153,7 +225,7 @@
 
   /**
    * @param {Array<Record<string, any>>} contracts filas de contrato canónico (id, entity, type, paymentStatus, currentPrincipal, currentPayment, apr, remainingInstallments)
-   * @param {{startMonthKey?: string, extraMonthly?: number, strategy?: string, order?: string[], redirectFreed?: boolean}} [options]
+   * @param {{startMonthKey?: string, extraMonthly?: number, strategy?: string, order?: string[], redirectFreed?: boolean, extraByMonth?: number[], settlements?: Array<{id: string, amount: number, prepaid?: number}>}} [options]
    */
   function project(contracts, options = {}) {
     const extra = options.extraMonthly === undefined ? 0 : (typeof options.extraMonthly === "number" ? options.extraMonthly : NaN);
@@ -162,11 +234,15 @@
     const startMonthKey = options.startMonthKey;
     const strategy = STRATEGIES.includes(options.strategy) ? options.strategy : "avalancha";
     const redirectFreed = options.redirectFreed === true;
+    const byMonth = Array.isArray(options.extraByMonth) ? options.extraByMonth.map((value) => Math.max(0, finite(value) ?? 0)) : null;
+    const extraFor = (index) => (byMonth && index < byMonth.length ? byMonth[index] : extra);
+    const offers = settlementMap(options.settlements);
 
     const included = [];
     const excluded = [];
     (Array.isArray(contracts) ? contracts : []).forEach((contract) => {
-      const result = classify(contract);
+      const offer = offers.get(String(contract?.id || ""));
+      const result = offer ? withSettlement(contract, classify(contract), offer) : classify(contract);
       if (!result) return;
       if (result.excluded) excluded.push(result.excluded);
       else included.push(result.included);
@@ -176,6 +252,7 @@
 
     const state = ordered.map((row) => ({
       row, balance: row.principal, interest: 0, paid: 0, extraApplied: 0, payoffIndex: null, stalled: false,
+      fund: row.settlement ? row.settlement.prepaid : 0, forgiven: 0, settledByOffer: false,
       agreement: row.agreement ? { ...row.agreement, startIndex: monthIndexOf(row.agreement.startMonthKey) - monthIndexOf(startMonthKey), started: false } : null,
     }));
     const series = [];
@@ -184,7 +261,7 @@
     for (; month < MAX_MONTHS; month += 1) {
       if (!state.some((entry) => entry.payoffIndex === null)) break;
       const freed = redirectFreed ? state.reduce((sum, entry) => sum + (entry.payoffIndex !== null && entry.payoffIndex < month ? (entry.agreement ? entry.agreement.payment : entry.row.payment) : 0), 0) : 0;
-      let pool = round2(extra + freed);
+      let pool = round2(extraFor(month) + freed);
       state.forEach((entry) => {
         if (entry.payoffIndex !== null) return;
         if (entry.agreement && month >= Math.max(0, entry.agreement.startIndex)) {
@@ -200,7 +277,24 @@
       });
       state.forEach((entry) => {
         // SVD-3: a una deuda con acuerdo aceptado no se le adelanta nada: lo que se paga ya está pactado.
-        if (entry.agreement || entry.payoffIndex !== null || pool <= 0 || entry.balance <= entry.row.tolerance) return;
+        if (entry.agreement || entry.payoffIndex !== null || entry.balance <= entry.row.tolerance) return;
+        if (entry.row.settlement) {
+          // UND-11: lo de más se junta para la quita; el mes que llega (a lo ofrecido o al saldo, si es menos), se cancela.
+          const target = round2(Math.min(entry.row.settlement.amount, entry.balance));
+          const put = round2(Math.max(0, Math.min(pool, target - entry.fund)));
+          if (put > 0 && !firstTarget) firstTarget = { id: entry.row.id, label: entry.row.label, aprPct: entry.row.settlement.yieldPct };
+          entry.fund = round2(entry.fund + put);
+          entry.extraApplied = round2(entry.extraApplied + put);
+          pool = round2(pool - put);
+          if (entry.fund >= target - entry.row.tolerance) {
+            entry.forgiven = round2(Math.max(0, entry.balance - entry.fund));
+            entry.paid = round2(entry.paid + entry.fund);
+            entry.balance = 0;
+            entry.settledByOffer = true;
+          }
+          return;
+        }
+        if (pool <= 0) return;
         const applied = Math.min(pool, entry.balance);
         if (!firstTarget && applied > 0) firstTarget = { id: entry.row.id, label: entry.row.label, aprPct: entry.row.aprPct };
         entry.balance = round2(entry.balance - applied);
@@ -215,12 +309,13 @@
           entry.payoffIndex = month;
         }
       });
-      series.push({ monthKey: addMonths(startMonthKey, month), balance: round2(state.reduce((sum, entry) => sum + entry.balance, 0)) });
+      series.push({ monthKey: addMonths(startMonthKey, month), balance: round2(state.reduce((sum, entry) => sum + entry.balance, 0)), extra: round2(extraFor(month)) });
     }
     if (!firstTarget && ordered.length) firstTarget = { id: ordered[0].id, label: ordered[0].label, aprPct: ordered[0].aprPct };
 
     // El plazo declarado se compara siempre con el calendario SIN extra: con extra el plazo se acorta a propósito y no es un desajuste.
-    const baseline = extra > 0 || redirectFreed ? project(contracts, { ...options, extraMonthly: 0, redirectFreed: false }) : null;
+    const varies = Boolean(byMonth && byMonth.some((value) => value > 0)) || offers.size > 0;
+    const baseline = extra > 0 || redirectFreed || varies ? project(contracts, { ...options, extraMonthly: 0, redirectFreed: false, extraByMonth: null, settlements: null }) : null;
     const baselineRows = new Map((baseline ? baseline.included : []).map((row) => [row.id, row]));
     const rows = state.map((entry) => {
       const own = baseline ? null : entry.payoffIndex;
@@ -240,6 +335,7 @@
         stalled: entry.stalled && entry.payoffIndex === null,
         declaredInstallments: entry.row.installments || null,
         declaredGapMonths,
+        ...(entry.row.settlement ? { settlement: { amount: entry.row.settlement.amount, prepaid: entry.row.settlement.prepaid, yieldPct: entry.row.settlement.yieldPct, method: entry.row.settlement.method, settled: entry.settledByOffer, forgiven: entry.forgiven } } : {}),
         ...(entry.agreement ? { agreement: { startMonthKey: entry.agreement.startMonthKey, lump: entry.agreement.lump, payment: entry.agreement.payment, duration: entry.agreement.duration } } : {}),
       };
     });
@@ -266,10 +362,11 @@
       debtFreeMonthKey: latest === null ? null : addMonths(startMonthKey, latest),
       monthsToDebtFree: latest === null ? null : latest + 1,
       totalInterest: round2(rows.reduce((sum, row) => sum + row.interest, 0)),
+      totalForgiven: round2(state.reduce((sum, entry) => sum + entry.forgiven, 0)),
       totalPaid: round2(state.reduce((sum, entry) => sum + entry.paid, 0)),
       monthlyPayment: round2(rows.reduce((sum, row) => sum + row.payment, 0) + extra),
       milestones: rows.filter((row) => row.payoffIndex !== null).sort((a, b) => a.payoffIndex - b.payoffIndex || a.id.localeCompare(b.id))
-        .map((row) => ({ id: row.id, label: row.label, payoffMonthKey: row.payoffMonthKey, payoffIndex: row.payoffIndex })),
+        .map((row) => ({ id: row.id, label: row.label, payoffMonthKey: row.payoffMonthKey, payoffIndex: row.payoffIndex, ...(row.settlement?.settled ? { quita: true } : {}) })),
       firstTarget,
       baseline: baseline && baseline.ok ? { debtFreeMonthKey: baseline.debtFreeMonthKey, monthsToDebtFree: baseline.monthsToDebtFree, totalInterest: baseline.totalInterest, beyondHorizon: baseline.beyondHorizon } : null,
       hasLargeGap: rows.some((row) => row.declaredGapMonths !== null && Math.abs(row.declaredGapMonths) > LARGE_GAP_MONTHS),
@@ -290,5 +387,5 @@
     };
   }
 
-  return { SCHEMA_ID, MAX_MONTHS, LARGE_GAP_MONTHS, STRATEGIES, project, perHundred, impliedMonthlyRate, addMonths };
+  return { SCHEMA_ID, MAX_MONTHS, LARGE_GAP_MONTHS, STRATEGIES, project, perHundred, impliedMonthlyRate, addMonths, settlementYield };
 });

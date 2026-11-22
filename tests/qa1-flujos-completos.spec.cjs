@@ -12564,6 +12564,64 @@ test.describe("Deuda › Ruta · plan óptimo de saldo", () => {
     });
   }
 
+  // UND-11 y UND-12 (plan óptimo v2, 22/11/2026): de entrada, lo que permita la previsión sin bajar del suelo; escribir un importe pasa a
+  // «fijo»; una oferta de quita entra en el plan, se recuerda y lo perdonado cuenta en el ahorro. Mismas cifras que el motor.
+  for (const [nombre, viewport] of [["a 1280 px", { width: 1280, height: 900 }], ["a 390 px @safari", { width: 390, height: 844 }]]) {
+    test(`UND-11 y UND-12 · el extra sale de la previsión y una quita entra en el plan, ${nombre}`, async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await conContratos(page, viewport);
+      const plan = page.locator("#planOptimoResultado");
+      await expect(page.locator('input[name="planOptimoModo"][value="prevision"]')).toBeChecked();
+      // Lo que enseña es lo que calcula el motor con la previsión de la app (o, sin previsión del mes, el importe fijo, y lo dice).
+      const motor = await page.evaluate(() => {
+        const hoy = isoLocalDate(new Date()).slice(0, 7);
+        const refs = planOptimoReferencias();
+        const lp = FinanceCanonicalDebtOptimalPlan.liquidityPlan(refs.rows, { startMonthKey: hoy, floor: refs.floor, lump: 0 });
+        if (!lp.ok) return { ok: false };
+        const r = FinanceCanonicalDebtOptimalPlan.plan(FinanceCanonicalDebtPayoffPath, escenarioMotorDebtOptions(), { startMonthKey: hoy, monthly: lp.after, monthlyByMonth: lp.byMonth, order: caminoOrder(escenarioMotorDebtOptions()) });
+        const suelo = refs.rows.filter((row) => row.detailMonthKey >= hoy).every((row, i) => row.totalLiquidity - lp.byMonth.slice(0, i + 1).reduce((a, b) => a + b, 0) >= refs.floor - 0.01);
+        return { ok: true, fecha: caminoMonthText(r.recommended.summary.debtFreeMonthKey), suelo };
+      });
+      if (motor.ok) {
+        await expect(plan).toContainText("Lo que permite la previsión");
+        await expect(plan.locator(".cam-hero").first()).toContainText(motor.fecha);
+        expect(motor.suelo, "lo puesto de más nunca deja la previsión bajo el suelo").toBe(true);
+      } else {
+        await expect(plan).toContainText("Sin previsión mensual todavía");
+      }
+      // Una quita sobre la tarjeta: entra en el plan, dice lo que rinde y lo perdonado, y lleva al simulador para proponerla.
+      await page.locator("#planOptimoQuitas > summary").click();
+      const quita = page.locator('#planOptimoQuitasLista input[data-plan-optimo-quita]').first();
+      await expect(page.locator("#planOptimoQuitasLista")).toContainText("Banco FICTICIO");
+      await page.fill("#planOptimoMensual", "300");
+      await expect(page.locator('input[name="planOptimoModo"][value="fijo"]')).toBeChecked();
+      await expect(plan.locator(".plan-optimo-tramos li").first()).toContainText("300 € al mes de más");
+      await quita.fill("1200");
+      const resultadoQuitas = plan.locator(".plan-optimo-quitas-resultado");
+      await expect(resultadoQuitas).toContainText("Quitas en el plan");
+      await expect(resultadoQuitas).toContainText("pagar 1.200 €");
+      await expect(resultadoQuitas).toContainText("os perdonan");
+      await expect(resultadoQuitas.locator('a[href="#deuda-simulador"]')).toBeVisible();
+      await expect(plan.locator(".cam-hero").nth(1)).toContainText("Lo que os ahorráis");
+      await expect(plan.locator(".plan-optimo-tramos li").first()).toContainText(/juntáis 1\.\d{3}(,\d{2})? € para la quita de Banco FICTICIO/);
+      // Un importe que no es quita (más de lo que se debe) se dice y no entra.
+      await quita.fill("-3");
+      await expect(quita).toHaveAttribute("aria-invalid", "true");
+      await quita.fill("1200");
+      await expect(quita).not.toHaveAttribute("aria-invalid", "true");
+      // Se recuerda en el navegador; volver a «lo que permita la previsión» no la pierde.
+      await page.reload();
+      await page.evaluate(() => { location.hash = "deuda-ruta"; });
+      await expect(page.locator("#planOptimoResultado .cam-hero").first()).toBeVisible({ timeout: 20000 });
+      await expect(page.locator('#planOptimoQuitasLista input[data-plan-optimo-quita]').first()).toHaveValue("1200");
+      await expect(page.locator("#planOptimoResultado .plan-optimo-quitas-resultado")).toContainText("pagar 1.200 €");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+
   for (const [nombre, viewport] of [["a 1280 px", { width: 1280, height: 900 }], ["a 390 px @safari", { width: 390, height: 844 }]]) {
     test(`orden, fecha y ahorro con el mismo motor; el pago inicial va a la primera del orden, ${nombre}`, async ({ page }) => {
       const pageErrors = [];

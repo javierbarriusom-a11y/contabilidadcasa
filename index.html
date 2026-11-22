@@ -49,7 +49,7 @@
     <link rel="stylesheet" href="chart-kit.css?v=20261109fx12a" />
     <link rel="stylesheet" href="recordatorios.css?v=20261007wp32a1" />
     <link rel="stylesheet" href="deuda-tipo.css?v=20261007wp13a1" />
-    <link rel="stylesheet" href="camino-deuda.css?v=20261121dn28b" />
+    <link rel="stylesheet" href="camino-deuda.css?v=20261122und11" />
     <link rel="stylesheet" href="prestamo-deuda.css?v=20261120dec38b" />
     <link rel="stylesheet" href="nominas.css?v=20261008wp31a1" />
     <link rel="stylesheet" href="anomalias.css?v=20261012wp36a2" />
@@ -2233,12 +2233,24 @@
             <article class="e19-card cam-card plan-optimo-card" id="planOptimoCard" aria-labelledby="planOptimoTitulo">
               <h3 class="escenario-motor-panel-title" id="planOptimoTitulo">Plan óptimo de saldo</h3>
               <p class="e19-kpi-note">Con lo que podéis poner al mes y, si queréis, un pago inicial: <strong>en qué orden saldar las deudas, cuándo acabáis y cuánto os ahorráis</strong> frente a seguir como hasta ahora. Las cuotas que se liberan pasan a la siguiente deuda.</p>
+              <!-- UND-12 (22/11/2026): el extra de cada mes sale de la previsión, sin bajar del suelo; o un importe fijo. Escribir un importe pasa a «fijo». -->
+              <fieldset class="plan-optimo-orden plan-optimo-modo" id="planOptimoModo">
+                <legend>Al mes, además de las cuotas</legend>
+                <label><input type="radio" name="planOptimoModo" value="prevision" checked /> Lo que permita la previsión (sin bajar del suelo)</label>
+                <label><input type="radio" name="planOptimoModo" value="fijo" /> Un importe fijo</label>
+              </fieldset>
               <div class="cam-control">
-                <label class="month-picker"><span>Al mes, además de las cuotas (€)</span>
+                <label class="month-picker"><span>Importe fijo al mes (€)</span>
                   <input type="number" id="planOptimoMensual" min="0" max="100000" step="10" inputmode="decimal" value="0" /></label>
                 <label class="month-picker"><span>Pago inicial (€)</span>
                   <input type="number" id="planOptimoPago" min="0" max="100000" step="100" inputmode="decimal" value="0" /></label>
               </div>
+              <!-- UND-11 (22/11/2026): una oferta de quita («pagad X y cancelamos») entra en el cálculo como un destino más, por lo que rinde. No propone ni acepta nada: eso es del simulador, con su «Qué ocurrirá». -->
+              <details class="plan-optimo-margen plan-optimo-quitas" id="planOptimoQuitas">
+                <summary>Ofertas de quita (pagar una parte y cancelar la deuda)</summary>
+                <p class="e19-kpi-note">Si una entidad os ofrece cancelar una deuda pagando menos de lo que debéis, escribid cuánto. El plan la compara con las demás por lo que rinde cada euro y decide cuándo juntarlo. Se recuerda en este navegador.</p>
+                <div id="planOptimoQuitasLista"></div>
+              </details>
               <!-- D-N27 (21/11/2026): el orden lo elige el hogar y se puede cambiar cuando se quiera; el plan pregunta antes de empezar por la más pequeña. -->
               <fieldset class="plan-optimo-orden" id="planOptimoOrden">
                 <legend>Orden</legend>
@@ -8360,7 +8372,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20261119priv4"></script>
-    <script defer src="novedades.js?v=20261122und"></script>
+    <script defer src="novedades.js?v=20261122und11"></script>
     <script defer src="ux-shell.js?v=20261121dec45"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -8395,9 +8407,9 @@
     <script defer src="indices-ui.js?v=20261007wp13a1"></script>
     <script defer src="canonical-rate-review.js?v=20261007wp20a1"></script>
     <script defer src="revision-tipo-ui.js?v=20261007wp20a1"></script>
-    <script defer src="canonical-debt-payoff-path.js?v=20261117svd3"></script>
-    <script defer src="canonical-debt-optimal-plan.js?v=20261121dn27"></script>
-    <script defer src="camino-deuda-ui.js?v=20261121dn28"></script>
+    <script defer src="canonical-debt-payoff-path.js?v=20261122und11"></script>
+    <script defer src="canonical-debt-optimal-plan.js?v=20261122und11"></script>
+    <script defer src="camino-deuda-ui.js?v=20261122und11"></script>
     <script defer src="canonical-loan-payoff-plan.js?v=20261114pre1"></script>
     <script defer src="prestamo-deuda-ui.js?v=20261116cla1"></script>
     <script defer src="canonical-payroll.js?v=20261008wp31a1"></script>
@@ -8487,7 +8499,7 @@
     <script defer src="siguiente-paso-ui.js?v=20261028wp17"></script>
     <script defer src="cierre-guia-ui.js?v=20261104cierreC3"></script>
     <script defer src="antes-de-decidir-ui.js?v=20261113xda10pr3"></script>
-    <script defer src="app.js?v=20261122resize"></script>
+    <script defer src="app.js?v=20261122und11"></script>
     <script defer src="p2-ui.js?v=20261119priv4"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
