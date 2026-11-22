@@ -12605,7 +12605,7 @@ test.describe("Deuda › Ruta · plan óptimo de saldo", () => {
       await expect(resultadoQuitas).toContainText("os perdonan");
       await expect(resultadoQuitas.locator('a[href="#deuda-simulador"]')).toBeVisible();
       await expect(plan.locator(".cam-hero").nth(1)).toContainText("Lo que os ahorráis");
-      await expect(plan.locator(".plan-optimo-tramos li").first()).toContainText(/juntáis 1\.\d{3}(,\d{2})? € para la quita de Banco FICTICIO/);
+      await expect(plan.locator(".plan-optimo-tramos li").first()).toContainText(/juntáis 1\.\d{3}(,\d{2})?\s€ para la quita de Banco FICTICIO/);
       // Un importe que no es quita (más de lo que se debe) se dice y no entra.
       await quita.fill("-3");
       await expect(quita).toHaveAttribute("aria-invalid", "true");
