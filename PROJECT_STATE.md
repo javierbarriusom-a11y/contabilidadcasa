@@ -113,6 +113,21 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 21 de noviembre de 2026 (520): lo que dejó #658 (otra conversación), portado y publicado desde aquí
+
+- **Publicado de antes:** #661 (D-N23, D-N27 y D-N28) con su CI en verde a la primera (59 min, Safari incluido), fusionado comprobada la cabeza 857e919f: main 0551b53a. **Su despliegue, el 1518, en rojo: no publicó.** Falló en Safari una sola prueba, la e2e de D-N28 a 390 px: al pulsar «Ofertas», el toque caía cada vez en otro elemento (la cabecera fija, el subtítulo, «Contratos →»). En el CI del PR había pasado con la misma cabeza: una carrera de WebKit. Causa: al abrir `#deuda-ruta`, el navegador desplaza hasta la sección y deja la fila de pestañas arriba, bajo la cabecera fija de 70 px, mientras Ruta acaba de pintarse. **No se relanzó para conseguir el verde.** Arreglo en este PR: las filas de pestañas de Deuda dejan 88 px arriba al desplazarse o recibir el foco (`scroll-margin-top`; también es WCAG 2.4.11, el foco no queda tapado), y la e2e activa las pestañas con el teclado (el mismo enlace, sin depender de un punto que se mueve). `camino-deuda.css` a `20261121dn28b`. Lo de #661 se publica con este PR.
+- **El hogar:** «Todo lo que esté pendiente de otras conversaciones hazlo tú». Lo único abierto era #658 (borrador, sin la main de #660), con lo que #659 no cubría. Se porta a esta rama, que ya llevaba #661, y **#658 se cierra sin fusionar** al publicarse este; su trabajo queda aquí.
+- **Qué trae, tal cual lo hizo aquella conversación** (no se ha cambiado nada; se ha comprobado de nuevo):
+  - **DEC-22, el foco sin opener:** si el enlace del aviso del domingo abría el repaso antes de que Hoy pintara su entrada, no había opener y, al cerrar, el foco se quedaba en `<body>`, también con el reintento de #659. El repaso abierto desde el enlace va marcado «encima de Hoy» (`repasoV2Open(…, { desdeHoy: true })`). Hacen falta las dos defensas;
+  - **Ajustes a 195 px:** el índice deja de ir fijo arriba (a 195 × 422 px medía 439 px y tapaba la pantalla entera al bajar);
+  - **Plan › Mes a 195 px:** cada partida y cada bloque, en una columna (el nombre se montaba sobre su importe y la nota salía a una palabra por línea);
+  - **la fila «Ahorro» de Plan › Mes:** su explicación salía pegada al nombre y en negrita («AHORROmeta del plan…»), a cualquier ancho. Va como «Financiaciones»;
+  - **`docs/traspasos/2026-11-21_traspaso.md`**, el traspaso de aquella conversación. Su pendiente 1 (fusionar #658) queda cumplido aquí.
+- **Versiones:** `styles.css` y `tema-v2.css` a `20261121d658`; `views/repaso-v2.js` a `20261121foco2`. Las pruebas de versiones aceptan las nuevas.
+- **Una advertencia que deja el traspaso, contrastada:** #660 (Hoy por áreas) **sí se saltó «un cambio de Hoy por semana»** (ESTADO §8.7): las semanas del 23/11 y del 30/11 ya tenían el suyo (FX-41 y DEC-23). Fue una petición directa del hogar, así que se publicó, pero en dos semanas entran tres cambios de Hoy. Lo de «nada de Deuda hasta D-N16» no aplica: D-N16 ya está contestada («la foto real de la deuda es los contratos que subí»).
+- **Pruebas:** de #658, las de DEC-22 (+1) y DEC-38 (+1) y dos e2e (Plan › Mes y Ajustes a 195 px; el foco sin entrada pintada, a 390 px `@safari`).
+- **Validación:** `npm test` **6.864/6.864** (+2) y lint en verde. Batería en navegador en local (e2e, a11y y perf-screens en Chromium, con un servidor arrancado por la propia batería y su `dist` recién construido): **503/503** en 26,7 min, con las dos e2e de #658. Safari, en el CI.
+
 ## Cierre de sesión — 21 de noviembre de 2026 (519): D-N23, D-N27 y D-N28 decididas y hechas (el acuerdo sustituye a la cuota desde su mes; el plan óptimo pregunta antes de empezar por la más pequeña; Deuda en tres pestañas)
 
 - **Publicado de antes:** #660 (Hoy por áreas, plan óptimo, undécima auditoría) fusionado: main af7e33d7. «Verify and deploy Pages» **1516 en verde**; «Published availability» lanzada a mano después.

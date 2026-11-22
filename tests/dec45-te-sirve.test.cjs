@@ -125,7 +125,7 @@ test("DEC-45 · estilos, versiones y su línea de Novedades", () => {
   const html = read("index.html");
   ["medidor-utilidad.js", "ux-shell.js"].forEach((file) => assert.ok(html.includes(`${file}?v=20261121dec45`), file));
   assert.match(html, /novedades\.js\?v=20261121(?:dec45|areas|dn27|dn28)/, "novedades.js siguió a 20261121areas con Hoy por áreas");
-  assert.match(html, /styles\.css\?v=20261121(?:dec45|dec38c|dec38d|areas)/, "styles.css siguió a 20261121dec38c y dec38d con DEC-38 a 195 px");
+  assert.match(html, /styles\.css\?v=20261121(?:dec45|dec38c|dec38d|areas|d658)/, "styles.css siguió a 20261121dec38c y dec38d con DEC-38 a 195 px");
   assert.ok(html.indexOf('src="medidor-utilidad.js?v=') < html.indexOf('src="ux-shell.js?v='), "el medidor carga antes que la lista");
   const novedad = NOVEDADES.find((entry) => entry.id === "2026-11-21-te-sirve");
   assert.equal(novedad.href, "#ajustes");

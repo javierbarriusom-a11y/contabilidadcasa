@@ -13594,3 +13594,12 @@ input[data-amount-input][aria-invalid="true"] {
     text-align: center;
   }
 }
+
+/* DEC-38 (21/11/2026): por debajo de 260 px el índice de Ajustes deja de ir fijo arriba. A 195 × 422 px (390 px con el zoom al
+   200 %) mide 439 px de alto: al bajar, tapaba la pantalla entera. Se queda al principio, donde está. `main` gana a la regla de
+   design-tokens.css, que se carga después. */
+@media (max-width: 259px) {
+  main .e19-ajustes-anchors {
+    position: static;
+  }
+}
