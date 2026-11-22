@@ -12397,6 +12397,65 @@ test.describe("Hoy por áreas", () => {
 
 // Plan óptimo de saldo (21/11/2026, «quiero seguir con un plan optimizado de saldo de deuda»): en Deuda › Ruta, encima de «Camino a deuda
 // cero» y con su mismo motor. Contratos FICTICIOS.
+// UND-01 (undécima auditoría; 22/11/2026): cada pantalla v2 también en «arranque en caliente»: con contratos, meses de movimientos y un
+// apunte a mano guardados, al volver a abrir la app. Lo que solo falla con datos guardados (el gráfico de Hoy, once días) sale aquí.
+test.describe("UND-01 · Arranque en caliente", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  const PANTALLAS = [
+    ["Hoy", "#home", async (page) => {
+      await expect(page.locator("#hoyV2 .hoy-v2-figure")).toBeVisible({ timeout: 15000 });
+      await expect(page.locator("#hoyV2 .hoy-v2-chart")).toBeVisible();
+      await expect(page.locator("#hoyV2 [data-hoy-v2-sin-grafico]")).toHaveCount(0);
+      expect(await page.evaluate(() => canonicalDailyEngineRuns.active?.rows?.length || 0)).toBeGreaterThan(30);
+    }],
+    ["Movimientos", "#movements", async (page) => {
+      await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+      // Con lo guardado sin clasificar, Movimientos abre por la bandeja (grupos sin partida), no por la lista de días.
+      expect(await page.evaluate(() => baseData.transactions.filter((t) => /FICTICI/.test(t.movement)).length)).toBe(19);
+      await expect(page.locator("#movimientosV2")).toContainText(/\d+ movimientos · clasifícalos por grupos/);
+    }],
+    ["Plan › Mes", "#plan", async (page) => {
+      await expect(page.locator("#planV2Lado")).toBeVisible({ timeout: 15000 });
+    }],
+    ["Plan › Previsión", "#plan", async (page) => {
+      const v2 = await abrirPlanPrevision(page);
+      await expect(v2.locator(".prev-v2-cifra")).toBeVisible({ timeout: 15000 });
+    }],
+    ["Cierre", "#cierre", async (page) => {
+      await expect(page.locator("#cierreV2")).toHaveAttribute("data-modo", "v2", { timeout: 15000 });
+    }],
+    ["Deuda › Plan", "#deuda-ruta", async (page) => {
+      await expect(page.locator("#planOptimoResultado .cam-hero").first()).toBeVisible({ timeout: 20000 });
+      await expect(page.locator("#caminoDeudaResultado .cam-hero").first()).toBeVisible();
+      await expect(page.locator("#deudaRutaTitle")).not.toContainText("sin fecha estimable");
+    }],
+    ["Deuda › Ofertas › Simulador visual", "#deuda-simulador", async (page) => {
+      await expect(page.locator("#deudaSimuladorV2")).toBeVisible({ timeout: 20000 });
+      await expect(page.locator("#deudaSimuladorV2")).toContainText("Banco FICTICIO");
+    }],
+    ["Registrar › Importar", "#datos-importar", async (page) => {
+      await expect(page.locator("#importarV2 .imp-v2-fuente")).toBeVisible({ timeout: 15000 });
+    }],
+    ["Deuda › Contratos", "#deuda-contratos", async (page) => {
+      await expect(page.locator('[data-deuda-contrato-row] input[data-deuda-contrato-field="entity"][value="Banco FICTICIO"]')).toBeVisible({ timeout: 15000 });
+    }],
+  ];
+  for (const [nombre, viewport] of [["a 1280 px", { width: 1280, height: 900 }], ["a 390 px @safari", { width: 390, height: 844 }]]) {
+    test(`las pantallas v2 se pintan desde lo guardado, ${nombre}`, async ({ page }) => {
+      test.setTimeout(120000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await arrancarEnCaliente(page, { viewport });
+      for (const [pantalla, hash, comprobar] of PANTALLAS) {
+        await page.evaluate((h) => { location.hash = h; }, hash);
+        await test.step(pantalla, () => comprobar(page));
+        await expect(page.locator("#recalculoError"), `${pantalla}: sin «no he podido recalcular»`).toBeHidden();
+      }
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 // D-N28 (21/11/2026, decisión del hogar: «Sí» a UND-15): Deuda en tres pestañas, Plan · Contratos · Ofertas, con Comparar, Préstamo y
 // el simulador visual dentro de Ofertas. Los enlaces de siempre siguen llevando a su pantalla.
 test.describe("D-N28 · Deuda en tres pestañas", () => {

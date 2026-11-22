@@ -345,7 +345,7 @@ a lo pactado con una entidad no se le adelanta nada; no ejecuta nada (A11-4).
 
 1. **Semana del 23/11 — fiabilidad:** UND-01 (arranque en caliente), UND-02 (avisar en vez de esconder), UND-26 (fallos contados),
    DEC-29 (Ruta sin contradicción) y UND-23 (medir las áreas de Hoy).
-   *(22/11: hechas UND-02, UND-23, UND-26 y DEC-29, PROJECT_STATE 522; queda UND-01.)*
+   *(22/11: hechas UND-02, UND-23, UND-26 y DEC-29, PROJECT_STATE 522; UND-01, 9 de 11 pantallas v2 en caliente, PROJECT_STATE 523.)*
 2. **Semana del 30/11 — deuda y uso:** UND-11 y UND-12 (plan v2, tras D-N23), UND-13 (kit para hablar con la entidad), UND-17
    (ocultar cifras), UND-06 (indicador por área).
 3. **Semana del 7/12 — carga:** UND-04 (Ajustes por áreas), UND-08 («¿Me lo puedo permitir?»), DEC-38 en Inversión y Escenarios.
