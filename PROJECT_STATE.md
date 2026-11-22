@@ -113,6 +113,15 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 22 de noviembre de 2026 (527): la semana del 30/11 de la undécima auditoría, publicada entera
+
+- **«Verify and deploy Pages» 1531 en verde** (main 65f70670): publica #666 (UND-11 y UND-12; su 1529 había salido en rojo por la caída del Chromium del CI, sin relanzar) y #667 (UND-17 y UND-06). «Published availability» **396 en verde**, lanzada a mano.
+- **#668 (UND-13)** con su CI en verde a la primera, Safari incluido: marcado listo y fusionado comprobada la cabeza 59b3cb68, **main e78b6786**. «Verify and deploy Pages» **1533 en verde**: UND-13 en el sitio. «Published availability» lanzada a mano a las 18:23; su resultado lo anota la entrada siguiente.
+- **En el sitio desde hoy:** el plan óptimo v2 (UND-11 y UND-12), ocultar cifras (UND-17), el indicador por área de Hoy (UND-06, activo desde el 7/12) y el kit para hablar con la entidad (UND-13). Con UND-01, UND-02, UND-23, UND-26 y DEC-29 (semana del 23/11), las dos primeras semanas de la undécima auditoría (§6) quedan hechas.
+- **Propuestas de Claude que el hogar no ha contestado todavía:** la puerta de UND-06 hasta el 7/12; el rendimiento equivalente de una quita sin cuota como lo perdonado entre lo pagado (66,7 % en el ejemplo de la ficha, no 40 %); que UND-17 emborrone todos los campos numéricos, no solo los de importe.
+- **Siguiente, pendiente de que el hogar lo pida:** la semana del 7/12 (UND-04, Ajustes por áreas; UND-08, «¿Me lo puedo permitir?»; DEC-38 en Inversión y Escenarios).
+- **Validación:** solo cambia este documento; `npm test` **6.896/6.896** en la rama rehecha desde main.
+
 ## Cierre de sesión — 22 de noviembre de 2026 (526): UND-13, kit para hablar con cada entidad; despliegue 1529 en rojo (Chromium del CI se cae al arrancar)
 
 - **«Verify and deploy Pages» 1529 (main 2fef2fbf, #666) en rojo: no publicó.** Falló 1 de 345 e2e, «DEC-22 · con el diseño de siempre se queda en Hoy, sin errores», que no toca #666. **Causa:** el Chromium del CI se cayó al arrancar (`Received signal 11 SEGV_MAPERR` en el proceso de la GPU, tras «InitializeSandbox() called with multiple threads in process gpu-process») y la prueba acabó con «browserContext.close: Test ended». Es un fallo del navegador del ejecutor, no de la app: la misma prueba pasó en el CI de #666 y en el de #667, y no hay código que arreglar. **No se relanzó.** #666 se publica con el despliegue de #667, como en el 1518.
