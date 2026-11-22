@@ -122,7 +122,8 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 - **Por qué:** todas las pruebas en navegador arrancaban sin nada guardado, y el gráfico de Hoy estuvo once días perdido. Solo fallaba al volver a abrir la app con datos.
 - **Métrica de la ficha:** pantallas v2 con prueba en caliente / total = **9 / 11**. Quedan Clasificar (diálogo sobre Movimientos) y el Repaso semanal (diálogo con puerta de semana), que piden su propio estado.
 - **Lo que enseñó al escribirla:** con movimientos sin clasificar, Movimientos v2 abre por la bandeja y no por la lista de días. No es un fallo: la e2e comprueba lo que de verdad sale.
-- **Validación:** VALIDACION_523
+- **Publicado de antes:** #664 (DEC-29, UND-02, UND-23, UND-26) con su CI en verde, Safari incluido. Fusionado comprobada la cabeza 948fce31: main 9856a114. Su despliegue estaba en curso al escribir esto: **lo comprueba la siguiente conversación** (el hogar continúa desde otra cuenta).
+- **Validación:** `npm test` **6.874/6.874** y lint en verde (solo cambian pruebas y documentación; ninguna pantalla). La e2e «UND-01 · Arranque en caliente», en local en Chromium: **2/2** (1280 y 390 px). Safari, en el CI.
 
 ## Cierre de sesión — 22 de noviembre de 2026 (522): DEC-29, UND-02, UND-23 y UND-26 (fiabilidad de la undécima auditoría)
 
