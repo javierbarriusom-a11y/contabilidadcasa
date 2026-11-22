@@ -291,7 +291,7 @@
     try {
       if (globalThis.sessionStorage?.getItem(VOLVER_KEY)) {
         globalThis.sessionStorage.removeItem(VOLVER_KEY);
-        globalThis.setTimeout(() => doc.getElementById("funcionesEnPruebaCard")?.scrollIntoView({ block: "start" }), 300);
+        globalThis.setTimeout(() => { globalThis.FinanceAjustesAreas?.mostrar?.("funcionesEnPruebaCard"); doc.getElementById("funcionesEnPruebaCard")?.scrollIntoView({ block: "start" }); }, 300); // UND-04: en el móvil, su área
       }
     } catch {
       // Sin almacenamiento: nada que recordar.

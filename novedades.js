@@ -29,6 +29,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-22-ajustes-areas",
+      fecha: "2026-11-22",
+      texto: "Ajustes en el móvil, por áreas: se entra por «Cuentas y reserva» y el resto, en pestañas o «Ver todo». En el ordenador, como antes.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-11-22-kit-entidad",
       fecha: "2026-11-22",
       texto: "Deuda › Contratos: «Kit para la entidad» en cada contrato, con qué pedir, un guion para llamar y una carta lista para imprimir.",

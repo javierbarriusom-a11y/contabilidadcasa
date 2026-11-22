@@ -47,6 +47,6 @@ test("el texto de apoyo de los avisos de la bandeja usa la tinta accesible de la
 
 test("la versión de styles.css cambió con la regla (si no, el navegador y el service worker servirían la antigua)", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
-  assert.match(html, /styles\.css\?v=2026112(?:1(?:dec38d|areas|d658)|2und1[37])/);
+  assert.match(html, /styles\.css\?v=2026112(?:1(?:dec38d|areas|d658)|2und(?:1[37]|04))/);
   assert.doesNotMatch(html, /styles\.css\?v=20261004wp26a1/);
 });

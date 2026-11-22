@@ -13802,3 +13802,51 @@ input[data-amount-input][aria-invalid="true"] {
     display: none;
   }
 }
+
+/* UND-04 (D-N29, 22/11/2026: «Áreas solo en el móvil»): Ajustes por áreas en el móvil (≤ 860 px); en el escritorio, todo a la vista y
+   sin la fila de pestañas. Cada área esconde por CSS los grupos que no son suyos; «Ver todo» (o sin script) lo enseña todo. En los dos
+   temas. La fila se desplaza en horizontal si no cabe. */
+.ajustes-areas {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .ajustes-areas {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    margin: 8px 0 12px;
+    padding-bottom: 4px;
+  }
+
+  .ajustes-areas [role="tab"] {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 8px 14px;
+    border: 1px solid var(--line, #cfd8dc);
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .ajustes-areas [role="tab"][aria-selected="true"] {
+    background: var(--teal, #0f766e);
+    border-color: var(--teal, #0f766e);
+    color: #ffffff;
+  }
+
+  #ajustes[data-ajustes-area]:not([data-ajustes-area="todo"]) .e19-ajustes-anchors {
+    display: none;
+  }
+
+  #ajustes[data-ajustes-area="cuentas"] .e19-ajustes-group:not([data-ajustes-area="cuentas"]),
+  #ajustes[data-ajustes-area="plan"] .e19-ajustes-group:not([data-ajustes-area="plan"]),
+  #ajustes[data-ajustes-area="patrimonio"] .e19-ajustes-group:not([data-ajustes-area="patrimonio"]),
+  #ajustes[data-ajustes-area="datos"] .e19-ajustes-group:not([data-ajustes-area="datos"]),
+  #ajustes[data-ajustes-area="laboratorio"] .e19-ajustes-group:not([data-ajustes-area="laboratorio"]),
+  #ajustes[data-ajustes-area="navegacion"] .e19-ajustes-group:not([data-ajustes-area="navegacion"]) {
+    display: none;
+  }
+}
