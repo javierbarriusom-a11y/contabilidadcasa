@@ -12448,6 +12448,7 @@ test.describe("Deuda › Ruta · plan óptimo de saldo", () => {
   // D-N27 (21/11/2026, «ok, pero me preguntas antes y poder modificar»): la bola de nieve no se elige sola; el orden se guarda y se cambia.
   for (const [nombre, viewport] of [["a 1280 px", { width: 1280, height: 900 }], ["a 390 px @safari", { width: 390, height: 844 }]]) {
     test(`pregunta antes de empezar por la más pequeña, recuerda lo elegido y se puede cambiar, ${nombre}`, async ({ page }) => {
+      test.setTimeout(60000); // dos recargas y el alta de tres contratos: en Safari pasa de 30 s
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
       await conContratos(page, viewport, "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160\nFinanciera FICTICIA; préstamo; 900; 7; 75");

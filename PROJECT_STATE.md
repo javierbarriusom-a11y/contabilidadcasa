@@ -113,6 +113,19 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 22 de noviembre de 2026 (521): Safari repintaba la sección entera al desplazarse (despliegues 1518 y 1521 en rojo)
+
+- **Publicado de antes:** #662 (lo que dejó #658 y el primer arreglo del 1518) con su CI en verde, Safari incluido. Fusionado comprobada la cabeza 352183cc: main dfa50159. #658 se cerró sin fusionar, con un comentario.
+- **«Verify and deploy Pages» 1521 en rojo, otra vez en Safari a 390 px: no publicó.** Ni #661 ni #662 están en el sitio todavía. Dos pruebas distintas de las del 1518:
+  - FX-01 (Previsión): el resumen de la banda no se quedaba quieto en 60 s;
+  - la de D-N27 (Contratos): el plegable «dar de alta varios» se cerraba solo y el cuadro de texto nunca llegaba a verse.
+  La misma cabeza había pasado en el CI del PR una hora antes.
+- **Causa raíz** (el arreglo del 1518 trataba solo un síntoma): `app.js` repintaba entera la sección activa en cada `resize` de la ventana. En el móvil, Safari lanza `resize` cuando su barra se esconde o aparece al desplazarse, y solo cambia el alto. Cada desplazamiento rehacía la pantalla: los plegables se volvían a crear cerrados y lo que se iba a tocar se movía. Tres pantallas distintas con el mismo síntoma, y solo en WebKit. **Para el hogar, en un iPhone, era un fallo real:** al desplazarse se cerraban los plegables abiertos y la pantalla daba saltos.
+- **Arreglo:** solo se repinta si cambia el **ancho** (`resizeChangesLayout`/`handleWindowResize`). Lo que depende del tamaño (gráficos, tablas, el menú del móvil) depende del ancho. La e2e de D-N27 pasa a 60 s: dos recargas y el alta de tres contratos superan 30 s en Safari. `app.js` a `20261122resize`. **No se relanzó para conseguir el verde.**
+- **El arreglo del 1518 sigue:** el `scroll-margin-top` evita que el foco quede bajo la cabecera fija (WCAG 2.4.11), y la activación por teclado de la e2e sigue siendo válida.
+- **Pruebas:** `tests/resize-solo-ancho.test.cjs` (2), nueva.
+- **Validación:** VALIDACION_521
+
 ## Cierre de sesión — 21 de noviembre de 2026 (520): lo que dejó #658 (otra conversación), portado y publicado desde aquí
 
 - **Publicado de antes:** #661 (D-N23, D-N27 y D-N28) con su CI en verde a la primera (59 min, Safari incluido), fusionado comprobada la cabeza 857e919f: main 0551b53a. **Su despliegue, el 1518, en rojo: no publicó.** Falló en Safari una sola prueba, la e2e de D-N28 a 390 px: al pulsar «Ofertas», el toque caía cada vez en otro elemento (la cabecera fija, el subtítulo, «Contratos →»). En el CI del PR había pasado con la misma cabeza: una carrera de WebKit. Causa: al abrir `#deuda-ruta`, el navegador desplaza hasta la sección y deja la fila de pestañas arriba, bajo la cabecera fija de 70 px, mientras Ruta acaba de pintarse. **No se relanzó para conseguir el verde.** Arreglo en este PR: las filas de pestañas de Deuda dejan 88 px arriba al desplazarse o recibir el foco (`scroll-margin-top`; también es WCAG 2.4.11, el foco no queda tapado), y la e2e activa las pestañas con el teclado (el mismo enlace, sin depender de un punto que se mueve). `camino-deuda.css` a `20261121dn28b`. Lo de #661 se publica con este PR.
