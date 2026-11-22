@@ -12472,7 +12472,7 @@ test.describe("UND-13 · Kit para hablar con la entidad", () => {
       await varios.locator("summary").click();
       await page.fill("#deudaContratosVarios", "Banco FICTICIO; préstamo; 5.100; 9,5; 160");
       await varios.locator("[data-deuda-varios-alta]").click();
-      await expect(page.locator("#deudaVariosAviso")).toContainText("1 contratos dados de alta");
+      await expect(page.locator("#deudaVariosAviso")).toContainText("Un contrato dado de alta");
       const boton = page.getByRole("button", { name: "Kit para hablar con Banco FICTICIO" });
       await boton.click();
       const kit = page.locator("#kitEntidad");
