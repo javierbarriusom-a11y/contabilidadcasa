@@ -12456,6 +12456,52 @@ test.describe("UND-01 · Arranque en caliente", () => {
   }
 });
 
+// UND-06 (undécima auditoría; 22/11/2026, activo desde el 7/12): el indicador de cada área de Hoy. Lo que enseña cada pestaña es lo que
+// calcula hoyV2IndicadoresDe; su texto entra en el nombre de la pestaña, y abrir un área con indicador lo cuenta el medidor.
+test.describe("UND-06 · Indicador por área de Hoy", () => {
+  test("antes del 7/12 no hay indicadores (la revisión de las áreas se mide sin ellos)", async ({ page }) => {
+    await page.clock.install({ time: new Date(2026, 11, 3, 10, 0, 0) });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#home");
+    await expect(page.locator("#hoyV2 .hoy-v2-areas")).toBeVisible({ timeout: 20000 });
+    await expect(page.locator("#hoyV2 .hoy-v2-insignia")).toHaveCount(0);
+  });
+
+  for (const [nombre, viewport] of [["a 1440 px", { width: 1440, height: 900 }], ["a 390 px @safari", { width: 390, height: 844 }]]) {
+    test(`cada pestaña lleva el indicador que le toca, con su texto, y abrirla lo cuenta, ${nombre}`, async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 11, 9, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#home");
+      await expect(page.locator("#hoyV2 .hoy-v2-areas")).toBeVisible({ timeout: 20000 });
+      const indicadores = await page.evaluate(() => hoyV2Indicadores);
+      for (const id of ["hoy", "mes", "caja", "patrimonio", "seguimiento"]) {
+        const tab = page.locator(`#hoyV2Tab-${id}`);
+        const ind = indicadores[id];
+        if (!ind) {
+          await expect(tab.locator(".hoy-v2-insignia")).toHaveCount(0);
+          continue;
+        }
+        await expect(tab.locator(".hoy-v2-insignia")).toHaveCount(1);
+        await expect(tab).toHaveAccessibleName(new RegExp(`, ${ind.texto}$`));
+        if (ind.punto) await expect(tab.locator(".hoy-v2-insignia")).toHaveText("");
+        else await expect(tab.locator(".hoy-v2-insignia")).toHaveText(String(ind.n));
+        await expect(tab.locator(".hoy-v2-insignia")).toHaveClass(ind.rojo ? /is-rojo/ : /^hoy-v2-insignia$/);
+      }
+      expect(indicadores.patrimonio, "Patrimonio y deuda no lleva indicador").toBeUndefined();
+      const conIndicador = Object.keys(indicadores).find((id) => id !== "hoy");
+      if (conIndicador) {
+        await page.locator(`#hoyV2Tab-${conIndicador}`).click();
+        await expect(page.locator(`#hoyV2Tab-${conIndicador}`)).toHaveAttribute("aria-selected", "true");
+        expect(await page.evaluate(() => FinanceMedidor.resumen(FinanceMedidor.leer(), "hoy-indicador").acciones)).toBe(1);
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 // UND-17 (undécima auditoría; DEC-36, 22/11/2026): el ojo de la cabecera tapa todos los importes con «•••» hasta volver a tocarlo, en
 // cualquier pantalla y en lo que se pinte después; se recuerda al recargar. Los campos numéricos, borrosos mientras no se usan.
 test.describe("UND-17 · Ocultar cifras con un toque", () => {

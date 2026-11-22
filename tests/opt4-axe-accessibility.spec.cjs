@@ -336,6 +336,30 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// UND-06 (activo desde el 7/12) y UND-17 (22/11/2026): los indicadores de las áreas de Hoy y el ojo de la cabecera (puesto y sin poner),
+// en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`UND-06 y UND-17 · contraste de los indicadores de Hoy y del ojo en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 390, height: 844 } });
+    test("#hoyV2 y la cabecera: sin fallos de contraste ni de accesibilidad con indicadores y con las cifras ocultas", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 11, 9, 10, 0, 0) });
+      await page.goto("/index.html#home");
+      await expect(page.locator("#hoyV2 .hoy-v2-areas")).toBeVisible({ timeout: 15000 });
+      const revisar = async () => {
+        const results = await new AxeBuilder({ page }).include("#hoyV2 .hoy-v2-areas").include(".brand-block").analyze();
+        return results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      };
+      let nodes = await revisar();
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+      await page.locator("#ocultarCifrasToggle").click();
+      await expect(page.locator("#ocultarCifrasToggle")).toHaveAttribute("aria-pressed", "true");
+      await page.mouse.move(0, 0);
+      nodes = await revisar();
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // DEC-45 (21/11/2026): «¿te sirve?» en Novedades, con una respuesta marcada, en claro y en oscuro (la barra lateral es oscura en los dos).
 for (const scheme of ["light", "dark"]) {
   test.describe(`DEC-45 · contraste de «¿te sirve?» en Novedades en modo ${scheme}`, () => {
