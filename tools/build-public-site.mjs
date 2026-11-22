@@ -185,6 +185,7 @@ const files = [
   "canonical-debt-optimal-plan.js",
   "camino-deuda-ui.js",
   "kit-entidad-ui.js",
+  "me-lo-puedo-permitir.js",
   "canonical-loan-payoff-plan.js",
   "prestamo-deuda-ui.js",
   "canonical-payroll.js",

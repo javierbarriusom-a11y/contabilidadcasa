@@ -658,6 +658,16 @@ function hoyV2InsigniaHtml(ind) {
   return `<span class="hoy-v2-insignia${ind.rojo ? " is-rojo" : ""}${ind.punto ? " is-punto" : ""}" aria-hidden="true">${ind.punto ? "" : ind.n}</span><span class="sr-only">, ${escapeHtml(ind.texto)}</span>`;
 }
 
+// UND-08 (undécima auditoría; DEC-31, 22/11/2026): «¿Me lo puedo permitir?» (me-lo-puedo-permitir.js), una línea bajo la cifra de
+// Hoy que abre la hoja. Puerta de fecha: desde el 14/12, porque el 7/12 entra el indicador por área (UND-06) y Hoy cambia una vez por
+// semana (ESTADO §8.7).
+const HOY_V2_PERMITIR_DESDE = "2026-12-14";
+
+function hoyV2PermitirHtml(hoy) {
+  if (String(hoy) < HOY_V2_PERMITIR_DESDE || typeof permitirAbrir !== "function") return "";
+  return `<button type="button" class="hoy-v2-link hoy-v2-permitir" data-permitir-abrir>¿Me lo puedo permitir? ›</button>`;
+}
+
 function hoyV2AreasHtml(activa, indicadores = {}) {
   return `<div class="e19-registrar-tabs hoy-v2-areas" role="tablist" aria-label="Áreas de Hoy">${HOY_V2_AREAS.map((area) => {
     const sel = area.id === activa;
@@ -696,6 +706,7 @@ function hoyV2AreaPanel(area, model, hoy, asOf, coverage) {
   return `<div class="hoy-v2-grid">
       <div class="hoy-v2-main">
         ${hoyV2Hero({ ...model, asOf, hoy, coverage })}
+        ${hoyV2PermitirHtml(hoy)}
         ${hoyV2Decisions(model.todayRead, [...hoyV2AvisosPrevision(hoy), ...(typeof svdPropuestasHoy === "function" ? svdPropuestasHoy(hoy) : []), ...(model.decisions || [])])}
         ${hoyV2Repaso()}
         ${hoyV2Esperados()}
@@ -739,6 +750,7 @@ function hoyV2Render(model) {
   hoyV2UltimoModelo = model;
   const area = hoyV2AreaActual();
   hoyV2Indicadores = hoyV2IndicadoresDe(model, hoy);
+  globalThis.attachPermitir?.(document); // UND-08
   root.innerHTML = `${hoyV2Header(hoy, model.dataAge)}
     ${hoyV2AreasHtml(area, hoyV2Indicadores)}
     <div class="hoy-v2-panel" id="hoyV2Panel" role="tabpanel" aria-labelledby="hoyV2Tab-${area}">
