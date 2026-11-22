@@ -113,6 +113,22 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 22 de noviembre de 2026 (528): UND-08, «¿Me lo puedo permitir?» (la línea de Hoy, desde el 14/12)
+
+- **Publicado de antes:** #669 (PROJECT_STATE 527) fusionado, main b9e7ecdf; «Verify and deploy Pages» **1535 en verde**; «Published availability» **397 en verde** (la de #668) y otra lanzada a mano tras el 1535.
+- **El hogar:** «sigue con la semana del 7/12» (undécima §6: UND-04, UND-08 y DEC-38 en Inversión y Escenarios). Esta es la primera entrega.
+- **UND-08** (`me-lo-puedo-permitir.js`, nuevo; DEC-31): una línea «¿Me lo puedo permitir? ›» bajo la cifra de Hoy abre una hoja con dos campos (cuánto y cuándo):
+  - con la previsión diaria de Hoy (la línea de su gráfico) y su suelo: desde la fecha del gasto, cada día baja ese importe; se mira el día más bajo de la ventana (30 días tras el gasto, o hasta 6 días después del cobro si es más tarde);
+  - «**Sí**, y el día más justo os quedan X € sobre el suelo» (margen de 150 € o más), «**Sí, pero justo**: el 14 os quedáis a 120 € del suelo» o «**No sin mover algo**» con dos opciones calculadas: esperar al cobro (si entonces cabe) y el importe que cabe en esa fecha (a la decena por abajo). Si sin el gasto ya se baja del suelo, lo dice, en vez de un «no» que no es por el gasto;
+  - el gráfico de Hoy con el gasto restado; medidor «¿Me lo puedo permitir?» (una consulta por hoja abierta: la métrica de la ficha, consultas por semana);
+  - **no guarda nada. Me aparto de la ficha:** sin «Apuntarlo como previsto», porque apuntar en el plan desde aquí se saltaría el «Qué ocurrirá» (decisión 6).
+  - **Puerta de fecha, decisión mía (`HOY_V2_PERMITIR_DESDE`):** la línea sale el **14/12**; el 7/12 entra el indicador por área (UND-06) y Hoy cambia una vez por semana (ESTADO §8.7).
+- **Versiones:** `me-lo-puedo-permitir.js` a `20261122und08`; `views/hoy-v2.js`, `tema-v2.css`, `medidor-utilidad.js` y `novedades.js` a `20261122und08`.
+- **Pruebas:** `tests/und08-me-lo-puedo-permitir.test.cjs` (4), nueva; e2e antes del 14/12 y, el 15/12, a 1440 y 390 px `@safari` (paridad con el cálculo, «no» con un importe enorme, nada guardado salvo el medidor, foco de vuelta); axe de la hoja en claro y oscuro.
+- **Validación:** `npm run verify` en verde: `npm test` **6.900/6.900** (+4). Batería en navegador (e2e, a11y y perf-screens en Chromium): **523 pasan y 1 falla**, «WP-37 · estados completos · una vista que tarda enseña un esqueleto…» (no ve el esqueleto de 1,5 s de Deuda › Plan con el contenedor cargado), que UND-08 no toca; repetida aparte, **3/3** (`--repeat-each=3`, 12/12 del grupo WP-37). La anoto como frágil en carga; no se ha relajado. `test:mobile-overflow` **371 visitas** sin nada cortado. Safari, en el CI.
+- **DEC-38 en Inversión y Escenarios, medido:** a 195 px, con sus pestañas internas, las nueve pantallas (Inversión ×5, Escenarios ×4) **no cortan nada**. Va en su PR detrás de este (las añade a la lista que el CI mira a 195 px).
+- **UND-04 (Ajustes por áreas), sin empezar a propósito:** esconder grupos por defecto toca 48 referencias de las e2e y lo que el hogar ve hoy en Ajustes; antes, una pregunta al hogar (en el resumen de esta sesión).
+
 ## Cierre de sesión — 22 de noviembre de 2026 (527): la semana del 30/11 de la undécima auditoría, publicada entera
 
 - **«Verify and deploy Pages» 1531 en verde** (main 65f70670): publica #666 (UND-11 y UND-12; su 1529 había salido en rojo por la caída del Chromium del CI, sin relanzar) y #667 (UND-17 y UND-06). «Published availability» **396 en verde**, lanzada a mano.
