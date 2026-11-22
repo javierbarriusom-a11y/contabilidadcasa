@@ -21,6 +21,8 @@ minutos.
 
 ## 0. Estado en una línea
 
+**22/11/2026 · Kit para hablar con la entidad (undécima §6): UND-13.** En cada contrato, qué pedir, un guion y una carta imprimible; nada se envía. Con él, la semana del 30/11 queda hecha. El despliegue 1529 (#666) salió en rojo por una caída del Chromium del CI al arrancar, sin relanzar; se publica con #667 (PROJECT_STATE 526).
+
 **22/11/2026 · Ocultar cifras e indicador por área (undécima §6, semana del 30/11): UND-17 y UND-06.** Un ojo en la cabecera tapa todos los importes con «•••» hasta volver a tocarlo; las pestañas de Hoy llevan su indicador (Mes, Caja, Seguimiento) desde el 7/12. Antes, #666 (plan óptimo v2) fusionado y #665 publicado (PROJECT_STATE 525).
 
 **22/11/2026 · Plan óptimo v2 (undécima auditoría §6, semana del 30/11): UND-11 y UND-12.** En Deuda › Plan, el extra de cada mes sale de la previsión sin bajar del suelo (comparado con el importe fijo más alto que tampoco baja), y una oferta de quita entra en el plan por lo que rinde, con lo perdonado en el ahorro; proponerla sigue siendo del simulador. Antes, UND-01 (#665) y la availability de #664 (PROJECT_STATE 524).
