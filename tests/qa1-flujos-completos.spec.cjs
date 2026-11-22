@@ -12456,6 +12456,51 @@ test.describe("UND-01 · Arranque en caliente", () => {
   }
 });
 
+// UND-08 (undécima auditoría; DEC-31, 22/11/2026, la línea de Hoy desde el 14/12): «¿Me lo puedo permitir?». La frase es la del cálculo
+// con la previsión de Hoy; no guarda nada; el foco vuelve a la línea al cerrar; el medidor cuenta una consulta por hoja.
+test.describe("UND-08 · ¿Me lo puedo permitir?", () => {
+  test("antes del 14/12 no sale en Hoy (un cambio de Hoy por semana)", async ({ page }) => {
+    await page.clock.install({ time: new Date(2026, 11, 10, 10, 0, 0) });
+    await page.goto("/index.html#home");
+    await expect(page.locator("#hoyV2 .hoy-v2-figure")).toBeVisible({ timeout: 20000 });
+    await expect(page.locator("#hoyV2 [data-permitir-abrir]")).toHaveCount(0);
+  });
+
+  for (const [nombre, viewport] of [["a 1440 px", { width: 1440, height: 900 }], ["a 390 px @safari", { width: 390, height: 844 }]]) {
+    test(`contesta con la previsión de Hoy, sí y no, sin guardar nada, ${nombre}`, async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.clock.install({ time: new Date(2026, 11, 15, 10, 0, 0) });
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#home");
+      const linea = page.locator("#hoyV2 [data-permitir-abrir]");
+      await expect(linea).toBeVisible({ timeout: 20000 });
+      const guardadoAntes = await page.evaluate(() => Object.keys(localStorage).sort().join("|"));
+      await linea.click();
+      const hoja = page.locator("#permitirDialog");
+      await expect(hoja).toBeVisible();
+      await expect(page.locator("#permitirImporte")).toBeFocused();
+      const respuesta = page.locator("#permitirRespuesta");
+      await page.fill("#permitirImporte", "20");
+      const esperado = await page.evaluate(() => FinanceMeLoPuedoPermitir.responder({ ...permitirEntrada(), importe: 20, fecha: document.getElementById("permitirFecha").value }).estado);
+      await expect(respuesta).toContainText(esperado === "si" ? "Sí, y el día más justo" : esperado === "justo" ? "Sí, pero justo" : esperado === "no" ? "No sin mover algo" : "sin este gasto ya bajáis");
+      if (["si", "justo", "no"].includes(esperado)) await expect(page.locator("#permitirGrafico .hoy-v2-chart")).toBeVisible();
+      await page.fill("#permitirImporte", "999999");
+      const grande = await page.evaluate(() => FinanceMeLoPuedoPermitir.responder({ ...permitirEntrada(), importe: 999999, fecha: document.getElementById("permitirFecha").value }).estado);
+      expect(["no", "ya-bajo"]).toContain(grande);
+      await expect(respuesta).toContainText(grande === "no" ? "No sin mover algo" : "sin este gasto ya bajáis");
+      expect(await page.evaluate(() => FinanceMedidor.resumen(FinanceMedidor.leer(), "me-lo-permito").acciones)).toBe(1);
+      await hoja.getByRole("button", { name: "Cerrar" }).click();
+      await expect(hoja).toBeHidden();
+      await expect(linea).toBeFocused();
+      const guardadoDespues = await page.evaluate(() => Object.keys(localStorage).filter((k) => k !== "medidor-utilidad" && !k.endsWith("medidor-utilidad")).sort().join("|"));
+      expect(guardadoDespues).toBe(guardadoAntes.split("|").filter((k) => k !== "medidor-utilidad" && !k.endsWith("medidor-utilidad")).join("|"));
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 // UND-13 (undécima auditoría; DEC-26, 22/11/2026): el kit para hablar con cada entidad, desde la fila del contrato: qué pedir, guion y
 // carta con los datos del contrato; «Lo hemos pedido» se apunta con su fecha y se recuerda; imprimir deja solo la hoja.
 test.describe("UND-13 · Kit para hablar con la entidad", () => {

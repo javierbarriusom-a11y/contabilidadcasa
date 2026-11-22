@@ -336,6 +336,23 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// UND-08 (22/11/2026; la línea de Hoy desde el 14/12): «¿Me lo puedo permitir?» con una respuesta, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`UND-08 · contraste de «¿Me lo puedo permitir?» en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 390, height: 844 } });
+    test("#permitirDialog: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 11, 15, 10, 0, 0) });
+      await page.goto("/index.html#home");
+      await page.locator("#hoyV2 [data-permitir-abrir]").click({ timeout: 20000 });
+      await page.fill("#permitirImporte", "999999");
+      await expect(page.locator("#permitirRespuesta")).not.toBeEmpty();
+      const results = await new AxeBuilder({ page }).include("#permitirDialog").analyze();
+      const nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // UND-13 (22/11/2026): el kit para hablar con la entidad, con el certificado pedido, en claro y en oscuro.
 for (const scheme of ["light", "dark"]) {
   test.describe(`UND-13 · contraste del kit para hablar con la entidad en modo ${scheme}`, () => {

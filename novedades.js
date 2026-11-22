@@ -11,6 +11,12 @@
 (function exposeFinanceNovedades(root) {
   const NOVEDADES = [
     {
+      id: "2026-12-14-me-lo-puedo-permitir",
+      fecha: "2026-12-14",
+      texto: "Hoy: «¿Me lo puedo permitir?» bajo la cifra. Un importe y una fecha, y os dice si llegáis sin bajar del suelo y, si no, qué mover.",
+      href: "#home",
+    },
+    {
       id: "2026-11-30-repaso-hecho",
       fecha: "2026-11-30",
       texto: "Hoy: con el repaso de la semana hecho, una línea lo dice hasta el domingo, con los grupos clasificados y el % del gasto con partida.",

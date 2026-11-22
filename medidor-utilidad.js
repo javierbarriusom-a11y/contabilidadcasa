@@ -111,6 +111,8 @@
     { id: "hoy-indicador", nombre: "Hoy · áreas abiertas con indicador", accion: ["apertura con indicador", "aperturas con indicador"], descarte: null, deshecho: null },
     // UND-13 (DEC-26): el kit para hablar con cada entidad. Vista = días en que se abrió; acción = certificado pedido o recibido.
     { id: "kit-entidad", nombre: "Kit para hablar con la entidad", accion: ["certificado pedido o recibido", "certificados pedidos o recibidos"], descarte: null, deshecho: null },
+    // UND-08 (DEC-31): «¿Me lo puedo permitir?». Acción = una consulta con respuesta (una por hoja abierta). Métrica: consultas por semana.
+    { id: "me-lo-permito", nombre: "¿Me lo puedo permitir?", accion: ["consulta", "consultas"], descarte: null, deshecho: null },
     // UND-17 (DEC-36): el ojo de la cabecera. Acción = ocultar las cifras; descarte = volver a enseñarlas. Vista = días en que se tocó.
     { id: "ocultar-cifras", nombre: "Ocultar cifras", accion: ["vez ocultadas", "veces ocultadas"], descarte: ["vez enseñadas de nuevo", "veces enseñadas de nuevo"], deshecho: null },
   ];
