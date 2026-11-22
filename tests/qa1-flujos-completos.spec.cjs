@@ -12367,6 +12367,23 @@ test.describe("Hoy por áreas", () => {
 
   // Desde el 10/11 (#605) la previsión diaria se guardaba sin sus filas y, al volver a abrir la app con el mismo plan, se reutilizaba
   // vacía: Hoy se quedaba sin gráfico (en la demo no se veía porque arranca sin nada guardado).
+  // UND-02 (22/11/2026): si el gráfico no sale, Hoy lo dice y deja recalcular; antes quedaba un hueco que se confundía con «sin datos».
+  test("si la previsión diaria se queda sin filas, lo dice y «Recalcular» vuelve a dibujarla", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await abrir(page, { width: 390, height: 844 });
+    await expect(page.locator("#hoyV2 .hoy-v2-chart")).toBeVisible();
+    await page.evaluate(() => { canonicalDailyEngineRuns.active.rows = []; renderHomeDashboard(); });
+    const aviso = page.locator("#hoyV2 [data-hoy-v2-sin-grafico]");
+    await expect(aviso).toContainText("No he podido dibujar la previsión de estos días.");
+    await expect(page.locator("#hoyV2 .hoy-v2-chart")).toHaveCount(0);
+    await aviso.getByRole("button", { name: "Recalcular" }).click();
+    await expect(page.locator("#hoyV2 .hoy-v2-chart")).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("#hoyV2 [data-hoy-v2-sin-grafico]")).toHaveCount(0);
+    expect(await page.evaluate(() => FinanceMedidor.resumen(FinanceMedidor.leer(), "hoy-sin-grafico").acciones)).toBe(1);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
   test("el gráfico del saldo sigue ahí al guardar y volver a abrir la app", async ({ page }) => {
     await abrir(page, { width: 390, height: 844 });
     await expect(page.locator("#hoyV2 .hoy-v2-chart")).toBeVisible();

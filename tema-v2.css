@@ -5657,3 +5657,32 @@
     padding: 6px 10px;
   }
 }
+
+/* UND-02 (22/11/2026): el gráfico de la previsión que no sale, dicho. Como .hoy-v2-pending (borde discontinuo), con ⚠ en vez de ○. */
+:root[data-tema="v2"] .hoy-v2-fallo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 14px;
+  padding: 12px 16px;
+  border: 1.5px dashed var(--e19-border-strong);
+  border-radius: var(--e19-radius-md);
+  color: var(--e19-ink);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+:root[data-tema="v2"] .hoy-v2-fallo-icono {
+  font-size: 16px;
+  line-height: 1;
+}
+
+:root[data-tema="v2"] .hoy-v2-fallo > span:nth-child(2) {
+  flex: 1 1 12em;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .hoy-v2-fallo .secondary-button {
+  min-height: 44px;
+}

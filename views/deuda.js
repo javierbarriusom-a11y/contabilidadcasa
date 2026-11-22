@@ -822,6 +822,31 @@ function renderDeudaRutaAttackTable(contracts, summary, resultadosById, def) {
   }
 }
 
+// DEC-29 (décima auditoría; 22/11/2026): el titular de Deuda › Plan nunca dice «sin deuda» ni «sin fecha estimable» encima de una
+// fecha. `libreDeDeuda` (escenarioMotorLibreDeDeuda) es un mes, un mes «· queda deuda sin cuota activa», «sin fecha estimable · sin
+// cuota activa», «fuera de horizonte» o «sin deuda pendiente»; cada caso, una frase. `deudas`: el estado final de la ruta (o los
+// contratos), para contar las que no tienen cuota.
+function deudaRutaTitulo(libreDeDeuda, deudas) {
+  const valor = String(libreDeDeuda || "");
+  const sinCuota = (Array.isArray(deudas) ? deudas : []).filter((d) => Number(d?.currentPrincipal) > 0 && d?.paymentStatus !== "active").length;
+  const faltan = sinCuota === 1 ? "falta 1 sin cuota" : `faltan ${sinCuota} sin cuota`;
+  const mes = valor.match(/^(\d{4}-\d{2})/);
+  if (mes && / · queda deuda sin cuota activa/.test(valor)) return `Libre de las deudas con cuota en ${escenarioMotorMonthLabel(mes[1])} · ${faltan}`;
+  if (mes) return `Sin deuda en ${escenarioMotorMonthLabel(mes[1])}`;
+  if (valor === "sin deuda pendiente") return "Sin deuda pendiente";
+  if (valor.startsWith("sin fecha estimable")) return `Sin fecha: ninguna deuda tiene cuota activa (${faltan})`;
+  if (valor === "fuera de horizonte") return "Libre de deuda más allá del horizonte del plan";
+  return valor ? `Libre de deuda: ${valor}` : "Libre de deuda: —";
+}
+
+// DEC-29: sin «0 € de coste total ejecutado»; si la ruta no cuesta nada, no se dice.
+function deudaRutaSubtitulo(def, estrategia, summary) {
+  const partes = [`${summary.total} ${summary.total === 1 ? "decisión" : "decisiones"}`];
+  if (Number(summary.costeTotal) > 0) partes.push(`${money(summary.costeTotal, true)} de ${(def?.costeLabel || DEBT_STRATEGY_COSTE_LABEL).toLowerCase()}`);
+  partes.push(`caja mínima ${money(summary.cajaMinima ?? 0, true)}`);
+  return `${def?.label || estrategia}: ${partes.join(", ")}.`;
+}
+
 function renderDeudaRuta() {
   renderDeudaScreenTabs("deuda-ruta");
   renderDeudaFlowNav("deuda-ruta");
@@ -846,17 +871,9 @@ function renderDeudaRuta() {
   const resultadosById = new Map((summary.result?.resultados || []).map((item) => [item.id, item]));
 
   const titleEl = qs("deudaRutaTitle");
-  if (titleEl) {
-    const esFecha = /^\d{4}-\d{2}/.test(String(summary.libreDeDeuda || ""));
-    titleEl.textContent = esFecha
-      ? `Sin deuda en ${escenarioMotorMonthLabel(summary.libreDeDeuda)}`
-      : `Libre de deuda: ${escenarioMotorMonthLabel(summary.libreDeDeuda)}`;
-  }
+  if (titleEl) titleEl.textContent = deudaRutaTitulo(summary.libreDeDeuda, summary.result?.debtStateFinal || contracts);
   const subtitleEl = qs("deudaRutaSubtitle");
-  if (subtitleEl) {
-    const costeLabel = (def?.costeLabel || DEBT_STRATEGY_COSTE_LABEL).toLowerCase();
-    subtitleEl.textContent = `${def?.label || deudaRutaSelectedStrategy}: ${summary.total} ${summary.total === 1 ? "decisión" : "decisiones"}, ${money(summary.costeTotal, true)} de ${costeLabel}, caja mínima ${money(summary.cajaMinima ?? 0, true)}.`;
-  }
+  if (subtitleEl) subtitleEl.textContent = deudaRutaSubtitulo(def, deudaRutaSelectedStrategy, summary);
 
   const deudaViva = buildDeudaVivaSeries(baseInput.months, contracts, summary.decisions, resultadosById);
   const chartWindow = deudaRutaChartWindow(deudaViva, summary.result?.series || [], baseInput.months);

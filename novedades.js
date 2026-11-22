@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-22-ruta-y-grafico",
+      fecha: "2026-11-22",
+      texto: "Deuda › Plan ya no dice «sin deuda» si quedan deudas sin cuota. Si Hoy no puede dibujar la previsión, lo dice y deja recalcular.",
+      href: "#deuda-ruta",
+    },
+    {
       id: "2026-11-21-deuda-tres-pestanas",
       fecha: "2026-11-21",
       texto: "Deuda, en tres pestañas: Plan, Contratos y Ofertas (dentro, Comparar, Préstamo y el simulador). Los enlaces de siempre siguen valiendo.",

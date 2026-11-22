@@ -58,6 +58,10 @@
   // DEC-45: «¿te sirve?» en Novedades. Una respuesta por línea (la última), con su fecha; como mucho estas.
   const KEEP_NOVEDADES = 300;
   const OPINIONES = ["si", "no"];
+  // UND-26: fallos por fichero y mes; como mucho estos ficheros por mes y este número por fichero.
+  const FICHERO_FALLO = /^(?:otro|(?:views\/)?[\w.-]{1,60}\.js)$/;
+  const KEEP_FICHEROS_FALLO = 30;
+  const MAX_FALLOS = 9999;
   // El primer cierre real (octubre de 2026) no se midió: lo dijo el hogar el 4/11 (docs/REVISION_POST_CIERRE_2026-11.md).
   const CIERRE_LINEA_BASE = { mes: "2026-10", minutos: 45 };
 
@@ -93,6 +97,16 @@
     // «no» como descarte y quitar la respuesta como deshecho. Qué línea dice cada cosa se guarda aparte (`novedades`).
     { id: "novedades", nombre: "Novedades («¿te sirve?»)", accion: ["«sí, me sirve»", "«sí, me sirve»"], descarte: ["«no me sirve»", "«no me sirve»"], deshecho: ["respuesta quitada", "respuestas quitadas"] },
     { id: "banda-dia", nombre: "Qué mueve cada día", accion: ["día de cargo buscado desde aquí", "días de cargo buscados desde aquí"], descarte: ["vez apagada", "veces apagada"], deshecho: null },
+    // UND-23 (undécima auditoría; 22/11/2026): las áreas de Hoy, una a una. Vista = días en que se abrió el área; acción = lo
+    // que se hizo desde ella (las mismas acciones que cuenta «Hoy nuevo»). Con la revisión de las dos semanas, el área que no se
+    // abra se funde en otra. El tiempo en cada área no se mide: haría falta un reloj por área y no cambia esa decisión.
+    { id: "hoy-area-hoy", nombre: "Hoy · área «Hoy»", accion: ["acción desde el área", "acciones desde el área"], descarte: null, deshecho: null },
+    { id: "hoy-area-mes", nombre: "Hoy · área «Mes»", accion: ["acción desde el área", "acciones desde el área"], descarte: null, deshecho: null },
+    { id: "hoy-area-caja", nombre: "Hoy · área «Caja»", accion: ["acción desde el área", "acciones desde el área"], descarte: null, deshecho: null },
+    { id: "hoy-area-patrimonio", nombre: "Hoy · área «Patrimonio y deuda»", accion: ["acción desde el área", "acciones desde el área"], descarte: null, deshecho: null },
+    { id: "hoy-area-seguimiento", nombre: "Hoy · área «Seguimiento»", accion: ["acción desde el área", "acciones desde el área"], descarte: null, deshecho: null },
+    // UND-02: los días en que Hoy no pudo dibujar la previsión (vista) y las veces que se pulsó «Recalcular» (acción). Objetivo: 0.
+    { id: "hoy-sin-grafico", nombre: "Hoy · «No he podido dibujar la previsión»", accion: ["vez «Recalcular»", "veces «Recalcular»"], descarte: null, deshecho: null },
   ];
 
   function cuenta(n, [uno, varios]) {
@@ -105,7 +119,7 @@
   }
 
   function emptyStore() {
-    return { meses: {}, ultimaVista: {}, ultimaAccion: {}, claves: {}, tiempos: {}, calibracion: [], cierres: {}, novedades: {}, desde: "" };
+    return { meses: {}, ultimaVista: {}, ultimaAccion: {}, claves: {}, tiempos: {}, calibracion: [], cierres: {}, novedades: {}, fallos: {}, desde: "" };
   }
 
   function normalize(raw) {
@@ -155,14 +169,49 @@
         .sort((a, b) => b[1].f.localeCompare(a[1].f))
         .slice(0, KEEP_NOVEDADES));
     }
+    for (const [mes, porFichero] of Object.entries(raw.fallos || {})) {
+      if (!/^\d{4}-\d{2}$/.test(mes) || !porFichero || typeof porFichero !== "object") continue;
+      const limpio = Object.entries(porFichero)
+        .filter(([fichero, n]) => FICHERO_FALLO.test(fichero) && Number.isInteger(n) && n > 0)
+        .slice(0, KEEP_FICHEROS_FALLO)
+        .map(([fichero, n]) => [fichero, Math.min(n, MAX_FALLOS)]);
+      if (limpio.length) store.fallos[mes] = Object.fromEntries(limpio);
+    }
     if (/^\d{4}-\d{2}-\d{2}$/.test(String(raw.desde || ""))) store.desde = raw.desde;
     return store;
+  }
+
+  // UND-26 (undécima auditoría; 22/11/2026): los errores de JavaScript de este navegador, contados por fichero y mes. Solo el
+  // nombre del fichero (el de la app: «app.js», «views/hoy-v2.js»…) y el número; nunca el mensaje, que puede llevar datos.
+  function ficheroDeFallo(origen) {
+    const texto = String(origen || "");
+    const match = texto.match(/(?:^|\/)((?:views\/)?[\w.-]+\.js)(?:[?#:]|$)/);
+    return match && FICHERO_FALLO.test(match[1]) ? match[1] : "otro";
+  }
+
+  function registrarFallo(store, origen, hoy = isoDate()) {
+    const mes = hoy.slice(0, 7);
+    const fichero = ficheroDeFallo(origen);
+    const delMes = store.fallos[mes] || (store.fallos[mes] = {});
+    if (!(fichero in delMes) && Object.keys(delMes).length >= KEEP_FICHEROS_FALLO) return store;
+    delMes[fichero] = Math.min(MAX_FALLOS, (delMes[fichero] || 0) + 1);
+    if (!store.desde) store.desde = hoy;
+    return prune(store, hoy);
+  }
+
+  function fraseFallos(store, mes) {
+    const delMes = Object.entries(store.fallos?.[mes] || {}).sort((a, b) => b[1] - a[1]);
+    if (!delMes.length) return "Ningún fallo de la app este mes en este navegador.";
+    const total = delMes.reduce((sum, [, n]) => sum + n, 0);
+    return `${total} ${total === 1 ? "fallo" : "fallos"} de la app este mes: ${delMes.slice(0, 5).map(([f, n]) => `${n} en ${f}`).join(", ")}${delMes.length > 5 ? "…" : ""}. Solo el fichero, nunca el mensaje.`;
   }
 
   function prune(store, hoy) {
     const meses = Object.keys(store.meses).sort();
     const corte = meses.slice(0, Math.max(0, meses.length - KEEP_MONTHS));
     corte.forEach((mes) => delete store.meses[mes]);
+    const fallos = Object.keys(store.fallos || {}).sort();
+    fallos.slice(0, Math.max(0, fallos.length - KEEP_MONTHS)).forEach((mes) => delete store.fallos[mes]);
     const cierres = Object.keys(store.cierres).sort();
     cierres.slice(0, Math.max(0, cierres.length - KEEP_CIERRES)).forEach((mes) => delete store.cierres[mes]);
     if (!store.desde) store.desde = hoy;
@@ -504,7 +553,7 @@
       const tasa = r.tasa === null ? "—" : `${r.tasa} %`;
       const dato = f.id === "clasificar-v2" ? globalThis.clasificarV2CoberturaFrase?.() || "" : f.id === "cierre-v2" ? fraseCierre(cierre(store)) : f.id === "novedades" ? fraseNovedades(store, globalThis.FinanceNovedades || []) : ""; // XDA-05, coste del cierre y DEC-45
       return `<li><div class="panel-uso-cabecera"><strong>${escapeHtml(f.nombre)}</strong><span class="panel-uso-valor" title="Tasa de acción">${escapeHtml(f.accion ? tasa : "—")}</span></div><p class="e19-kpi-note">${escapeHtml(frase(f.id, r))}</p>${dato ? `<p class="e19-kpi-note">${escapeHtml(dato)}</p>` : ""}</li>`;
-    }).join("");
+    }).join("") + `<li data-medidor-fallos><div class="panel-uso-cabecera"><strong>Fallos de la app</strong><span class="panel-uso-valor">${escapeHtml(String(Object.values(store.fallos?.[mesElegido] || {}).reduce((sum, n) => sum + n, 0)))}</span></div><p class="e19-kpi-note">${escapeHtml(fraseFallos(store, mesElegido || isoDate().slice(0, 7)))}</p></li>`; // UND-26
     const desde = doc.getElementById("medidorUtilidadDesde");
     if (desde) desde.textContent = store.desde ? `Datos desde el ${store.desde.split("-").reverse().join("/")}, solo en este navegador.` : "Aún no hay datos: empieza a contar hoy.";
   }
@@ -615,6 +664,18 @@
     globalThis.setTimeout?.(comprobarFirmas, 3000);
   }
 
+  function anotarFallo(origen) {
+    guardar(registrarFallo(leer(), origen));
+  }
+
+  // UND-26: se escucha desde que carga este fichero (antes que app.js), para contar también los fallos del arranque.
+  function vigilarFallos(win = globalThis) {
+    win.addEventListener?.("error", (event) => {
+      if (event?.filename || event?.error) anotarFallo(event.filename || event.error?.stack || "");
+    });
+    win.addEventListener?.("unhandledrejection", (event) => anotarFallo(event?.reason?.stack || ""));
+  }
+
   function init(doc = globalThis.document) {
     if (!doc) return;
     vigilarCierre(doc);
@@ -628,9 +689,10 @@
   }
 
   if (typeof document !== "undefined") {
+    vigilarFallos(globalThis);
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => init(document));
     else init(document);
   }
 
-  return { STORAGE_KEY, FUNCIONES, TIPOS_SIN, PUERTA_GRUPOS, PUERTA_PCT, CIERRE_PAUSA_S, CIERRE_VISTAS, CIERRE_LINEA_BASE, normalize, registrar, opinarNovedad, opinionNovedad, fraseNovedades, opinar, opinion, registrarClasificacion, corregirClasificacion, calibracion, resumen, mesesGuardados, frase, registrarTiempoCierre, registrarFirmaCierre, cierre, fraseCierre, leer, anotar, anotarClasificacion, deshacerClasificacion: corregir, pintarInforme };
+  return { STORAGE_KEY, FUNCIONES, TIPOS_SIN, ficheroDeFallo, registrarFallo, fraseFallos, PUERTA_GRUPOS, PUERTA_PCT, CIERRE_PAUSA_S, CIERRE_VISTAS, CIERRE_LINEA_BASE, normalize, registrar, opinarNovedad, opinionNovedad, fraseNovedades, opinar, opinion, registrarClasificacion, corregirClasificacion, calibracion, resumen, mesesGuardados, frase, registrarTiempoCierre, registrarFirmaCierre, cierre, fraseCierre, leer, anotar, anotarClasificacion, deshacerClasificacion: corregir, pintarInforme };
 });

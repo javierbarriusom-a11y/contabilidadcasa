@@ -113,6 +113,23 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 22 de noviembre de 2026 (522): DEC-29, UND-02, UND-23 y UND-26 (fiabilidad de la undécima auditoría)
+
+- **Publicado de antes:** #663 (Safari repintaba la sección al desplazarse) con su CI en verde, Safari incluido. Fusionado comprobada la cabeza 08c83c08: main 62ed19fc. **«Verify and deploy Pages» 1523 en verde:** se publican por fin #661, #662 y #663. «Published availability» **392 en verde**, lanzada a mano.
+- **El hogar:** «Sigue». Siguiendo el orden de la undécima auditoría (§6, semana del 23/11: fiabilidad), van las cuatro tareas acotadas. UND-01 (pruebas de arranque en caliente, M) queda para su propio PR.
+- **DEC-29, Deuda › Plan sin contradicción** (`deudaRutaTitulo`, `deudaRutaSubtitulo` en `views/deuda.js`):
+  - con deudas sin cuota, ya no dice «Sin deuda en oct 2029 · queda deuda sin cuota activa», sino «Libre de las deudas con cuota en oct 2029 · falta 1 sin cuota»;
+  - sin ninguna cuota activa: «Sin fecha: ninguna deuda tiene cuota activa (faltan N sin cuota)»; fuera del horizonte: «Libre de deuda más allá del horizonte del plan»;
+  - el subtítulo deja de decir «0 € de coste total ejecutado» cuando la ruta no cuesta nada.
+- **UND-02, «No he podido dibujar…» en lugar del hueco:** si el gráfico de la previsión de Hoy no sale (motor diario sin filas, fechas fuera de su tramo), Hoy enseña «⚠ No he podido dibujar la previsión de estos días» y «Recalcular», que rehace la previsión diaria y repinta. Antes, un fallo y un «sin datos» se veían igual. En el medidor: «Hoy · No he podido dibujar la previsión» (días en que salta y veces «Recalcular»); el objetivo es 0.
+- **UND-23, las áreas de Hoy en el medidor:** una función por área (Hoy, Mes, Caja, Patrimonio y deuda, Seguimiento). Vista = días en que se abrió el área; acción = lo que se hizo desde ella. Con la revisión de las dos semanas, el área que no se abra se funde en otra. **No se mide el tiempo en cada área:** haría falta un reloj por área y no cambia esa decisión.
+- **UND-26, fallos sin datos:** los errores de JavaScript de este navegador, contados por fichero de la app y mes (`views/hoy-v2.js`, `app.js`…). Nunca se guarda el mensaje, que puede llevar datos. Se escucha desde que carga el medidor (antes que `app.js`), para contar también el arranque. Ajustes › Uso de la app añade la fila «Fallos de la app».
+- **Versiones:** `views/hoy-v2.js`, `medidor-utilidad.js`, `tema-v2.css` y `novedades.js` a `20261122und`; `views/deuda.js` a `20261122dec29`. Las pruebas de versiones aceptan las nuevas.
+- **Pruebas:**
+  - `tests/dec29-ruta-sin-contradiccion.test.cjs` (4) y `tests/und23-und26-medidor.test.cjs` (4), nuevas;
+  - e2e de UND-02 en «Hoy por áreas»: sin filas, el aviso; con «Recalcular», el gráfico vuelve y el medidor lo cuenta.
+- **Validación:** `npm test` **6.874/6.874** (+8), lint y typecheck en verde. `npm run test:mobile-overflow` sobre un `dist` nuevo: **371 visitas** sin nada cortado. Batería en navegador (e2e, a11y y perf-screens en Chromium, servidor y `dist` nuevos): **503 pasan y 1 falla, la e2e nueva de UND-02**. Detectó un fallo real: «Recalcular» no volvía a dibujar nada, porque `render()` solo recalcula si cambia la firma del modelo (`simulationSignature`) y no se borraba. Ahora se borra. Repetidas aparte las de Hoy (áreas, cambios 1 y 2, FX-01, DEC-20, DEC-23, XGO-02) en e2e y a11y: **26/26**. Safari, en el CI.
+
 ## Cierre de sesión — 22 de noviembre de 2026 (521): Safari repintaba la sección entera al desplazarse (despliegues 1518 y 1521 en rojo)
 
 - **Publicado de antes:** #662 (lo que dejó #658 y el primer arreglo del 1518) con su CI en verde, Safari incluido. Fusionado comprobada la cabeza 352183cc: main dfa50159. #658 se cerró sin fusionar, con un comentario.
