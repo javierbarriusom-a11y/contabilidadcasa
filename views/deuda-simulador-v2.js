@@ -117,6 +117,10 @@
       totalPagado: result.totalPaid,
       totalPagoUnico: result.totalLump,
       pico: result.peak,
+      // DUO-01: el margen más justo del motor (capacidad menos lo que se paga; con «las cuotas de hoy ya están en el plan», sin restarlas
+      // otra vez). Es lo que dice si un mes se pasa de la capacidad.
+      margenMinimo: filas.length ? Math.round(Math.min(...filas.map((fila) => fila.margin)) * 100) / 100 : null,
+      cuotasEnPlan: Boolean(config.cuotasEnPlan),
       duracion: result.durationMonths,
       sinFin,
       quita: Math.round(cuentas.reduce((suma, cuenta) => suma + cuenta.quita, 0) * 100) / 100,
@@ -161,12 +165,16 @@ function simV2CifrasHtml(sim, config, modelo) {
   const ruta = modelo.ruta;
   const fin = sim.sinFin ? `más de ${config.months} meses` : simV2Fin(config.baseMonth, sim.duracion);
   const rutaTexto = ruta?.debtFreeMonthKey ? `Sin cambios (Ruta): ${globalThis.FinanceSimuladorV2.mesTexto(ruta.debtFreeMonthKey, 0)}` : "Sin cambios, Ruta no da fecha";
-  const caro = sim.pico > sim.capacidad;
+  // DUO-01: «más que la capacidad» sale del margen del motor, que respeta la casilla de las cuotas de hoy; antes comparaba el pago total con
+  // la capacidad y la casilla no cambiaba nada de lo que se ve.
+  const caro = sim.margenMinimo === null || sim.margenMinimo === undefined ? sim.pico > sim.capacidad : sim.margenMinimo < 0;
+  const margenTexto = sim.margenMinimo === null || sim.margenMinimo === undefined ? ""
+    : ` · margen más justo ${simV2Euro(sim.margenMinimo)}${sim.cuotasEnPlan ? ", sin restar las cuotas de hoy" : ""}`;
   return `<div class="sim-v2-cifras">
       <div><span>Deuda a simular</span><strong>${simV2Euro(sim.deuda)}</strong><small>${sim.cuentas.length} ${sim.cuentas.length === 1 ? "contrato" : "contratos"}</small></div>
       <div><span>Libre de deuda</span><strong>${escapeHtml(fin)}</strong><small>${escapeHtml(rutaTexto)}</small></div>
       <div><span>Pagaréis en total</span><strong>${simV2Euro(sim.totalPagado)}</strong><small>${sim.quita > 0 ? `${simV2Euro(sim.quita)} de quita` : "sin quita"}</small></div>
-      <div class="${caro ? "is-alerta" : ""}"><span>El mes más caro</span><strong>${simV2Euro(sim.pico)}</strong><small>${caro ? "más que" : "dentro de"} la capacidad (${simV2Euro(sim.capacidad)} al mes)</small></div>
+      <div class="${caro ? "is-alerta" : ""}"><span>El mes más caro</span><strong>${simV2Euro(sim.pico)}</strong><small>${caro ? "más que" : "dentro de"} la capacidad (${simV2Euro(sim.capacidad)} al mes)${margenTexto}</small></div>
     </div>`;
 }
 

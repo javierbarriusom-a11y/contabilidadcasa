@@ -52,6 +52,36 @@ function caminoHeroHtml(label, value, note) {
   return `<div class="cam-hero"><span class="cam-hero-label">${escapeHtml(label)}</span><strong class="cam-hero-value">${escapeHtml(value)}</strong><small class="cam-hero-note">${escapeHtml(note)}</small></div>`;
 }
 
+// DUO-D9 (docs/PROPUESTA_DUODECIMA_AUDITORIA_2026-11-23.md): una deuda con los pagos suspendidos (lo que la app trata como impago) no entra en
+// la fecha. Se dice en la misma cifra y, en la nota, con la salida que sí sirve: no hay cuota que completar; entra en el plan con una oferta de
+// quita (Ofertas de quita, en el plan) y para pedirla está el kit para hablar con la entidad (Deuda › Contratos).
+function caminoImpagoNota(rows, total = null, enPlan = false) {
+  const principal = total ? total.principal : rows.reduce((sum, row) => sum + (Number(row.principal) || 0), 0);
+  const nombres = rows.map((row) => escapeHtml(row.label)).join(", ");
+  const salida = enPlan
+    ? "Con una oferta de quita entra en el plan (en «Ofertas de quita», más abajo)"
+    : "Con una oferta de quita entra en el plan óptimo (Deuda › Plan, «Ofertas de quita»)";
+  return `<strong>Con los pagos suspendidos, fuera de la fecha:</strong> ${nombres} (${escapeHtml(money(principal, true))}). No tiene cuota que completar en Contratos. ${salida}; para pedirla, el kit para hablar con la entidad, desde su fila en Deuda › Contratos.`;
+}
+
+function planOptimoHeroLabel(r) {
+  return r.completo === false ? "Libre de las deudas que entran" : "Libre de deuda";
+}
+
+function planOptimoHeroFuera(r) {
+  const fuera = r.fueraDeLaFecha;
+  if (!fuera || !fuera.count) return "";
+  return caminoFueraNota(fuera.count, fuera.principal, fuera.enImpago ? fuera.enImpago.count : 0, fuera.enImpago ? fuera.enImpago.principal : 0);
+}
+
+// La coletilla de la fecha cuando algo no entra: lo impagado se nombra (no es un dato que falte).
+function caminoFueraNota(count, principal, impagoCount, impagoPrincipal) {
+  if (!count) return "";
+  if (impagoCount && impagoCount === count) return ` · sin contar ${money(impagoPrincipal, true)} con los pagos suspendidos`;
+  if (impagoCount) return ` · sin contar ${money(principal, true)} que no entran (${money(impagoPrincipal, true)} con los pagos suspendidos)`;
+  return " · solo las deudas con datos";
+}
+
 function caminoMilestonesHtml(result, baselineById, todayKey) {
   const total = Math.max(1, ...result.milestones.map((row) => row.payoffIndex + 1));
   const items = result.milestones.map((row) => {
@@ -81,10 +111,14 @@ function caminoHoyNote(result) {
 
 function caminoNotesHtml(result) {
   const notes = [];
-  if (result.excluded.length) {
-    const list = result.excluded.map((row) => `${escapeHtml(row.label)} (${money(row.principal, true)}, ${escapeHtml(CAMINO_REASON_TEXT[row.reason] || row.reason)})`).join("; ");
+  // DUO-D9: lo que tiene los pagos suspendidos (impago) no se arregla completando datos; se dice aparte y con su salida.
+  const sinDatos = result.excluded.filter((row) => !row.suspended);
+  const enImpago = result.excluded.filter((row) => row.suspended);
+  if (sinDatos.length) {
+    const list = sinDatos.map((row) => `${escapeHtml(row.label)} (${money(row.principal, true)}, ${escapeHtml(CAMINO_REASON_TEXT[row.reason] || row.reason)})`).join("; ");
     notes.push(`<strong>No entran en la cuenta:</strong> ${list}. La fecha es la de las demás deudas; completa su cuota y su TAE o plazo en Contratos para incluirlas.`);
   }
+  if (enImpago.length) notes.push(caminoImpagoNota(enImpago));
   const gaps = result.included.filter((row) => row.declaredGapMonths !== null && Math.abs(row.declaredGapMonths) > globalThis.FinanceCanonicalDebtPayoffPath.LARGE_GAP_MONTHS);
   if (gaps.length) {
     const list = gaps.map((row) => `${escapeHtml(row.label)} (declara ${caminoMonths(row.declaredInstallments)}; con su capital, cuota y TAE salen ${caminoMonths(row.declaredInstallments + row.declaredGapMonths)})`).join("; ");
@@ -116,7 +150,7 @@ function caminoResultHtml(engine, contracts, extra, todayKey) {
   const hundred = engine.perHundred(contracts, options);
   const dateText = result.debtFreeMonthKey ? caminoMonthText(result.debtFreeMonthKey) : "sin fecha";
   const dateNote = result.debtFreeMonthKey
-    ? `${caminoSpan(result.monthsToDebtFree)}${result.complete ? "" : " · solo las deudas con datos"}`
+    ? `${caminoSpan(result.monthsToDebtFree)}${result.complete ? "" : caminoFueraNota(result.excluded.length, result.excludedPrincipal, result.excluded.filter((row) => row.suspended).length, result.excluded.filter((row) => row.suspended).reduce((sum, row) => sum + row.principal, 0))}`
     : "alguna deuda no acaba en 50 años";
   const interestNote = extra > 0 && !base.beyondHorizon && !result.beyondHorizon
     ? `${money(Math.max(0, base.totalInterest - result.totalInterest), true)} menos que sin extra`
@@ -315,7 +349,21 @@ function planOptimoModoEfectivo(liquidez) {
   return liquidez?.ok ? "prevision" : "fijo";
 }
 
+// DUO-01 (D-N34): si los dos órdenes dan exactamente lo mismo, cambiar el orden o el margen no mueve ninguna cifra; se dice por qué.
+function planOptimoOrdenesCoinciden(r) {
+  const a = r.recommended?.summary;
+  const b = r.alternative?.summary;
+  if (!a || !b) return false;
+  return Number(r.diferenciaAlternativa || 0) === 0 && a.debtFreeMonthKey === b.debtFreeMonthKey
+    && (a.firstPayoff?.id ?? null) === (b.firstPayoff?.id ?? null) && (a.firstPayoff?.payoffMonthKey ?? null) === (b.firstPayoff?.payoffMonthKey ?? null);
+}
+
 function planOptimoRazonHtml(r) {
+  if (planOptimoOrdenesCoinciden(r)) {
+    const una = (r.recommended.result?.included || []).length <= 1;
+    const porque = una ? "solo hay una deuda en la cuenta" : "la más cara es también la más pequeña";
+    return `<p class="cam-frase" data-plan-optimo-coinciden><strong>Con vuestras deudas, los dos órdenes coinciden:</strong> ${porque}, así que avalancha y bola de nieve dan las mismas fechas y los mismos intereses. Cambiar el orden o el margen no mueve ninguna cifra.</p>`;
+  }
   const rec = r.recommended;
   const first = rec.summary.firstPayoff;
   const diff = Number(r.diferenciaAlternativa || 0);
@@ -417,7 +465,12 @@ function planOptimoAvisosHtml(r, refs) {
     if (w.id === "por-encima-capacidad") notes.push(`<strong>Por encima de vuestra capacidad libre</strong> (${escapeHtml(money(w.capacity, true))} al mes): con más, la previsión puede bajar del suelo algún mes. Miradlo en Plan › Previsión.`);
     if (w.id === "por-encima-disponible") notes.push(`<strong>El pago inicial pasa de lo que sobra sobre el suelo del colchón</strong> en los próximos 12 meses (${escapeHtml(money(w.available, true))}): os quedaríais por debajo del colchón.`);
     if (w.id === "pago-inicial-sobra") notes.push(`Del pago inicial sobran ${escapeHtml(money(w.amount, true))}: con lo demás ya se saldan las deudas que entran en la cuenta.`);
-    if (w.id === "fuera") notes.push(`<strong>No entran en la cuenta</strong> ${w.count === 1 ? "una deuda" : `${w.count} deudas`} (${escapeHtml(money(w.principal, true))}) sin cuota activa o sin TAE ni plazo; las fechas son las de las demás. Completadlas en Contratos.`);
+    if (w.id === "fuera") {
+      // DUO-D9: sin desglose (motor anterior), todo como «sin datos».
+      const datos = w.datos || { count: w.count, principal: w.principal };
+      if (datos.count) notes.push(`<strong>No entran en la cuenta</strong> ${datos.count === 1 ? "una deuda" : `${datos.count} deudas`} (${escapeHtml(money(datos.principal, true))}) sin cuota activa o sin TAE ni plazo; las fechas son las de las demás. Completadlas en Contratos.`);
+      if (w.enImpago && w.enImpago.count) notes.push(caminoImpagoNota(w.enImpago.labels.map((label) => ({ label })), w.enImpago, true));
+    }
   }
   if (refs.available !== null && !r.lump && refs.available > 0) notes.push(`Por encima del suelo del colchón tenéis unos ${escapeHtml(money(refs.available, true))} que la previsión no toca en 12 meses: probad a poner parte como pago inicial.`);
   notes.push("Se calcula con «Camino a deuda cero» (capital, cuota y TAE de cada contrato), pero aquí las cuotas que se liberan al saldar una deuda <strong>sí</strong> pasan a la siguiente. A lo pactado con una entidad no se le adelanta nada. Sin comisiones por amortizar antes ni cambios de tipo. Una quita se supone en pie hasta que se paga, y mientras se junta la deuda sigue con su cuota. Es una propuesta: no ejecuta nada.");
@@ -448,7 +501,7 @@ function planOptimoHtml(engine, contracts, todayKey, refs, Plan) {
     ? caminoHeroHtml("Lo que os ahorráis", s.totalSaved === null ? "—" : money(s.totalSaved, true), `${s.interestSaved === null ? "" : `${money(s.interestSaved, true)} de intereses + `}${money(s.forgiven, true)} que os perdonan`)
     : caminoHeroHtml("Intereses que os ahorráis", s.interestSaved === null ? "—" : money(s.interestSaved, true), s.totalInterest === null ? "alguna deuda no acaba" : `pagaréis ${money(s.totalInterest, true)} en lugar de ${money(base.totalInterest ?? 0, true)}`);
   const heroes = `<div class="cam-heroes">
-      ${caminoHeroHtml("Libre de deuda", s.debtFreeMonthKey ? caminoMonthText(s.debtFreeMonthKey) : "sin fecha", s.monthsSaved > 0 ? `${caminoMonths(s.monthsSaved)} antes que hoy (${caminoMonthText(base.debtFreeMonthKey)})` : base.beyondHorizon ? "hoy alguna deuda no acaba" : "como el calendario actual")}
+      ${caminoHeroHtml(planOptimoHeroLabel(r), s.debtFreeMonthKey ? caminoMonthText(s.debtFreeMonthKey) : "sin fecha", `${s.monthsSaved > 0 ? `${caminoMonths(s.monthsSaved)} antes que hoy (${caminoMonthText(base.debtFreeMonthKey)})` : base.beyondHorizon ? "hoy alguna deuda no acaba" : "como el calendario actual"}${planOptimoHeroFuera(r)}`)}
       ${ahorroHero}
       ${caminoHeroHtml("Primera deuda saldada", s.firstPayoff ? s.firstPayoff.label : "—", s.firstPayoff ? caminoMonthText(s.firstPayoff.payoffMonthKey) : "")}
     </div>`;

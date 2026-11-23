@@ -12474,6 +12474,31 @@ test.describe("UND-01 · Arranque en caliente", () => {
   }
 });
 
+// DUO-01 · D-N34 (23/11/2026, decisión del hogar): prueba de efecto. Todo control de una pantalla v2 mueve alguna cifra o dice por qué
+// no; y ninguno queda sin registrar (tests/helpers/efecto-controles.cjs). Desde datos guardados (arranque en caliente).
+test.describe("DUO-01 · Prueba de efecto de los controles", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  const Efecto = require("./helpers/efecto-controles.cjs");
+  test("cada control visible de las pantallas v2 está registrado y mueve alguna cifra (o lo explica), a 1280 px", async ({ page }) => {
+    test.setTimeout(180000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await arrancarEnCaliente(page);
+    for (const pantalla of Efecto.PANTALLAS) {
+      await test.step(pantalla.nombre, async () => {
+        await page.evaluate((h) => { location.hash = h; }, pantalla.hash);
+        await pantalla.entrar(page, { abrirAreaDeAjustes });
+        const claves = await Efecto.censarControles(page, pantalla.raiz);
+        expect(Efecto.sinCubrir(pantalla.nombre, claves), `${pantalla.nombre}: controles sin prueba de efecto ni excepción razonada (D-N34)`).toEqual([]);
+        for (const efecto of Efecto.EFECTOS.filter((item) => item.pantalla === pantalla.nombre)) {
+          await test.step(efecto.nombre, () => Efecto.comprobarEfecto(page, efecto));
+        }
+      });
+    }
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
 // D-N33 (23/11/2026, decisión del hogar): el escenario de supuestos en Ajustes › Plan y operación; fuera de «Base», la cabecera de
 // todas las pantallas lo avisa, con «Volver a Base». Mismo camino que el Simulador (applyScenario); se guarda con los datos.
 test.describe("D-N33 · Escenario de supuestos en Ajustes", () => {

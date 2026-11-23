@@ -259,7 +259,19 @@
     if (recommended.lumpUnused > 0) warnings.push({ id: "pago-inicial-sobra", amount: recommended.lumpUnused });
     // Lo que sigue fuera con el plan (una deuda sin cuota con su oferta de quita sí entra).
     const fuera = recommended.result.ok ? recommended.result : baseline;
-    if (fuera.excluded.length) warnings.push({ id: "fuera", count: fuera.excluded.length, principal: fuera.excludedPrincipal });
+    // DUO-D9: lo que tiene los pagos suspendidos (impago) se cuenta aparte: no se arregla completando datos en Contratos, y la fecha de
+    // «libres» no lo incluye. `completo` dice si la fecha es la de todas las deudas.
+    const suspendidas = fuera.excluded.filter((row) => row.suspended);
+    const otras = fuera.excluded.filter((row) => !row.suspended);
+    const sumPrincipal = (rows) => round2(rows.reduce((sum, row) => sum + (Number(row.principal) || 0), 0));
+    if (fuera.excluded.length) {
+      warnings.push({
+        id: "fuera", count: fuera.excluded.length, principal: fuera.excludedPrincipal,
+        datos: { count: otras.length, principal: sumPrincipal(otras) },
+        enImpago: { count: suspendidas.length, principal: sumPrincipal(suspendidas), labels: suspendidas.map((row) => row.label) },
+      });
+    }
+    const fueraDeLaFecha = { count: fuera.excluded.length, principal: round2(fuera.excludedPrincipal || 0), enImpago: { count: suspendidas.length, principal: sumPrincipal(suspendidas) } };
 
     return {
       ok: true,
@@ -279,6 +291,8 @@
       tolerance: margen,
       diferenciaAlternativa: a.totalInterest !== null && b.totalInterest !== null ? round2(alternative.summary.totalInterest - recommended.summary.totalInterest) : null,
       warnings,
+      completo: fueraDeLaFecha.count === 0,
+      fueraDeLaFecha,
     };
   }
 
