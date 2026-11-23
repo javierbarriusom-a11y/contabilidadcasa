@@ -355,5 +355,6 @@ a lo pactado con una entidad no se le adelanta nada; no ejecuta nada (A11-4).
    *(22/11: hecha UND-13, PROJECT_STATE 526: la semana del 30/11, completa.)*
 3. **Semana del 7/12 — carga:** UND-04 (Ajustes por áreas), UND-08 («¿Me lo puedo permitir?»), DEC-38 en Inversión y Escenarios.
    *(22/11: UND-08 hecha, PROJECT_STATE 528, la línea de Hoy desde el 14/12; DEC-38 en Inversión y Escenarios, sin nada cortado y vigilado por el CI, PROJECT_STATE 529; UND-04, decidida D-N29: «Áreas solo en el móvil».)*
+   *(23/11: el hogar acepta las tres propuestas de Claude de estas semanas, PROJECT_STATE 533: D-N30, las puertas de fecha de Hoy (UND-06 el 7/12, UND-08 el 14/12); D-N31, el rendimiento de una quita sin cuota como lo perdonado entre lo pagado; D-N32, ocultar cifras emborrona todos los campos numéricos.)*
 
 Lo demás, tras el cierre de noviembre y la revisión de D-N11 (4/12).
