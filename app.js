@@ -23710,6 +23710,7 @@ function renderAjustes() {
   renderAjustesFinancialCalendar();
   globalThis.renderRecordatorios?.(globalThis.FinanceCanonicalReminders); // WP-32 (recordatorios-ui.js)
   globalThis.renderLoQuePide?.(globalThis.FinanceCanonicalDataContracts); // XDA-01 (lo-que-pide-ui.js), solo con su interruptor encendido
+  globalThis.renderSaludMotor?.(); // DUO-04 (salud-motor-ui.js): salud del cálculo y extractos atrasados, en Ajustes › Uso de la app
   syncA18IncomeControls();
   renderA18RuleCategoryOptions();
   renderA18RuleList();

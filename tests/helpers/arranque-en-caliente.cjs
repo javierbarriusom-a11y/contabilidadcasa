@@ -6,6 +6,7 @@
 //  - seis meses de movimientos en la cuenta (nómina, súper y luz) y un apunte a mano;
 // todo FICTICIO. Devuelve la página ya recargada; quien lo usa navega a su pantalla (el «volver a pintar»).
 const { expect } = require("@playwright/test");
+const { abrirAltaVarios } = require("./abrir-alta-varios.cjs");
 
 const CONTRATOS = "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160";
 
@@ -15,7 +16,7 @@ async function arrancarEnCaliente(page, { viewport = { width: 1280, height: 900 
   await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
   await page.reload();
   const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-  await varios.locator("summary").click();
+  await abrirAltaVarios(page);
   await page.fill("#deudaContratosVarios", CONTRATOS);
   await varios.locator("[data-deuda-varios-alta]").click();
   await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");

@@ -164,6 +164,8 @@
     if (!(principal > 0)) return null;
     const base = { id: String(contract.id || ""), label: labelOf(contract), principal };
     const payment = round2(finite(contract.currentPayment) ?? 0);
+    // DUO-D9: con los pagos suspendidos (lo que la app trata como impago) no hay cuota que completar; se marca para decirlo así.
+    if (contract.paymentStatus === "suspended") return { excluded: { ...base, reason: "sin-cuota-activa", suspended: true } };
     if (contract.paymentStatus !== "active") return { excluded: { ...base, reason: "sin-cuota-activa" } };
     if (!(payment > 0)) return { excluded: { ...base, reason: "sin-cuota-activa" } };
     const apr = contract.apr === null || contract.apr === undefined || contract.apr === "" ? null : finite(contract.apr);

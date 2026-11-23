@@ -441,6 +441,29 @@ function hoyV2Repaso(hoy = isoLocalDate(new Date())) {
   </button>`;
 }
 
+// DUO-04 · UND-22 (duodécima auditoría): una cuenta con extracto que lleva más de 10 días sin movimientos da cifras viejas; hasta ahora solo
+// lo decía el Repaso. Una línea en Hoy que lleva a Importar, solo con algún extracto atrasado. Puerta de fecha (D-N30, un cambio de Hoy por
+// semana): el 30/11 entra DEC-23, el 7/12 UND-06 y el 14/12 UND-08; esta, el 21/12.
+const HOY_V2_EXTRACTOS_DESDE = "2026-12-21";
+
+function hoyV2ExtractosAtrasados(hoy = isoLocalDate(new Date())) {
+  const Salud = globalThis.FinanceSaludMotor;
+  if (String(hoy) < HOY_V2_EXTRACTOS_DESDE || !Salud) return "";
+  const atrasados = Salud.extractos(baseData?.transactions || [], globalThis.FinanceCanonicalBalancePulse?.ACCOUNTS || [], hoy).filter((item) => item.atrasado);
+  if (!atrasados.length) return "";
+  const titulo = atrasados.length === 1
+    ? `El extracto de ${atrasados[0].label} lleva ${atrasados[0].dias} días sin importar`
+    : `${atrasados.length} extractos llevan más de ${Salud.EXTRACTO_DIAS} días sin importar`;
+  const detalle = atrasados.length === 1
+    ? "Las cifras de esa cuenta pueden ser viejas. Importadlo en Registrar."
+    : `${atrasados.map((item) => item.label).join(", ")}: las cifras de esas cuentas pueden ser viejas.`;
+  return `<a class="hoy-v2-pending hoy-v2-extractos" href="#datos-importar" data-hoy-v2-extractos>
+    <span class="hoy-v2-dot" aria-hidden="true"></span>
+    <span><strong>${escapeHtml(titulo)}</strong><br>${escapeHtml(detalle)}</span>
+    <span aria-hidden="true">›</span>
+  </a>`;
+}
+
 // DEC-23 (décima auditoría §4.4; el cambio de Hoy de la semana del 30/11/2026, uno por semana): con el repaso de esta semana hecho,
 // en el hueco de su entrada, una línea de conclusión hasta el domingo: «Repaso hecho el martes» y, debajo, lo que se sabe de él
 // (grupos clasificados en ese repaso, % del gasto con partida de los últimos 90 días, la misma cifra que la bandeja, y la racha).
@@ -709,6 +732,7 @@ function hoyV2AreaPanel(area, model, hoy, asOf, coverage) {
         ${hoyV2PermitirHtml(hoy)}
         ${hoyV2Decisions(model.todayRead, [...hoyV2AvisosPrevision(hoy), ...(typeof svdPropuestasHoy === "function" ? svdPropuestasHoy(hoy) : []), ...(model.decisions || [])])}
         ${hoyV2Repaso()}
+        ${hoyV2ExtractosAtrasados(hoy)}
         ${hoyV2Esperados()}
       </div>
       <div class="hoy-v2-side">

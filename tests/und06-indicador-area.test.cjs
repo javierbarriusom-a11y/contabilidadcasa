@@ -72,6 +72,6 @@ test("UND-06 · en la pestaña, medido al abrir un área con indicador, con su C
   assert.match(css, /:root\[data-tema="v2"\] \.hoy-v2-insignia\.is-punto \{\s*min-width: 8px;\s*width: 8px;\s*height: 8px;/);
   assert.match(css, /:root\[data-tema="v2"\] \.hoy-v2-insignia\.is-rojo \{[^}]*color: var\(--e19-surface\);/);
   const html = read("index.html");
-  assert.match(html, /views\/hoy-v2\.js\?v=20261122und0[68]/);
+  assert.match(html, /views\/hoy-v2\.js\?v=(?:20261122und0[68]|20261123duo04)/);
   assert.match(html, /tema-v2\.css\?v=20261122und0[68]/);
 });

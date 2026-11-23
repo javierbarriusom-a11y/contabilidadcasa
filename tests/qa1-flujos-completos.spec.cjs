@@ -48,6 +48,8 @@ async function empezarApagada(page, id) {
 // clic hasta que cambia; cada intento mira antes cómo está, así que nunca lo devuelve a su sitio. No vale para «tema-v2», que recarga.
 // UND-04 (D-N29, 22/11/2026): en el móvil, Ajustes se ve por áreas; ir a una tarjeta es tocar antes la pestaña de su área (lo que haría
 // el hogar). En el escritorio no hay pestañas y no hace nada.
+const { abrirAltaVarios } = require("./helpers/abrir-alta-varios.cjs");
+
 async function abrirAreaDeAjustes(page, selector) {
   await page.waitForFunction((sel) => document.querySelector(sel), selector, { timeout: 15000 });
   const area = await page.evaluate((sel) => globalThis.FinanceAjustesAreas?.areaDe(document, document.querySelector(sel)) || null, selector);
@@ -2102,8 +2104,10 @@ test.describe("WP-19 · camino a deuda cero", () => {
       await expect(result).toContainText("Cuota total al mes");
       await expect(result).toContainText("Intereses pendientes");
       await expect(result).toContainText("Sin extra, el calendario actual acaba en");
-      await expect(result).toContainText("No entran en la cuenta");
-      await expect(result).toContainText("sin cuota activa");
+      // DUO-D9: las deudas de ejemplo con los pagos suspendidos se nombran aparte (no es un dato que falte) y la fecha lo dice.
+      await expect(result).toContainText("Con los pagos suspendidos, fuera de la fecha");
+      await expect(result).toContainText("con los pagos suspendidos");
+      await expect(result).not.toContainText("completa su cuota y su TAE o plazo en Contratos");
       await expect(result).toContainText("Sin TAE declarada");
       await expect(result).toContainText("Cada 100 € más al mes");
       await expect(result).toContainText("no ejecuta nada");
@@ -9232,7 +9236,7 @@ test.describe("DEC-38 · a 195 px (zoom al 200 %): Hoy, Movimientos, Previsión,
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO DE CRÉDITO AL CONSUMO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
@@ -11401,7 +11405,7 @@ test.describe("SVD-1 · Simulador visual de deuda con los contratos reales", () 
     // 2 · Da de alta sus contratos reales y quita los de ejemplo (lo que hizo el hogar el 16/11).
     await page.evaluate(() => { location.hash = "deuda-contratos"; });
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
@@ -11480,7 +11484,7 @@ test.describe("SVD-2 · El simulador visual de deuda lee Contratos y avisa si ca
     await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
@@ -11537,7 +11541,7 @@ test.describe("SVD-2b · «Esperar» paga la cuota de hoy y el simulador cuadra 
     await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
@@ -11592,7 +11596,7 @@ test.describe("SVD-3 · Aplicar un acuerdo aceptado con su justificante", () => 
     await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
@@ -11698,7 +11702,7 @@ test.describe("SVD-3 · Aplicar un acuerdo aceptado con su justificante", () => 
     await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; préstamo; 3.000; 12; 150");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("Un contrato dado de alta");
@@ -11739,7 +11743,7 @@ test.describe("SVD-R1 · Las cuotas de Contratos frente al plan", () => {
     await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
@@ -11809,7 +11813,7 @@ test.describe("SVD-5 · Lo que pasa fuera vuelve al acuerdo", () => {
     await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; préstamo; 3.000; 12; 150");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("Un contrato dado de alta");
@@ -11871,7 +11875,7 @@ test.describe("SVD-4 · La estrategia del simulador, a Escenarios", () => {
     await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
@@ -11921,7 +11925,7 @@ test.describe("SVD-4 · «Lo hemos propuesto» llega a Hoy", () => {
     await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("Un contrato dado de alta");
@@ -11969,7 +11973,7 @@ test.describe("SVD-5 · Desde vuestra última visita", () => {
     await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("Un contrato dado de alta");
@@ -12011,7 +12015,7 @@ test.describe("SVD-6 · El simulador visual de deuda como pantalla de la app", (
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
@@ -12415,7 +12419,7 @@ test.describe("Hoy por áreas", () => {
 
 // Plan óptimo de saldo (21/11/2026, «quiero seguir con un plan optimizado de saldo de deuda»): en Deuda › Ruta, encima de «Camino a deuda
 // cero» y con su mismo motor. Contratos FICTICIOS.
-// UND-01 (undécima auditoría; 22/11/2026): cada pantalla v2 también en «arranque en caliente»: con contratos, meses de movimientos y un
+// UND-01 (undécima auditoría; 22/11/2026; completada el 23/11 con Clasificar y el Repaso semanal, 11 de 11): cada pantalla v2 también en «arranque en caliente»: con contratos, meses de movimientos y un
 // apunte a mano guardados, al volver a abrir la app. Lo que solo falla con datos guardados (el gráfico de Hoy, once días) sale aquí.
 test.describe("UND-01 · Arranque en caliente", () => {
   const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
@@ -12457,6 +12461,27 @@ test.describe("UND-01 · Arranque en caliente", () => {
     ["Deuda › Contratos", "#deuda-contratos", async (page) => {
       await expect(page.locator('[data-deuda-contrato-row] input[data-deuda-contrato-field="entity"][value="Banco FICTICIO"]')).toBeVisible({ timeout: 15000 });
     }],
+    // 23/11/2026: las dos que faltaban (11 de 11). Son diálogos sobre Movimientos: se abren desde su bandeja con lo guardado.
+    ["Clasificar", "#movements", async (page) => {
+      await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+      await page.locator("#movimientosV2 [data-mov-v2-clasificar]").first().click();
+      const panel = page.locator("#clasificarV2");
+      await expect(panel).toBeVisible({ timeout: 15000 });
+      await expect(panel).toContainText(/1 de \d+/);
+      await expect(panel.locator(".clas-v2-nombre")).toContainText("FICTICI");
+      await panel.locator("[data-clas-v2-cerrar]").first().click();
+      await expect(panel).toBeHidden();
+    }],
+    ["Repaso semanal", "#movements", async (page) => {
+      await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+      await page.locator("#movimientosV2 [data-mov-v2-repaso]").click();
+      const repaso = page.locator("#repasoV2");
+      await expect(repaso).toBeVisible({ timeout: 15000 });
+      await expect(repaso.locator("#repasoV2Titulo")).toHaveText("¿Coincide lo que dice tu banco?");
+      await expect(repaso.locator("[data-rep-v2-coincide]").first()).toBeVisible();
+      await repaso.locator("[data-rep-v2-cerrar]").click();
+      await expect(repaso).toBeHidden();
+    }],
   ];
   for (const [nombre, viewport] of [["a 1280 px", { width: 1280, height: 900 }], ["a 390 px @safari", { width: 390, height: 844 }]]) {
     test(`las pantallas v2 se pintan desde lo guardado, ${nombre}`, async ({ page }) => {
@@ -12469,6 +12494,62 @@ test.describe("UND-01 · Arranque en caliente", () => {
         await test.step(pantalla, () => comprobar(page));
         await expect(page.locator("#recalculoError"), `${pantalla}: sin «no he podido recalcular»`).toBeHidden();
       }
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
+// DUO-01 · D-N34 (23/11/2026, decisión del hogar): prueba de efecto. Todo control de una pantalla v2 mueve alguna cifra o dice por qué
+// no; y ninguno queda sin registrar (tests/helpers/efecto-controles.cjs). Desde datos guardados (arranque en caliente).
+test.describe("DUO-01 · Prueba de efecto de los controles", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  const Efecto = require("./helpers/efecto-controles.cjs");
+  test("cada control visible de las pantallas v2 está registrado y mueve alguna cifra (o lo explica), a 1280 px", async ({ page }) => {
+    test.setTimeout(180000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await arrancarEnCaliente(page);
+    for (const pantalla of Efecto.PANTALLAS) {
+      await test.step(pantalla.nombre, async () => {
+        await page.evaluate((h) => { location.hash = h; }, pantalla.hash);
+        await pantalla.entrar(page, { abrirAreaDeAjustes });
+        const claves = await Efecto.censarControles(page, pantalla.raiz);
+        expect(Efecto.sinCubrir(pantalla.nombre, claves), `${pantalla.nombre}: controles sin prueba de efecto ni excepción razonada (D-N34)`).toEqual([]);
+        for (const efecto of Efecto.EFECTOS.filter((item) => item.pantalla === pantalla.nombre)) {
+          await test.step(efecto.nombre, () => Efecto.comprobarEfecto(page, efecto));
+        }
+      });
+    }
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
+// DUO-04 (duodécima auditoría; UND-03 y UND-22): la salud del cálculo en Ajustes › Uso de la app, desde lo guardado.
+test.describe("DUO-04 · Salud del cálculo", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  for (const [nombre, viewport] of [["a 1280 px", { width: 1280, height: 900 }], ["a 390 px", { width: 390, height: 844 }]]) {
+    test(`los cuatro cálculos con su estado, el extracto atrasado y «Recalcular todo», ${nombre}`, async ({ page }) => {
+      test.setTimeout(90000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await arrancarEnCaliente(page, { viewport });
+      await page.evaluate(() => { location.hash = "#ajustes"; });
+      await abrirAreaDeAjustes(page, "#saludMotorCard");
+      const card = page.locator("#saludMotorCard");
+      const resumen = card.locator("[data-salud-resumen]");
+      await expect(resumen).toContainText("Salud del cálculo", { timeout: 15000 });
+      // Los movimientos guardados acaban el 20 del mes pasado: el extracto va atrasado y el resumen lo dice.
+      await expect(resumen).toContainText("Todo calculado (4 de 4)");
+      await expect(resumen).toContainText("extracto atrasado");
+      if ((await card.getAttribute("open")) === null) await card.locator("summary").click();
+      await expect(card.locator(".salud-motor-fila")).toHaveCount(4);
+      await expect(card.locator('.salud-motor-fila[data-salud-estado="ok"]')).toHaveCount(4);
+      await expect(card).toContainText("Previsión diaria");
+      await expect(card.locator(".salud-motor-extractos li.is-atrasado").first()).toContainText("atrasado");
+      await card.locator("[data-salud-recalcular]").click();
+      await expect(card.locator("[data-salud-estado-recalculo]")).toContainText("Recalculado a las");
+      await expect(card.locator('.salud-motor-fila[data-salud-estado="ok"]')).toHaveCount(4);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }
@@ -12628,7 +12709,7 @@ test.describe("UND-13 · Kit para hablar con la entidad", () => {
       await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
       await page.reload();
       const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-      await varios.locator("summary").click();
+      await abrirAltaVarios(page);
       await page.fill("#deudaContratosVarios", "Banco FICTICIO; préstamo; 5.100; 9,5; 160");
       await varios.locator("[data-deuda-varios-alta]").click();
       await expect(page.locator("#deudaVariosAviso")).toContainText("Un contrato dado de alta");
@@ -12817,7 +12898,7 @@ test.describe("Deuda › Ruta · plan óptimo de saldo", () => {
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", texto);
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText(`${texto.split("\n").length} contratos dados de alta`);
