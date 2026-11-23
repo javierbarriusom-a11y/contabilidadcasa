@@ -48,6 +48,8 @@ async function empezarApagada(page, id) {
 // clic hasta que cambia; cada intento mira antes cómo está, así que nunca lo devuelve a su sitio. No vale para «tema-v2», que recarga.
 // UND-04 (D-N29, 22/11/2026): en el móvil, Ajustes se ve por áreas; ir a una tarjeta es tocar antes la pestaña de su área (lo que haría
 // el hogar). En el escritorio no hay pestañas y no hace nada.
+const { abrirAltaVarios } = require("./helpers/abrir-alta-varios.cjs");
+
 async function abrirAreaDeAjustes(page, selector) {
   await page.waitForFunction((sel) => document.querySelector(sel), selector, { timeout: 15000 });
   const area = await page.evaluate((sel) => globalThis.FinanceAjustesAreas?.areaDe(document, document.querySelector(sel)) || null, selector);
@@ -9234,7 +9236,7 @@ test.describe("DEC-38 · a 195 px (zoom al 200 %): Hoy, Movimientos, Previsión,
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO DE CRÉDITO AL CONSUMO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
@@ -11403,7 +11405,7 @@ test.describe("SVD-1 · Simulador visual de deuda con los contratos reales", () 
     // 2 · Da de alta sus contratos reales y quita los de ejemplo (lo que hizo el hogar el 16/11).
     await page.evaluate(() => { location.hash = "deuda-contratos"; });
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
@@ -11482,7 +11484,7 @@ test.describe("SVD-2 · El simulador visual de deuda lee Contratos y avisa si ca
     await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
@@ -11539,7 +11541,7 @@ test.describe("SVD-2b · «Esperar» paga la cuota de hoy y el simulador cuadra 
     await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
@@ -11594,7 +11596,7 @@ test.describe("SVD-3 · Aplicar un acuerdo aceptado con su justificante", () => 
     await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
@@ -11700,7 +11702,7 @@ test.describe("SVD-3 · Aplicar un acuerdo aceptado con su justificante", () => 
     await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; préstamo; 3.000; 12; 150");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("Un contrato dado de alta");
@@ -11741,7 +11743,7 @@ test.describe("SVD-R1 · Las cuotas de Contratos frente al plan", () => {
     await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
@@ -11811,7 +11813,7 @@ test.describe("SVD-5 · Lo que pasa fuera vuelve al acuerdo", () => {
     await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; préstamo; 3.000; 12; 150");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("Un contrato dado de alta");
@@ -11873,7 +11875,7 @@ test.describe("SVD-4 · La estrategia del simulador, a Escenarios", () => {
     await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
@@ -11923,7 +11925,7 @@ test.describe("SVD-4 · «Lo hemos propuesto» llega a Hoy", () => {
     await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("Un contrato dado de alta");
@@ -11971,7 +11973,7 @@ test.describe("SVD-5 · Desde vuestra última visita", () => {
     await page.evaluate(() => { try { localStorage.clear(); localStorage.setItem("simulador-v2-modo", "anterior"); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("Un contrato dado de alta");
@@ -12013,7 +12015,7 @@ test.describe("SVD-6 · El simulador visual de deuda como pantalla de la app", (
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
@@ -12707,7 +12709,7 @@ test.describe("UND-13 · Kit para hablar con la entidad", () => {
       await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
       await page.reload();
       const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-      await varios.locator("summary").click();
+      await abrirAltaVarios(page);
       await page.fill("#deudaContratosVarios", "Banco FICTICIO; préstamo; 5.100; 9,5; 160");
       await varios.locator("[data-deuda-varios-alta]").click();
       await expect(page.locator("#deudaVariosAviso")).toContainText("Un contrato dado de alta");
@@ -12896,7 +12898,7 @@ test.describe("Deuda › Ruta · plan óptimo de saldo", () => {
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
     await page.reload();
     const varios = page.locator("#deudaContratosDetectados .deuda-varios");
-    await varios.locator("summary").click();
+    await abrirAltaVarios(page);
     await page.fill("#deudaContratosVarios", texto);
     await varios.locator("[data-deuda-varios-alta]").click();
     await expect(page.locator("#deudaVariosAviso")).toContainText(`${texto.split("\n").length} contratos dados de alta`);
