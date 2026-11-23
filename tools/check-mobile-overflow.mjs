@@ -27,7 +27,10 @@ const WIDTHS = [195, 260, 320, 360, 768, 1280];
 const PENDIENTES_A_260 = new Set(["executive-advisor", "mapa-calor", "debt-liquidation-plan", "savings-agent", "virtual-advisor"]);
 // DEC-38 · paso 3 (21/11/2026): 195 px es un móvil de 390 px con el zoom de la página al 200 % (WCAG 1.4.4). Se arregla por tandas,
 // empezando por las pantallas de cada día; a ese ancho solo se miran las ya revisadas. Al arreglar otra, se añade aquí.
-const REVISADAS_A_195 = new Set(["home", "movements", "plan", "cierre", "ajustes", "deuda-ruta", "deuda-comparar", "deuda-prestamo", "deuda-contratos", "deuda-simulador"]);
+const REVISADAS_A_195 = new Set(["home", "movements", "plan", "cierre", "ajustes", "deuda-ruta", "deuda-comparar", "deuda-prestamo", "deuda-contratos", "deuda-simulador",
+  // DEC-38 en Inversión y Escenarios (undécima auditoría §6, semana del 7/12): medidas el 22/11 a 195 px con sus pestañas internas, sin nada cortado.
+  "inversion-cartera", "inversion-rebalanceo", "inversion-fiscal", "inversion-jubilacion", "inversion-apalancamiento",
+  "escenario-simular", "escenario-aplicar", "escenario-guardados", "escenario-comparar"]);
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".json": "application/json", ".webmanifest": "application/manifest+json" };
 
 const server = http.createServer((request, response) => {

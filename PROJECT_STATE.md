@@ -113,6 +113,14 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 22 de noviembre de 2026 (529): DEC-38 en Inversión y Escenarios (a 195 px, vigilado por el CI)
+
+- **Publicado de antes:** #670 (UND-08) con su CI en verde a la primera, Safari incluido: marcado listo y fusionado comprobada la cabeza 0ff6c949, **main d1e72051**. Su despliegue, en curso al escribir esto: lo anota la entrada siguiente.
+- **DEC-38 en Inversión y Escenarios** (undécima §6, semana del 7/12): medidas a 195 px (el zoom al 200 % en 390 px), con sus pestañas internas, las nueve pantallas (Inversión: cartera, rebalanceo, fiscal, jubilación y apalancamiento; Escenarios: simular, aplicar, guardados y comparar) **no cortan nada**: no hacía falta CSS. Pasan a la lista que `test:mobile-overflow` mira a 195 px (`REVISADAS_A_195`, de 10 a 19), así que el CI avisará si algo se sale en adelante. Lección de #660: el CI usa una fuente algo más ancha; si alguna corta allí, se arregla en ese PR.
+- **Pruebas:** `tests/dec38-paso3-195.test.cjs` comprueba las nueve en la lista.
+- **Validación:** `npm test` **6.900/6.900** y `npm run test:mobile-overflow` **380 visitas** (+9) sin nada cortado. Sin cambio de pantalla: no hace falta la batería en navegador.
+- **Detrás:** UND-04 (Ajustes por áreas en el móvil, D-N29), hecho en local; se publica cuando se fusione este.
+
 ## Cierre de sesión — 22 de noviembre de 2026 (528): UND-08, «¿Me lo puedo permitir?» (la línea de Hoy, desde el 14/12)
 
 - **Publicado de antes:** #669 (PROJECT_STATE 527) fusionado, main b9e7ecdf; «Verify and deploy Pages» **1535 en verde**; «Published availability» **397 en verde** (la de #668) y otra lanzada a mano tras el 1535.
