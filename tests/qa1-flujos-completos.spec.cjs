@@ -46,10 +46,20 @@ async function empezarApagada(page, id) {
 // momento (el interruptor está a ~13.700 px y aún se mueve los primeros 400 ms) y, en WebKit, un clic medido antes de que acabe cae en
 // otro sitio: WP-18 falló así en el CI de #607 (11/11/2026, pasó al reintentar). Se espera la vista y el interruptor, y se repite el
 // clic hasta que cambia; cada intento mira antes cómo está, así que nunca lo devuelve a su sitio. No vale para «tema-v2», que recarga.
+// UND-04 (D-N29, 22/11/2026): en el móvil, Ajustes se ve por áreas; ir a una tarjeta es tocar antes la pestaña de su área (lo que haría
+// el hogar). En el escritorio no hay pestañas y no hace nada.
+async function abrirAreaDeAjustes(page, selector) {
+  await page.waitForFunction((sel) => document.querySelector(sel), selector, { timeout: 15000 });
+  const area = await page.evaluate((sel) => globalThis.FinanceAjustesAreas?.areaDe(document, document.querySelector(sel)) || null, selector);
+  const tab = page.locator(`#ajustesArea-${area}`);
+  if (area && await tab.isVisible()) await tab.click();
+}
+
 async function cambiarFuncionEnPrueba(page, id, encender = true) {
   const sw = page.locator(`[data-fep-interruptor="${id}"]`);
   const objetivo = encender ? "true" : "false";
   await expect(page.locator("#ajustes")).toBeVisible({ timeout: 15000 });
+  await abrirAreaDeAjustes(page, `[data-fep-interruptor="${id}"]`);
   await expect(sw).toBeVisible({ timeout: 15000 });
   await expect(async () => {
     if ((await sw.getAttribute("aria-checked")) !== objetivo) await sw.click();
@@ -1587,6 +1597,7 @@ test.describe("WP-32 · recordatorios en el calendario", () => {
       await page.reload();
       await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
       await page.reload();
+      await abrirAreaDeAjustes(page, "#recordatoriosCard");
       const card = page.locator("#recordatoriosCard");
       await expect(card.locator("#recordatoriosResumen")).toContainText(/recordatorios? hasta el/, { timeout: 15000 });
       await expect(card.locator("[data-recordatorios-kind]")).toHaveCount(9); // FX-41: + «avisos de la previsión»; 13/11: + «repasos semanales»; SVD-4 (17/11): + «respuestas a propuestas de deuda»
@@ -2038,6 +2049,7 @@ test.describe("WP-20 · avisos de la revisión en el calendario del móvil", () 
     });
 
     await page.evaluate(() => { location.hash = "#ajustes"; });
+    await abrirAreaDeAjustes(page, "#recordatoriosCard");
     const card = page.locator("#recordatoriosCard");
     await expect(card.locator("#recordatoriosResumen")).toContainText("avisos de la hipoteca", { timeout: 15000 });
     await expect(card.locator('[data-recordatorios-kind="rateReview"]')).toBeChecked();
@@ -7914,6 +7926,7 @@ test.describe("XGO-03 · Funciones en prueba", () => {
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/index.html#ajustes");
+    await abrirAreaDeAjustes(page, '[data-fep-interruptor="tema-v2"]');
     const sw = page.locator('[data-fep-interruptor="tema-v2"]');
     await expect(sw).toHaveAttribute("role", "switch");
     await expect(sw).toHaveAttribute("aria-checked", "true");
@@ -9287,9 +9300,11 @@ test.describe("DEC-38 · a 195 px (zoom al 200 %): Hoy, Movimientos, Previsión,
     }).length);
     expect(pisados, "ningún nombre montado sobre su importe").toBe(0);
     await page.goto("/index.html#ajustes");
-    const indice = page.locator("#ajustes .e19-ajustes-anchors");
+    // UND-04 (D-N29): en el móvil el índice de Ajustes son las pestañas de sus áreas; tampoco va fijo.
+    const indice = page.locator("#ajustesAreas");
     await expect(indice).toBeVisible({ timeout: 15000 });
     expect(await indice.evaluate((el) => getComputedStyle(el).position)).toBe("static");
+    await abrirAreaDeAjustes(page, "#panelUsoCard");
     await page.locator("#panelUsoCard").scrollIntoViewIfNeeded();
     expect(await indice.evaluate((el) => el.getBoundingClientRect().bottom), "más abajo, el índice ya no está en pantalla").toBeLessThan(0);
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
@@ -12091,6 +12106,7 @@ test.describe("DEC-13 · Huella anónima del extracto", () => {
     await page.clock.install({ time: new Date(2026, 10, 18, 10, 0, 0) });
     await page.goto("/index.html#ajustes");
     await expect(page.locator("#ajustes-uso-app")).toBeAttached({ timeout: 15000 });
+    await abrirAreaDeAjustes(page, "#ajustes-uso-app");
     await page.evaluate(() => {
       const mov = (date, amount, movement, details = "") => ({ date, month: date.slice(0, 7), movement, details, amount, balance: null, account: "CaixaBank", source: "Extracto" });
       const rows = [
@@ -12173,6 +12189,7 @@ test.describe("DEC-41 · Copia de seguridad que avisa", () => {
     await page.clock.install({ time: new Date(2026, 10, 18, 10, 0, 0) });
     await page.goto("/index.html#ajustes");
     await expect(page.locator("#copiaAvisoAjustes")).toBeAttached({ timeout: 15000 });
+    await abrirAreaDeAjustes(page, "#copiaAvisoAjustes");
     await page.evaluate(() => {
       const hoy = isoLocalDate(new Date());
       baseData.transactions = mergeTransactions(baseData.transactions || [], [{ date: hoy, month: hoy.slice(0, 7), movement: "SUPER FICTICIO", details: "", amount: -12, balance: null, account: "CaixaBank", source: "Extracto" }]);
@@ -12454,6 +12471,55 @@ test.describe("UND-01 · Arranque en caliente", () => {
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }
+});
+
+// UND-04 (undécima auditoría; D-N29, 22/11/2026): Ajustes por áreas en el móvil; en el escritorio, todo a la vista. Mide el alto de cada
+// área a 390 × 844 frente al de Ajustes entero (la métrica de la ficha).
+test.describe("UND-04 · Ajustes por áreas en el móvil", () => {
+  test("a 390 px @safari: se entra por un área, se cambia con pestañas y teclado, «Ver todo» lo enseña todo y se recuerda", async ({ page }) => {
+    test.setTimeout(60000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#ajustes");
+    const tabs = page.locator("#ajustesAreas [role=tab]");
+    await expect(tabs).toHaveCount(7, { timeout: 20000 });
+    await expect(page.locator("#ajustesArea-cuentas")).toHaveAttribute("aria-selected", "true");
+    await expect(page.locator("#ajustes-hogar")).toBeVisible();
+    await expect(page.locator("#ajustes-laboratorio")).toBeHidden();
+    const alto = async () => page.evaluate(() => document.getElementById("ajustes").getBoundingClientRect().height);
+    const altos = {};
+    for (const area of ["cuentas", "plan", "patrimonio", "datos", "laboratorio", "navegacion"]) {
+      await page.locator(`#ajustesArea-${area}`).click();
+      await expect(page.locator(`#ajustesArea-${area}`)).toHaveAttribute("aria-selected", "true");
+      altos[area] = await alto();
+    }
+    await page.locator("#ajustesArea-todo").click();
+    await expect(page.locator("#ajustes-laboratorio")).toBeVisible();
+    const total = await alto();
+    test.info().annotations.push({ type: "alto", description: `Ajustes entero ${Math.round(total)} px; por área ${JSON.stringify(Object.fromEntries(Object.entries(altos).map(([k, v]) => [k, Math.round(v)])))}` });
+    for (const [area, valor] of Object.entries(altos)) expect(valor, `${area} más corta que Ajustes entero`).toBeLessThan(total);
+    // Teclado: flechas e Inicio.
+    await page.locator("#ajustesArea-todo").focus();
+    await page.keyboard.press("Home");
+    await expect(page.locator("#ajustesArea-cuentas")).toBeFocused();
+    await page.keyboard.press("ArrowRight");
+    await expect(page.locator("#ajustesArea-plan")).toHaveAttribute("aria-selected", "true");
+    await page.reload();
+    await page.evaluate(() => { location.hash = "ajustes"; });
+    await expect(page.locator("#ajustesArea-plan")).toHaveAttribute("aria-selected", "true", { timeout: 20000 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("a 1280 px: sin pestañas y con todos los grupos a la vista", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/index.html#ajustes");
+    await expect(page.locator("#ajustes-hogar")).toBeVisible({ timeout: 20000 });
+    await expect(page.locator("#ajustesAreas")).toBeHidden();
+    for (const id of ["ajustes-laboratorio", "ajustes-datos", "ajustes-navegacion"]) await expect(page.locator(`#${id}`)).toBeAttached();
+    expect(await page.evaluate(() => [...document.querySelectorAll("#ajustes .e19-ajustes-group")].every((g) => getComputedStyle(g).display !== "none"))).toBe(true);
+  });
 });
 
 // UND-08 (undécima auditoría; DEC-31, 22/11/2026, la línea de Hoy desde el 14/12): «¿Me lo puedo permitir?». La frase es la del cálculo

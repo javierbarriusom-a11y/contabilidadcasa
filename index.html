@@ -42,7 +42,7 @@
          nativo de PWA (criterio de instalabilidad exige al menos un icono) y la pestaña mostraba el
          icono en blanco por defecto. `icon.svg` es el mismo icono para las dos cosas. -->
     <link rel="icon" href="icon.svg?v=20260919t11a1" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=20261122und13" />
+    <link rel="stylesheet" href="styles.css?v=20261122und04" />
     <link rel="stylesheet" href="p2.css?v=20260918t7a1" />
     <link rel="stylesheet" href="design-tokens.css?v=20261120dec38b" />
     <link rel="stylesheet" href="fiscal-campana.css?v=20261120dec38b" />
@@ -5348,6 +5348,17 @@
               </label>
             </div>
 
+            <!-- UND-04 (undécima auditoría; D-N29, 22/11/2026: «Áreas solo en el móvil»): en el móvil se entra por un área y las demás
+                 se eligen aquí o con «Ver todo»; en el escritorio todo sigue a la vista con el índice de siempre. Lo pinta ajustes-areas.js. -->
+            <div class="ajustes-areas" id="ajustesAreas" role="tablist" aria-label="Áreas de Ajustes">
+              <button type="button" role="tab" id="ajustesArea-cuentas" data-ajustes-area-tab="cuentas" aria-controls="ajustes" aria-selected="true">Cuentas y reserva</button>
+              <button type="button" role="tab" id="ajustesArea-plan" data-ajustes-area-tab="plan" aria-controls="ajustes" aria-selected="false" tabindex="-1">Plan y operación</button>
+              <button type="button" role="tab" id="ajustesArea-patrimonio" data-ajustes-area-tab="patrimonio" aria-controls="ajustes" aria-selected="false" tabindex="-1">Patrimonio, seguros y fiscal</button>
+              <button type="button" role="tab" id="ajustesArea-datos" data-ajustes-area-tab="datos" aria-controls="ajustes" aria-selected="false" tabindex="-1">Datos y avisos</button>
+              <button type="button" role="tab" id="ajustesArea-laboratorio" data-ajustes-area-tab="laboratorio" aria-controls="ajustes" aria-selected="false" tabindex="-1">Laboratorio y uso</button>
+              <button type="button" role="tab" id="ajustesArea-navegacion" data-ajustes-area-tab="navegacion" aria-controls="ajustes" aria-selected="false" tabindex="-1">Navegación</button>
+              <button type="button" role="tab" id="ajustesArea-todo" data-ajustes-area-tab="todo" aria-controls="ajustes" aria-selected="false" tabindex="-1">Ver todo</button>
+            </div>
             <nav class="e19-ajustes-anchors" id="ajustesAnchors" aria-label="Secciones de Ajustes">
                 <button type="button" data-ajustes-anchor="ajustes-hogar">Hogar y cuentas</button>
                 <button type="button" data-ajustes-anchor="ajustes-reserva">Reserva y colchón</button>
@@ -5361,7 +5372,7 @@
                 <button type="button" data-ajustes-anchor="ajustes-navegacion">Navegación</button>
             </nav>
 
-            <div class="e19-ajustes-group" id="ajustes-hogar" aria-labelledby="ajustes-hogar-title">
+            <div class="e19-ajustes-group" id="ajustes-hogar" aria-labelledby="ajustes-hogar-title" data-ajustes-area="cuentas">
               <h3 class="e19-ajustes-group-title" id="ajustes-hogar-title">Hogar y cuentas</h3>
               <!-- Privacidad, fase 2 (household-members.js; docs/PRIVACIDAD_NOMBRES.md): los nombres que enseña la app viven en los
                    datos del hogar, nunca en el código. Plegada y sin titular. -->
@@ -5578,7 +5589,7 @@
             </article>
             </div>
 
-            <div class="e19-ajustes-group" id="ajustes-reserva" aria-labelledby="ajustes-reserva-title">
+            <div class="e19-ajustes-group" id="ajustes-reserva" aria-labelledby="ajustes-reserva-title" data-ajustes-area="cuentas">
               <h3 class="e19-ajustes-group-title" id="ajustes-reserva-title">Reserva y colchón</h3>
             <h3 class="e19-ajustes-group-title">Configuración</h3>
             <article class="e19-card">
@@ -5608,7 +5619,7 @@
             <p class="e19-kpi-note">La línea de crédito de emergencia vive ahora en <a href="#herramientas-patrimonio">Herramientas avanzadas → Patrimonio e inversión</a>.</p>
             </div>
 
-            <div class="e19-ajustes-group" id="ajustes-seguros" aria-labelledby="ajustes-seguros-title">
+            <div class="e19-ajustes-group" id="ajustes-seguros" aria-labelledby="ajustes-seguros-title" data-ajustes-area="patrimonio">
               <h3 class="e19-ajustes-group-title" id="ajustes-seguros-title">Seguros</h3>
             <h3 class="e19-ajustes-group-title">Configuración</h3>
             <article class="e19-card">
@@ -5651,7 +5662,7 @@
             <p class="e19-kpi-note">Los comparadores de seguros (deducible óptimo, autoseguro, vida y hogar) viven ahora en <a href="#herramientas-seguros">Herramientas avanzadas → Seguros</a>.</p>
             </div>
 
-            <div class="e19-ajustes-group" id="ajustes-fiscal" aria-labelledby="ajustes-fiscal-title">
+            <div class="e19-ajustes-group" id="ajustes-fiscal" aria-labelledby="ajustes-fiscal-title" data-ajustes-area="patrimonio">
               <h3 class="e19-ajustes-group-title" id="ajustes-fiscal-title">Fiscal</h3>
             <h3 class="e19-ajustes-group-title">Configuración</h3>
             <article class="e19-card">
@@ -5790,7 +5801,7 @@
             <p class="e19-kpi-note">El estimador general de IRPF vive en <a href="#herramientas-fiscal">Herramientas avanzadas → Fiscal</a>. Las calculadoras de inversión (dividendos, venta parcial, aportación y rescate de pensiones, compensación de pérdidas, borrador de la Renta) viven ahora en <a href="#inversion-fiscal">Inversión → Fiscal</a> y <a href="#inversion-jubilacion">Inversión → Jubilación</a>. La segunda opinión sobre una decisión externa al plan vive en <a href="#segunda-opinion">Herramientas avanzadas → Decidir</a>. El backtesting de la previsión vive en <a href="#herramientas-analizar">Herramientas avanzadas → Analizar</a>.</p>
             </div>
 
-            <div class="e19-ajustes-group" id="ajustes-patrimonio" aria-labelledby="ajustes-patrimonio-title">
+            <div class="e19-ajustes-group" id="ajustes-patrimonio" aria-labelledby="ajustes-patrimonio-title" data-ajustes-area="patrimonio">
               <h3 class="e19-ajustes-group-title" id="ajustes-patrimonio-title">Patrimonio e inversión</h3>
             <h3 class="e19-ajustes-group-title">Configuración</h3>
             <!-- A14-4: desglose por tipo y concentración de riesgo. Depende solo del contrato
@@ -5887,7 +5898,7 @@
             <p class="e19-kpi-note">El análisis de cartera, el rebalanceo y "qué vender primero al desapalancar" viven ahora en <a href="#inversion-cartera">Inversión</a>. Continuidad, independencia financiera, runway, resiliencia y línea de crédito de emergencia siguen en <a href="#herramientas-patrimonio">Herramientas avanzadas → Patrimonio e inversión</a>.</p>
             </div>
 
-            <div class="e19-ajustes-group" id="ajustes-laboratorio" aria-labelledby="ajustes-laboratorio-title">
+            <div class="e19-ajustes-group" id="ajustes-laboratorio" aria-labelledby="ajustes-laboratorio-title" data-ajustes-area="laboratorio">
               <h3 class="e19-ajustes-group-title" id="ajustes-laboratorio-title">Simuladores y Laboratorio</h3>
             <!-- XGO-03 (funciones-en-prueba.js): «Funciones en prueba» (P8). Lo nuevo se prueba aquí antes de quedarse;
                  el primer interruptor es el diseño nuevo. En los dos temas: desde el clásico es la forma de volver. -->
@@ -5954,7 +5965,7 @@
                  para toda la app (viewTitles, ~40 pantallas) — la superficie que faltaba para
                  decidir la Cola B de la auditoría 3.0 con datos reales en vez de intuición, sin
                  construir telemetría nueva. -->
-            <div class="e19-ajustes-group" id="ajustes-uso-app" aria-labelledby="ajustes-uso-app-title">
+            <div class="e19-ajustes-group" id="ajustes-uso-app" aria-labelledby="ajustes-uso-app-title" data-ajustes-area="laboratorio">
               <h3 class="e19-ajustes-group-title" id="ajustes-uso-app-title">Uso de la app</h3>
               <!-- WP-03 (UXS-04): panel de uso real, base de la regla de parada de cada ola. Lo rellena
                    usage-panel.js; solo agregados de este móvil, ningún importe. -->
@@ -6040,7 +6051,7 @@
               </article>
             </div>
 
-            <div class="e19-ajustes-group" id="ajustes-operacion" aria-labelledby="ajustes-operacion-title">
+            <div class="e19-ajustes-group" id="ajustes-operacion" aria-labelledby="ajustes-operacion-title" data-ajustes-area="plan">
               <h3 class="e19-ajustes-group-title" id="ajustes-operacion-title">Presupuesto y operación</h3>
               <!-- WP-04 (ND-03 paso 0): solo lectura. Dice si el día de cargo de cada partida se puede
                    aprender de los movimientos importados o tendrá que declararse (WP-08). Sin importes. -->
@@ -6120,7 +6131,7 @@
             <p class="e19-kpi-note">Los análisis de previsión (previsión con control de versiones, diario de recalibración, marcador de deriva por partida, árbol causal de una cifra, revisión anual y backtesting) viven ahora en <a href="#herramientas-analizar">Herramientas avanzadas → Analizar</a>.</p>
             </div>
 
-            <div class="e19-ajustes-group" id="ajustes-datos" aria-labelledby="ajustes-datos-title">
+            <div class="e19-ajustes-group" id="ajustes-datos" aria-labelledby="ajustes-datos-title" data-ajustes-area="datos">
               <h3 class="e19-ajustes-group-title" id="ajustes-datos-title">Datos y exportación</h3>
             <h3 class="e19-ajustes-group-title">Configuración</h3>
             <!-- E9-1 (RGX1/RGX2): hogar compartido — miembros, roles y áreas. La tabla y el modelo
@@ -6226,7 +6237,7 @@
             </article>
             </div>
 
-            <div class="e19-ajustes-group" id="ajustes-navegacion" aria-labelledby="ajustes-navegacion-title">
+            <div class="e19-ajustes-group" id="ajustes-navegacion" aria-labelledby="ajustes-navegacion-title" data-ajustes-area="navegacion">
               <h3 class="e19-ajustes-group-title" id="ajustes-navegacion-title">Navegación</h3>
             <div class="update-route-grid" id="ajustesRouteGrid">
               <button class="e19-route-card" type="button" data-home-nav="visual-detail">
@@ -8106,7 +8117,7 @@
     <script defer src="medidor-utilidad.js?v=20261122und08"></script>
     <script defer src="ocultar-cifras.js?v=20261122und17"></script>
     <script defer src="views/plegados-medidor.js?v=20261118dec40"></script>
-    <script defer src="funciones-en-prueba.js?v=20261118svd6"></script>
+    <script defer src="funciones-en-prueba.js?v=20261122und04"></script>
     <script defer src="vendor/supabase-js-2.117.2.umd.js"></script>
     <script defer src="xlsx-loader.js?v=20260929p2a1"></script>
     <script defer src="supabase-config.js?v=20260602a"></script>
@@ -8394,7 +8405,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20261119priv4"></script>
-    <script defer src="novedades.js?v=20261122und08"></script>
+    <script defer src="novedades.js?v=20261122und04"></script>
     <script defer src="ux-shell.js?v=20261121dec45"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -8434,6 +8445,7 @@
     <script defer src="camino-deuda-ui.js?v=20261122und11"></script>
     <script defer src="kit-entidad-ui.js?v=20261122und13"></script>
     <script defer src="me-lo-puedo-permitir.js?v=20261122und08"></script>
+    <script defer src="ajustes-areas.js?v=20261122und04"></script>
     <script defer src="canonical-loan-payoff-plan.js?v=20261114pre1"></script>
     <script defer src="prestamo-deuda-ui.js?v=20261116cla1"></script>
     <script defer src="canonical-payroll.js?v=20261008wp31a1"></script>
