@@ -3620,13 +3620,14 @@ function budgetComplianceStreak(category, monthKey, maxMonths = 24) {
 
 function saveScenarioSettings() {
   if (!state) return;
+  const hogar = escenarioHogarValores(); // D-N33: se guarda lo del hogar, sin la capa del escenario
   const next = {
     ...scenarioSettings,
     currentScenario,
-    recommendedSavings: state.recommendedSavings,
-    annualInflation: state.annualInflation,
+    recommendedSavings: hogar.recommendedSavings,
+    annualInflation: hogar.annualInflation,
     annualIncomeGrowth: state.annualIncomeGrowth,
-    emergencyBufferMonths: state.emergencyBufferMonths,
+    emergencyBufferMonths: hogar.emergencyBufferMonths,
     // V6-1 · la reserva operativa del hogar. Vive aquí, junto al resto de la política del plan,
     // porque es un dato del hogar que se sincroniza y se restaura, no una preferencia del navegador.
     operatingReserve: round2(Math.max(0, Number(state.operatingReserve || 0))),
@@ -3713,8 +3714,8 @@ function saveScenarioSettings() {
     // PV1 · igual que autoCapSavings: política de simulación del hogar, se sincroniza y se
     // restaura. `undefined` (nunca tocado) se trata como activado en todos los puntos de lectura.
     autoAdjustForecastBias: state.autoAdjustForecastBias,
-    incomeFactor: state.incomeFactor,
-    expenseFactor: state.expenseFactor,
+    incomeFactor: hogar.incomeFactor,
+    expenseFactor: hogar.expenseFactor,
     savingsPlan: scenarioSettings.savingsPlan || {},
     // GOB16 (Oleada 4, Bloque 7) · cláusulas de deuda declaradas por contrato (vinculación de
     // productos, comisión de apertura, revisión del diferencial) — mismo criterio que savingsPlan/
@@ -6321,6 +6322,7 @@ function readStateFromControls() {
   controls.forEach((key) => {
     state[key] = Number(qs(key).value);
   });
+  escenarioAplicarCapa(); // D-N33
   state.autoCapSavings = qs("autoCapSavings").checked;
   state.balanceDate = qs("balanceDate").value || defaultBalanceDate();
   state.balanceMode = qs("balanceMode").value || "auto";
@@ -6340,6 +6342,7 @@ function readStateFromControls() {
 
 function writeControls(nextState) {
   state = { ...nextState, ...scenarioSettings };
+  escenarioFactoresHogar = { incomeFactor: Number(state.incomeFactor ?? 1) || 1, expenseFactor: Number(state.expenseFactor ?? 1) || 1 }; // D-N33
   state.balanceDate = state.balanceDate || balanceSettings.balanceDate || defaultBalanceDate();
   state.balanceMode = state.balanceMode || balanceSettings.balanceMode || "auto";
   if (state.balanceMode === "auto") state.balanceDate = isoLocalDate(new Date());
@@ -6361,6 +6364,7 @@ function writeControls(nextState) {
   }
   updateBalanceModeUi();
   renderAccountBalancePanels();
+  escenarioAplicarCapa(); // D-N33: los campos muestran lo del hogar; el estado lleva el escenario encima
 }
 
 function writeDerivedControls(rows) {
@@ -6691,44 +6695,43 @@ function applyHelpTooltips() {
     ?.setAttribute("data-help", "Importa un extracto bancario. La app aprende cómo relacionar cada movimiento con las partidas del Cuadro de mandos y usa el saldo más reciente como saldo real de CaixaBank.");
 }
 
+// D-N33 (23/11/2026, decisión del hogar): el escenario es una capa temporal encima de los supuestos del hogar (escenario-ui.js,
+// `capa`), no un juego de valores que los sustituya. Antes `applyScenario` escribía sus preajustes y los guardados del hogar los
+// pisaban en el mismo paso: el escenario solo cambiaba el rótulo. Ahora los campos del Simulador y lo guardado son siempre los
+// del hogar; `readStateFromControls` pone la capa encima en cada pintado, y se guarda solo qué escenario está puesto.
+let escenarioFactoresHogar = { incomeFactor: 1, expenseFactor: 1 };
+
+function escenarioClave(label = currentScenario) {
+  return globalThis.FinanceEscenarioUi?.claveDe?.(label) ?? "base";
+}
+
+function escenarioHogarValores() {
+  const valor = (key) => {
+    const input = qs(key);
+    const n = input && input.value !== "" ? Number(input.value) : NaN;
+    return Number.isFinite(n) ? n : Number(state?.[key] ?? 0);
+  };
+  return {
+    recommendedSavings: valor("recommendedSavings"),
+    annualInflation: valor("annualInflation"),
+    emergencyBufferMonths: valor("emergencyBufferMonths"),
+    ...escenarioFactoresHogar,
+  };
+}
+
+function escenarioAplicarCapa() {
+  const hogar = escenarioHogarValores();
+  const capa = globalThis.FinanceEscenarioUi?.capa;
+  Object.assign(state, typeof capa === "function" ? capa(hogar, escenarioClave()) : hogar);
+}
+
 function applyScenario(name) {
-  const a = baseData.assumptions;
   const labels = {
     base: "Base",
     prudente: "Prudente",
     ahorro: "Ahorro alto",
   };
-  const scenarios = {
-    base: {
-      ...a,
-      incomeFactor: 1,
-      expenseFactor: 1,
-      autoCapSavings: true,
-    },
-    prudente: {
-      ...a,
-      incomeFactor: 0.95,
-      expenseFactor: 1.12,
-      recommendedSavings: Math.max(800, Math.round((a.recommendedSavings * 0.65) / 50) * 50),
-      annualInflation: 3.5,
-      autoCapSavings: true,
-    },
-    ahorro: {
-      ...a,
-      incomeFactor: 1,
-      expenseFactor: 0.9,
-      recommendedSavings: Math.round((a.recommendedSavings * 1.2) / 50) * 50,
-      emergencyBufferMonths: 3,
-      autoCapSavings: true,
-    },
-  };
-  const preservedBalance = {
-    initialCash: state.initialCash,
-    balanceDate: state.balanceDate,
-    balanceMode: state.balanceMode,
-  };
-  currentScenario = labels[name];
-  writeControls({ ...scenarios[name], ...preservedBalance });
+  currentScenario = labels[name] || "Base";
   qs("scenarioName").textContent = currentScenario;
   document.querySelectorAll(".scenario-buttons button").forEach((button) => {
     button.classList.toggle("active", button.dataset.scenario === name);

@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-23-escenario-ajustes",
+      fecha: "2026-11-23",
+      texto: "El escenario (Base, Prudente, Ahorro alto) se elige en Ajustes › Plan y ahora sí cambia las cifras; fuera de Base, la cabecera lo avisa.",
+      href: "#ajustes",
+    },
+    {
       id: "2026-11-23-avisos-prevision",
       fecha: "2026-11-23",
       texto: "Hoy: «Decidir esta semana» avisa si la previsión va a bajar del suelo, del mínimo de la cuenta o del colchón; también en el calendario.",

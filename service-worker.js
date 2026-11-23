@@ -188,6 +188,7 @@ const SHELL_URLS = [
   "./kit-entidad-ui.js",
   "./me-lo-puedo-permitir.js",
   "./ajustes-areas.js",
+  "./escenario-ui.js",
   "./canonical-loan-payoff-plan.js",
   "./prestamo-deuda-ui.js",
   "./canonical-payroll.js",
