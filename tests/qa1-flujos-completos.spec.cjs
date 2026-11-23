@@ -9754,6 +9754,7 @@ test.describe("XDA-01 · Lo que la app te pide", () => {
       await expect(card, "apagada, no se ve").toBeHidden();
 
       await cambiarFuncionEnPrueba(page, "lo-que-pide");
+      await abrirAreaDeAjustes(page, "#loQuePideCard"); // la tarjeta está en «Uso de la app»; el interruptor, en «Laboratorio»
       await expect(card, "se ve al momento, sin cambiar de pantalla").toBeVisible({ timeout: 15000 });
       await expect(card.locator(".lqp-frase")).toContainText(/^Lo que piden las funciones que usáis: unos [\d,]+ min a la semana .*frente a un presupuesto de 10 min\./);
       await expect(card.locator("meter.lqp-barra")).toHaveAttribute("max", "10");
