@@ -12474,6 +12474,53 @@ test.describe("UND-01 · Arranque en caliente", () => {
   }
 });
 
+// D-N33 (23/11/2026, decisión del hogar): el escenario de supuestos en Ajustes › Plan y operación; fuera de «Base», la cabecera de
+// todas las pantallas lo avisa, con «Volver a Base». Mismo camino que el Simulador (applyScenario); se guarda con los datos.
+test.describe("D-N33 · Escenario de supuestos en Ajustes", () => {
+  for (const [nombre, viewport] of [["a 1280 px", { width: 1280, height: 900 }], ["a 390 px @safari", { width: 390, height: 844 }]]) {
+    test(`se elige en Ajustes, la cabecera avisa en otras pantallas, se recuerda y «Volver a Base» lo quita, ${nombre}`, async ({ page }) => {
+      test.setTimeout(60000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#ajustes");
+      await expect(page.locator(".sidebar-scenario")).toHaveCount(0);
+      await abrirAreaDeAjustes(page, "#escenarioAjustesCard");
+      const tarjeta = page.locator("#escenarioAjustesCard");
+      await expect(tarjeta.locator("#scenarioName")).toHaveText("Base", { timeout: 15000 });
+      await expect(page.locator("#escenarioAviso")).toBeHidden();
+      const hogar = await page.evaluate(() => ({ ahorro: Number(document.getElementById("recommendedSavings").value), inflacion: Number(document.getElementById("annualInflation").value), efectivo: state.recommendedSavings }));
+      expect(hogar.efectivo).toBe(hogar.ahorro);
+      const tasaBase = await tarjeta.locator("#miniSavingsRate").textContent();
+      await tarjeta.getByRole("button", { name: "Prudente" }).click();
+      await expect(tarjeta.getByRole("button", { name: "Prudente" })).toHaveAttribute("aria-pressed", "true");
+      await expect(tarjeta.locator("#scenarioName")).toHaveText("Prudente");
+      const aviso = page.locator("#escenarioAviso");
+      await expect(aviso).toContainText("Cifras con el escenario «Prudente»");
+      const prudente = await page.evaluate(() => ({ ingresos: state.incomeFactor, gastos: state.expenseFactor, inflacion: state.annualInflation, ahorro: state.recommendedSavings, campo: Number(document.getElementById("recommendedSavings").value), guardado: scenarioSettings.recommendedSavings, escenarioGuardado: scenarioSettings.currentScenario }));
+      expect(prudente.ingresos).toBeCloseTo(0.95, 5);
+      expect(prudente.gastos).toBeCloseTo(1.12, 5);
+      expect(prudente.inflacion).toBeGreaterThanOrEqual(3.5);
+      expect(prudente.ahorro).toBe(Math.round((hogar.ahorro * 0.65) / 50) * 50);
+      expect(prudente.campo, "el campo del Simulador sigue siendo lo vuestro").toBe(hogar.ahorro);
+      expect(prudente.guardado, "lo guardado sigue siendo lo vuestro").toBe(hogar.ahorro);
+      expect(prudente.escenarioGuardado).toBe("Prudente");
+      await expect(tarjeta.locator("#miniSavingsRate"), "el escenario cambia las cifras de verdad").not.toHaveText(tasaBase);
+      await page.evaluate(() => { location.hash = "home"; });
+      await expect(aviso).toBeVisible();
+      await page.reload();
+      await expect(page.locator("#escenarioAviso")).toContainText("«Prudente»", { timeout: 20000 });
+      await page.locator("#escenarioAviso").getByRole("button", { name: "Volver a Base" }).click();
+      await expect(page.locator("#escenarioAviso")).toBeHidden();
+      const vuelta = await page.evaluate(() => ({ ingresos: state.incomeFactor, ahorro: state.recommendedSavings, inflacion: state.annualInflation }));
+      expect(vuelta).toEqual({ ingresos: 1, ahorro: hogar.ahorro, inflacion: hogar.inflacion });
+      await expect(page.locator("#miniSavingsRate")).toHaveText(tasaBase);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 // UND-04 (undécima auditoría; D-N29, 22/11/2026): Ajustes por áreas en el móvil; en el escritorio, todo a la vista. Mide el alto de cada
 // área a 390 × 844 frente al de Ajustes entero (la métrica de la ficha).
 test.describe("UND-04 · Ajustes por áreas en el móvil", () => {

@@ -336,6 +336,22 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// D-N33 (23/11/2026): el escenario de supuestos en Ajustes y el aviso de la cabecera, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`D-N33 · contraste del escenario y su aviso en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 1280, height: 900 } });
+    test("#escenarioAjustesCard y #escenarioAviso: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.goto("/index.html#ajustes");
+      await page.locator('#escenarioAjustesCard [data-escenario-elegir="prudente"]').click({ timeout: 20000 });
+      await expect(page.locator("#escenarioAviso")).toBeVisible();
+      await page.mouse.move(0, 0);
+      const results = await new AxeBuilder({ page }).include("#escenarioAjustesCard").include("#escenarioAviso").analyze();
+      const nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // UND-08 (22/11/2026; la línea de Hoy desde el 14/12): «¿Me lo puedo permitir?» con una respuesta, en claro y en oscuro.
 for (const scheme of ["light", "dark"]) {
   test.describe(`UND-08 · contraste de «¿Me lo puedo permitir?» en modo ${scheme}`, () => {

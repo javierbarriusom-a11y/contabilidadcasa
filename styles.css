@@ -13851,3 +13851,96 @@ input[data-amount-input][aria-invalid="true"] {
     display: none;
   }
 }
+
+/* D-N33 (23/11/2026): el escenario de supuestos en Ajustes (un selector como el de Hogar / Persona 1 / Persona 2) y el aviso de la
+   cabecera cuando no es «Base». En los dos temas. */
+.escenario-switch {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  padding: 3px;
+  margin: 8px 0;
+  border: 1px solid var(--line, #cfd8dc);
+  border-radius: 8px;
+}
+
+.escenario-switch button {
+  min-height: 44px;
+  padding: 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-weight: 600;
+  white-space: normal;
+}
+
+.escenario-switch button[aria-pressed="true"] {
+  background: #0f766e; /* fijo: con el --teal claro del modo oscuro, el blanco no llega a 4,5:1 */
+  color: #ffffff;
+}
+
+.escenario-explica {
+  display: grid;
+  gap: 4px;
+  margin: 4px 0 8px;
+  padding-left: 18px;
+  line-height: 1.4;
+}
+
+.escenario-cifras {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.escenario-cifras span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.escenario-cifras strong {
+  display: block;
+  font-size: 18px;
+}
+
+.escenario-aviso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin: 6px 0 0;
+  padding: 8px 12px;
+  border: 1px solid #b45309;
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #7c2d12;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.escenario-aviso[hidden] {
+  display: none;
+}
+
+.escenario-aviso button {
+  min-height: 36px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .escenario-aviso {
+    background: #3b2410;
+    border-color: #f59e0b;
+    color: #fde68a;
+  }
+}
+
+:root[data-theme="dark"] .escenario-aviso {
+  background: #3b2410;
+  border-color: #f59e0b;
+  color: #fde68a;
+}
