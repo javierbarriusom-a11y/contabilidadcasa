@@ -12483,13 +12483,13 @@ test.describe("UND-04 · Ajustes por áreas en el móvil", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/index.html#ajustes");
     const tabs = page.locator("#ajustesAreas [role=tab]");
-    await expect(tabs).toHaveCount(7, { timeout: 20000 });
+    await expect(tabs).toHaveCount(8, { timeout: 20000 });
     await expect(page.locator("#ajustesArea-cuentas")).toHaveAttribute("aria-selected", "true");
     await expect(page.locator("#ajustes-hogar")).toBeVisible();
     await expect(page.locator("#ajustes-laboratorio")).toBeHidden();
     const alto = async () => page.evaluate(() => document.getElementById("ajustes").getBoundingClientRect().height);
     const altos = {};
-    for (const area of ["cuentas", "plan", "patrimonio", "datos", "laboratorio", "navegacion"]) {
+    for (const area of ["cuentas", "plan", "patrimonio", "datos", "laboratorio", "uso", "navegacion"]) {
       await page.locator(`#ajustesArea-${area}`).click();
       await expect(page.locator(`#ajustesArea-${area}`)).toHaveAttribute("aria-selected", "true");
       altos[area] = await alto();
