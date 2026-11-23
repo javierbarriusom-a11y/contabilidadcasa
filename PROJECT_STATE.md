@@ -113,6 +113,20 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 23 de noviembre de 2026 (530): UND-04, Ajustes por áreas en el móvil (D-N29)
+
+- **Publicado de antes:** «Verify and deploy Pages» **1537 en verde** (main d1e72051, #670: UND-08 en el sitio; la línea de Hoy, desde el 14/12); «Published availability» lanzada a mano tras él. #671 (DEC-38 en Inversión y Escenarios) con su CI en verde: fusionado comprobada la cabeza bba29853, **main 3116185e**; su despliegue, en curso al escribir esto.
+- **Decisión del hogar, D-N29** (22/11, a la pregunta de UND-04): «Áreas solo en el móvil». En el móvil se entra por un área; en el escritorio, todo como antes.
+- **UND-04** (`ajustes-areas.js`, nuevo):
+  - en el móvil (≤ 860 px), una fila de pestañas (`tablist`, flechas, Inicio y Fin; se desplaza en horizontal si no cabe) con **Cuentas y reserva · Plan y operación · Patrimonio, seguros y fiscal · Datos y avisos · Laboratorio y uso · Navegación · Ver todo**, que allí sustituye al índice de anclas; el área dura la sesión;
+  - las áreas agrupan **los diez grupos de siempre** por CSS, sin mover ninguna tarjeta. **Me aparto de la ficha:** proponía «Pareja y titulares» y «Avisos» como áreas propias, lo que obligaba a mover tarjetas entre grupos; se puede hacer después si las áreas se usan;
+  - **un fallo real que encontró la batería:** la app lleva a tarjetas de Ajustes desde otras pantallas (el camino a un supuesto desde la Previsión, la línea de la copia de seguridad, la vuelta a «Funciones en prueba») y en el móvil quedaban escondidas. Antes de desplazarse o enfocar algo dentro de Ajustes, se cambia a su área (una envoltura de `scrollIntoView` y `focus`, en vez de tocar cada sitio que lleva allí);
+  - **la métrica de la ficha, medida a 390 × 844 con la demo:** Ajustes entero, 35.234 px (41,7 pantallas). Por área: Navegación 1,4; Plan y operación 2,2; Cuentas y reserva 5,3; Patrimonio, seguros y fiscal 6,6; Datos y avisos 8,3; **Laboratorio y uso 20,0**. El objetivo (ninguna por encima de 6) se cumple en tres de seis; Laboratorio y uso es casi la mitad de Ajustes. Propuesta (sin hacer): partirla en «Laboratorio» y «Uso de la app».
+- **Pruebas:** `tests/und04-ajustes-areas.test.cjs` (3), nueva; e2e a 390 `@safari` (pestañas, teclado, «Ver todo», se recuerda, cada área más corta que el total) y a 1280 (sin pestañas, todo a la vista). 13 e2e de otras funciones que entran en Ajustes en el móvil tocan antes la pestaña de su área (`abrirAreaDeAjustes`, lo que haría el hogar); la de DEC-38 mira que el índice del móvil (las pestañas) tampoco va fijo.
+- **Versiones:** `ajustes-areas.js` y `funciones-en-prueba.js` a `20261122und04`; `styles.css` y `novedades.js` a `20261122und04`.
+- **Validación:** `npm test` **6.903/6.903** (+3), lint y typecheck. Batería en navegador (e2e, a11y y perf-screens en Chromium): la primera, **512/526** (14 fallos, todos de este cambio: las 13 e2e que entraban en Ajustes en el móvil y el fallo real de arriba) más una unitaria (el orden de los atributos que lee ARQ-0); corregidos, la segunda, **526/526**. Sobre esta rama (lo mismo más DEC-38, `git diff` solo en esos dos ficheros): `npm test` 6.903/6.903 y `test:mobile-overflow` **410 visitas** sin nada cortado. Safari, en el CI.
+- **Con esto, la semana del 7/12 de la undécima auditoría queda hecha** (UND-04, UND-08 y DEC-38 en Inversión y Escenarios).
+
 ## Cierre de sesión — 22 de noviembre de 2026 (529): DEC-38 en Inversión y Escenarios (a 195 px, vigilado por el CI)
 
 - **Publicado de antes:** #670 (UND-08) con su CI en verde a la primera, Safari incluido: marcado listo y fusionado comprobada la cabeza 0ff6c949, **main d1e72051**. Su despliegue, en curso al escribir esto: lo anota la entrada siguiente.
