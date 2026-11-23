@@ -113,6 +113,16 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 23 de noviembre de 2026 (533): tres propuestas de Claude, aceptadas por el hogar (D-N30, D-N31 y D-N32)
+
+- **Publicado de antes:** #674 («Laboratorio y uso» en dos áreas) con su CI en verde, Safari incluido: fusionado comprobada la cabeza 335b4d56, main f2e00f01. «Verify and deploy Pages» **1543** (#673) y **1545** (#674) **en verde**; «Published availability» lanzada a mano tras cada uno.
+- **El hogar** (23/11): «ok a las tres, mantenlas así». Pasan de propuesta a decisión:
+  - **D-N30 · Un cambio de Hoy por semana, con puertas de fecha:** el indicador por área (UND-06) entra el **7/12** y «¿Me lo puedo permitir?» (UND-08) el **14/12**; así la revisión de las áreas de UND-23 se mide sin indicadores y Hoy no cambia dos veces la misma semana (ESTADO §8.7).
+  - **D-N31 · Rendimiento equivalente de una quita sin cuota** (UND-11): lo perdonado entre lo pagado (400 € por 600 €, un 66,7 %), no el 40 % del texto de la ficha; es lo que compara dónde rinde más cada euro.
+  - **D-N32 · Ocultar cifras emborrona todos los campos numéricos** (UND-17), no solo los de importe; al tocarlos para escribir se ven.
+- **Siguiente número de decisión libre: D-N33.**
+- **Validación:** solo cambia la documentación.
+
 ## Cierre de sesión — 23 de noviembre de 2026 (532): «Laboratorio y uso» se parte en dos áreas (decisión del hogar)
 
 - **Publicado de antes:** «Verify and deploy Pages» **1541 en verde** (main da2d9c44, #672: UND-04 en el sitio); «Published availability» lanzada a mano tras él. #673 (PROJECT_STATE 531) fusionado, main 5329848c; su despliegue, en curso al escribir esto.
