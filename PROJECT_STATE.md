@@ -113,6 +113,15 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 23 de noviembre de 2026 (531): #672 (UND-04) fusionado tras un relanzamiento diagnóstico autorizado; la semana del 7/12, publicada
+
+- **«Verify and deploy Pages» 1539 en verde** (main 3116185e, #671: DEC-38 en Inversión y Escenarios); «Published availability» lanzada a mano tras él.
+- **El primer CI de #672 (UND-04) falló solo en Safari**, en «Rediseño A4 · Importar v2» a 390 px, que UND-04 no toca: en el iPhone simulado, el toque en la pestaña «Importar» de Registrar no cambió de pestaña, en el intento y en su reintento. No se reprodujo aquí: Chromium con el iPhone emulado (táctil, modo móvil) pasa 3/3, y el contenedor no tiene WebKit; en el código de UND-04 no hay nada que llegue a Registrar (su única pieza global, la envoltura de `focus` y `scrollIntoView`, solo actúa dentro de un grupo de Ajustes).
+- **Relanzamiento diagnóstico, con el visto bueno del hogar** (la regla es no relanzar sin arreglar; se pidió permiso para esta excepción): un solo relanzamiento del trabajo fallido, para separar una carrera de WebKit de un fallo de UND-04. **Pasó entero, Safari incluido**: era una carrera de WebKit en esa prueba, como las de #555 y #556 en Importar. Si vuelve a salir, la siguiente vez se arregla la prueba (activar la pestaña con el teclado, como en el 1518), no se relanza.
+- **#672 fusionado** comprobada la cabeza 0822731d, **main da2d9c44**. Su despliegue, en curso al escribir esto.
+- **La semana del 7/12 de la undécima auditoría queda publicada:** UND-08 (#670), DEC-38 en Inversión y Escenarios (#671) y UND-04 (#672). Con las del 23/11 y el 30/11, las tres semanas del §6.
+- **Validación:** solo cambia este documento.
+
 ## Cierre de sesión — 23 de noviembre de 2026 (530): UND-04, Ajustes por áreas en el móvil (D-N29)
 
 - **Publicado de antes:** «Verify and deploy Pages» **1537 en verde** (main d1e72051, #670: UND-08 en el sitio; la línea de Hoy, desde el 14/12); «Published availability» lanzada a mano tras él. #671 (DEC-38 en Inversión y Escenarios) con su CI en verde: fusionado comprobada la cabeza bba29853, **main 3116185e**; su despliegue, en curso al escribir esto.
