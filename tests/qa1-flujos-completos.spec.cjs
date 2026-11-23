@@ -9754,6 +9754,7 @@ test.describe("XDA-01 · Lo que la app te pide", () => {
       await expect(card, "apagada, no se ve").toBeHidden();
 
       await cambiarFuncionEnPrueba(page, "lo-que-pide");
+      await abrirAreaDeAjustes(page, "#loQuePideCard"); // la tarjeta está en «Uso de la app»; el interruptor, en «Laboratorio»
       await expect(card, "se ve al momento, sin cambiar de pantalla").toBeVisible({ timeout: 15000 });
       await expect(card.locator(".lqp-frase")).toContainText(/^Lo que piden las funciones que usáis: unos [\d,]+ min a la semana .*frente a un presupuesto de 10 min\./);
       await expect(card.locator("meter.lqp-barra")).toHaveAttribute("max", "10");
@@ -12483,13 +12484,13 @@ test.describe("UND-04 · Ajustes por áreas en el móvil", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/index.html#ajustes");
     const tabs = page.locator("#ajustesAreas [role=tab]");
-    await expect(tabs).toHaveCount(7, { timeout: 20000 });
+    await expect(tabs).toHaveCount(8, { timeout: 20000 });
     await expect(page.locator("#ajustesArea-cuentas")).toHaveAttribute("aria-selected", "true");
     await expect(page.locator("#ajustes-hogar")).toBeVisible();
     await expect(page.locator("#ajustes-laboratorio")).toBeHidden();
     const alto = async () => page.evaluate(() => document.getElementById("ajustes").getBoundingClientRect().height);
     const altos = {};
-    for (const area of ["cuentas", "plan", "patrimonio", "datos", "laboratorio", "navegacion"]) {
+    for (const area of ["cuentas", "plan", "patrimonio", "datos", "laboratorio", "uso", "navegacion"]) {
       await page.locator(`#ajustesArea-${area}`).click();
       await expect(page.locator(`#ajustesArea-${area}`)).toHaveAttribute("aria-selected", "true");
       altos[area] = await alto();

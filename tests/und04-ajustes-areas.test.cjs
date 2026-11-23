@@ -9,7 +9,7 @@ const A = require("../ajustes-areas.js");
 const read = (file) => fs.readFileSync(path.join(__dirname, "..", file), "utf8");
 
 test("UND-04 · seis áreas y «Ver todo»; cada uno de los diez grupos, en una", () => {
-  assert.deepEqual([...A.AREAS], ["cuentas", "plan", "patrimonio", "datos", "laboratorio", "navegacion", "todo"]);
+  assert.deepEqual([...A.AREAS], ["cuentas", "plan", "patrimonio", "datos", "laboratorio", "uso", "navegacion", "todo"]);
   const html = read("index.html");
   const grupos = [...html.matchAll(/<div class="e19-ajustes-group" id="([a-z-]+)" aria-labelledby="[a-z-]+" data-ajustes-area="([a-z]+)"/g)].map((m) => [m[1], m[2]]);
   assert.equal(grupos.length, 10, "los diez grupos llevan su área");
@@ -36,7 +36,7 @@ test("UND-04 · el área dura la sesión, se elige con teclado, y quien lleva a 
   assert.match(js, /const ancla = event\.target\?\.closest\?\.\("\[data-ajustes-anchor\]"\);\n {6}if \(ancla\) mostrar\(ancla\.dataset\.ajustesAnchor, doc\);\n {4}\}, true\);/, "en la fase de captura");
   assert.match(read("funciones-en-prueba.js"), /globalThis\.FinanceAjustesAreas\?\.mostrar\?\.\("funcionesEnPruebaCard"\)/);
   const html = read("index.html");
-  assert.match(html, /<script defer src="ajustes-areas\.js\?v=20261122und04"><\/script>/);
+  assert.match(html, /<script defer src="ajustes-areas\.js\?v=20261122und04b"><\/script>/);
   assert.match(read("tools/build-public-site.mjs"), /^ {2}"ajustes-areas\.js",$/m);
   assert.match(read("service-worker.js"), /^ {2}"\.\/ajustes-areas\.js",$/m);
 });

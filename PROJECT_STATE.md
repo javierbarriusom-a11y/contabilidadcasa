@@ -113,6 +113,16 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 23 de noviembre de 2026 (532): «Laboratorio y uso» se parte en dos áreas (decisión del hogar)
+
+- **Publicado de antes:** «Verify and deploy Pages» **1541 en verde** (main da2d9c44, #672: UND-04 en el sitio); «Published availability» lanzada a mano tras él. #673 (PROJECT_STATE 531) fusionado, main 5329848c; su despliegue, en curso al escribir esto.
+- **El hogar** (23/11, a la propuesta de la entrada 530): «sí, parte Laboratorio y uso en dos áreas».
+- **Hecho:** Ajustes en el móvil pasa de seis áreas a siete: «Laboratorio» (Funciones en prueba y Laboratorio) y «Uso de la app» (panel de uso, lo que la app te pide, medidor de utilidad, huella del extracto, prueba de 30 s). Sin mover tarjetas: cada grupo de siempre ya era uno de los dos.
+- **La métrica, medida otra vez a 390 × 844 con la demo:** Laboratorio **11,9** pantallas (antes, con Uso, 20,0) y Uso de la app **8,6**; el resto igual (Navegación 1,4; Plan y operación 2,2; Cuentas y reserva 5,3; Patrimonio, seguros y fiscal 6,6; Datos y avisos 8,3). El área más alta baja de 20 a 11,9, pero cuatro de siete siguen por encima del objetivo de 6. Lo que queda ya no se arregla con áreas: son tarjetas largas (Laboratorio, el medidor), y se decide con lo que se use (UND-24).
+- **Versiones:** `ajustes-areas.js` y `styles.css` a `20261122und04b`.
+- **Pruebas:** `tests/und04-ajustes-areas.test.cjs` con las ocho áreas; la e2e de UND-04 recorre las ocho; la de XDA-01 toca la pestaña «Uso de la app» después del interruptor de «Laboratorio» (la tarjeta y su interruptor quedan en áreas distintas, como para el hogar).
+- **Validación:** `npm test` **6.903/6.903**. Batería en navegador (e2e, a11y y perf-screens en Chromium): **523/526**; los 3 fallos: XDA-01 (de este cambio, arriba) y dos que este cambio no toca y que fallan con el contenedor cargado (WP-37, el esqueleto de 1,5 s, ya anotado en la 528; y WP-44 · aviso de calma en Cierre, «renderCierre is not defined» al cargar Cierre). Repetidas aparte, con las de UND-04: **9/9**. `test:mobile-overflow` **415 visitas** sin nada cortado. Safari, en el CI.
+
 ## Cierre de sesión — 23 de noviembre de 2026 (531): #672 (UND-04) fusionado tras un relanzamiento diagnóstico autorizado; la semana del 7/12, publicada
 
 - **«Verify and deploy Pages» 1539 en verde** (main 3116185e, #671: DEC-38 en Inversión y Escenarios); «Published availability» lanzada a mano tras él.

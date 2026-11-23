@@ -13846,6 +13846,7 @@ input[data-amount-input][aria-invalid="true"] {
   #ajustes[data-ajustes-area="patrimonio"] .e19-ajustes-group:not([data-ajustes-area="patrimonio"]),
   #ajustes[data-ajustes-area="datos"] .e19-ajustes-group:not([data-ajustes-area="datos"]),
   #ajustes[data-ajustes-area="laboratorio"] .e19-ajustes-group:not([data-ajustes-area="laboratorio"]),
+  #ajustes[data-ajustes-area="uso"] .e19-ajustes-group:not([data-ajustes-area="uso"]),
   #ajustes[data-ajustes-area="navegacion"] .e19-ajustes-group:not([data-ajustes-area="navegacion"]) {
     display: none;
   }

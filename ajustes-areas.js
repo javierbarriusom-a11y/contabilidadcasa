@@ -16,7 +16,8 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function createAjustesAreas(root) {
   "use strict";
 
-  const AREAS = Object.freeze(["cuentas", "plan", "patrimonio", "datos", "laboratorio", "navegacion", "todo"]);
+  // 23/11/2026, decisión del hogar: «Laboratorio y uso» (20 pantallas en el móvil) se parte en «Laboratorio» y «Uso de la app».
+  const AREAS = Object.freeze(["cuentas", "plan", "patrimonio", "datos", "laboratorio", "uso", "navegacion", "todo"]);
   const CLAVE = "ajustes-area";
 
   function valida(area) {
