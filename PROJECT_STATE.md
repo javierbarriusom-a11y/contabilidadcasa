@@ -113,6 +113,20 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 23 de noviembre de 2026 (535): D-N33 fusionado; duodécima auditoría y cinco decisiones del hogar (D-N34 a D-N38)
+
+- **Publicado de antes:** «Verify and deploy Pages» **1547 en verde** (main 3ec12e9c, #675); «Published availability» **406 en verde**, lanzada a mano tras él. CI de #676 (D-N33) **en verde, Safari incluido** (run 1548): marcado como listo y fusionado con squash comprobada la cabeza 4707929f, **main bf8b68a1**. Su despliegue, en curso al escribir esto; se anota en la siguiente entrada.
+- **Duodécima auditoría** (`docs/PROPUESTA_DUODECIMA_AUDITORIA_2026-11-23.md`, propuesta; el backlog vivo sigue siendo `BACKLOG_DEFINITIVO.md`). Lo más grave: controles publicados que no cambian ninguna cifra sin que ninguna prueba lo vea (D-N33 fue el cuarto caso de avería silenciosa en un mes). En deuda, comprobado en el código: una deuda en impago sin oferta de quita no entra en la fecha de «libres de deuda» (lo dice una nota de avisos, no la fecha, y la nota pide completarla en Contratos, que no sirve para un impago); el plan óptimo no lee las comisiones de amortización de DEB8, supone siempre «reducir plazo» y proyecta con el tipo de hoy. Propone el plan v3 (seguimiento con detección automática, hitos y cierre, coste real de amortizar, cada 50 € más, cascada del siguiente euro) y v4 (indicio de usura en revolving, consolidación, promociones, ratio de endeudamiento), y en uso: prueba de efecto, salud del motor, barra inferior, deshacer, revisión trimestral con fecha.
+- **El hogar** (23/11): «ok a las cinco, D-N34 a D-N38».
+  - **D-N34 · Prueba de efecto obligatoria:** ningún control nuevo se publica sin una prueba de que al tocarlo cambia alguna cifra visible o se dice por qué no (DUO-01).
+  - **D-N35 · Seguimiento del plan de deuda:** si la app encuentra en los movimientos el pago extra previsto, lo da por hecho y lo dice, con «No era esto» para corregir; solo pregunta si no lo encuentra (DUO-D1).
+  - **D-N36 · Indicio de usura en revolving y ratio de endeudamiento** con aviso de ayuda, siempre como indicio y con lenguaje neutro (DUO-D6, DUO-D10).
+  - **D-N37 · Barra inferior en el móvil:** Hoy, Movimientos, Plan, Deuda y «Más» (DUO-05, UND-07), después del cierre de diciembre para respetar D-N30.
+  - **D-N38 · Primera revisión trimestral la semana del 14/12** con cuatro candidatos (escenario de supuestos si no se usa, plan heredado, UND-19, tarjetas de Laboratorio sin uso en 30 días); retirar sigue pidiendo el «sí» pantalla a pantalla.
+- **Siguiente número de decisión libre: D-N39.**
+- **Siguiente paso (§5 de la propuesta):** semana del 30/11, DUO-01 (prueba de efecto), DUO-D9 (la fecha de «libres» que no cuenta lo impagado), UND-01 (las dos pantallas que faltan) y DUO-04 (salud del motor y extractos atrasados).
+- **Validación:** solo cambia la documentación; `npm test` **6.907/6.907** (en un contenedor nuevo, tras `npm ci`: sin dependencias instaladas fallaban 9 pruebas de build y de Playwright por no encontrar sus módulos, no por el cambio).
+
 ## Cierre de sesión — 23 de noviembre de 2026 (534): el escenario de supuestos, a Ajustes y ahora de verdad (D-N33)
 
 - **Publicado de antes:** #675 (PROJECT_STATE 533, solo documentación) con su CI en verde: fusionado comprobada la cabeza 8a1a6288, main 3ec12e9c. Su despliegue y «Published availability» se anotan en la siguiente entrada.
