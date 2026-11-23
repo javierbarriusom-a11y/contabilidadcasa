@@ -1,0 +1,87 @@
+/* DUO-04 · «Salud del cálculo» en Ajustes › Uso de la app (salud-motor-ui.js). Hoja propia; solo tokens --e19-* (claro y oscuro salen de ellos). */
+.salud-motor-card summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-family: var(--e19-font-sans);
+  font-size: var(--e19-text-base);
+  color: var(--e19-ink);
+  cursor: pointer;
+}
+
+.salud-motor-card[data-salud-estado="falla"] summary {
+  color: var(--e19-danger);
+  font-weight: 600;
+}
+
+.salud-motor-lista,
+.salud-motor-extractos {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  font-family: var(--e19-font-sans);
+  font-size: var(--e19-text-sm);
+  color: var(--e19-ink);
+}
+
+.salud-motor-fila {
+  display: grid;
+  grid-template-columns: 1.5em minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--e19-border);
+}
+
+.salud-motor-fila:first-child {
+  border-top: 0;
+}
+
+.salud-motor-forma {
+  font-size: var(--e19-text-base);
+  line-height: 1.2;
+}
+
+.salud-motor-fila[data-salud-estado="falla"] .salud-motor-forma {
+  color: var(--e19-danger);
+}
+
+.salud-motor-detalle {
+  color: var(--e19-muted);
+  overflow-wrap: anywhere;
+}
+
+.salud-motor-extractos li {
+  padding: 4px 0;
+  overflow-wrap: anywhere;
+}
+
+.salud-motor-extractos li.is-atrasado {
+  font-weight: 600;
+}
+
+.salud-motor-error {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--e19-danger-soft-border);
+  border-radius: 8px;
+  background: var(--e19-danger-soft);
+  color: var(--e19-ink);
+  font-family: var(--e19-font-sans);
+  font-size: var(--e19-text-sm);
+  overflow-wrap: anywhere;
+}
+
+.salud-motor-acciones .e19-btn {
+  min-height: 44px;
+}
+
+/* La línea de Hoy de los extractos atrasados (UND-22, desde el 21/12) es un enlace con el aspecto de .hoy-v2-pending (tema-v2.css). */
+.hoy-v2-extractos {
+  box-sizing: border-box;
+  text-decoration: none;
+}
+
+.hoy-v2-extractos:focus-visible {
+  outline: 3px solid var(--e19-ink);
+  outline-offset: 2px;
+}

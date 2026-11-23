@@ -2102,8 +2102,10 @@ test.describe("WP-19 · camino a deuda cero", () => {
       await expect(result).toContainText("Cuota total al mes");
       await expect(result).toContainText("Intereses pendientes");
       await expect(result).toContainText("Sin extra, el calendario actual acaba en");
-      await expect(result).toContainText("No entran en la cuenta");
-      await expect(result).toContainText("sin cuota activa");
+      // DUO-D9: las deudas de ejemplo con los pagos suspendidos se nombran aparte (no es un dato que falte) y la fecha lo dice.
+      await expect(result).toContainText("Con los pagos suspendidos, fuera de la fecha");
+      await expect(result).toContainText("con los pagos suspendidos");
+      await expect(result).not.toContainText("completa su cuota y su TAE o plazo en Contratos");
       await expect(result).toContainText("Sin TAE declarada");
       await expect(result).toContainText("Cada 100 € más al mes");
       await expect(result).toContainText("no ejecuta nada");
@@ -12415,7 +12417,7 @@ test.describe("Hoy por áreas", () => {
 
 // Plan óptimo de saldo (21/11/2026, «quiero seguir con un plan optimizado de saldo de deuda»): en Deuda › Ruta, encima de «Camino a deuda
 // cero» y con su mismo motor. Contratos FICTICIOS.
-// UND-01 (undécima auditoría; 22/11/2026): cada pantalla v2 también en «arranque en caliente»: con contratos, meses de movimientos y un
+// UND-01 (undécima auditoría; 22/11/2026; completada el 23/11 con Clasificar y el Repaso semanal, 11 de 11): cada pantalla v2 también en «arranque en caliente»: con contratos, meses de movimientos y un
 // apunte a mano guardados, al volver a abrir la app. Lo que solo falla con datos guardados (el gráfico de Hoy, once días) sale aquí.
 test.describe("UND-01 · Arranque en caliente", () => {
   const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
@@ -12457,6 +12459,27 @@ test.describe("UND-01 · Arranque en caliente", () => {
     ["Deuda › Contratos", "#deuda-contratos", async (page) => {
       await expect(page.locator('[data-deuda-contrato-row] input[data-deuda-contrato-field="entity"][value="Banco FICTICIO"]')).toBeVisible({ timeout: 15000 });
     }],
+    // 23/11/2026: las dos que faltaban (11 de 11). Son diálogos sobre Movimientos: se abren desde su bandeja con lo guardado.
+    ["Clasificar", "#movements", async (page) => {
+      await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+      await page.locator("#movimientosV2 [data-mov-v2-clasificar]").first().click();
+      const panel = page.locator("#clasificarV2");
+      await expect(panel).toBeVisible({ timeout: 15000 });
+      await expect(panel).toContainText(/1 de \d+/);
+      await expect(panel.locator(".clas-v2-nombre")).toContainText("FICTICI");
+      await panel.locator("[data-clas-v2-cerrar]").first().click();
+      await expect(panel).toBeHidden();
+    }],
+    ["Repaso semanal", "#movements", async (page) => {
+      await expect(page.locator("#movimientosV2")).toBeVisible({ timeout: 15000 });
+      await page.locator("#movimientosV2 [data-mov-v2-repaso]").click();
+      const repaso = page.locator("#repasoV2");
+      await expect(repaso).toBeVisible({ timeout: 15000 });
+      await expect(repaso.locator("#repasoV2Titulo")).toHaveText("¿Coincide lo que dice tu banco?");
+      await expect(repaso.locator("[data-rep-v2-coincide]").first()).toBeVisible();
+      await repaso.locator("[data-rep-v2-cerrar]").click();
+      await expect(repaso).toBeHidden();
+    }],
   ];
   for (const [nombre, viewport] of [["a 1280 px", { width: 1280, height: 900 }], ["a 390 px @safari", { width: 390, height: 844 }]]) {
     test(`las pantallas v2 se pintan desde lo guardado, ${nombre}`, async ({ page }) => {
@@ -12497,6 +12520,37 @@ test.describe("DUO-01 · Prueba de efecto de los controles", () => {
     }
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
+});
+
+// DUO-04 (duodécima auditoría; UND-03 y UND-22): la salud del cálculo en Ajustes › Uso de la app, desde lo guardado.
+test.describe("DUO-04 · Salud del cálculo", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  for (const [nombre, viewport] of [["a 1280 px", { width: 1280, height: 900 }], ["a 390 px", { width: 390, height: 844 }]]) {
+    test(`los cuatro cálculos con su estado, el extracto atrasado y «Recalcular todo», ${nombre}`, async ({ page }) => {
+      test.setTimeout(90000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await arrancarEnCaliente(page, { viewport });
+      await page.evaluate(() => { location.hash = "#ajustes"; });
+      await abrirAreaDeAjustes(page, "#saludMotorCard");
+      const card = page.locator("#saludMotorCard");
+      const resumen = card.locator("[data-salud-resumen]");
+      await expect(resumen).toContainText("Salud del cálculo", { timeout: 15000 });
+      // Los movimientos guardados acaban el 20 del mes pasado: el extracto va atrasado y el resumen lo dice.
+      await expect(resumen).toContainText("Todo calculado (4 de 4)");
+      await expect(resumen).toContainText("extracto atrasado");
+      if ((await card.getAttribute("open")) === null) await card.locator("summary").click();
+      await expect(card.locator(".salud-motor-fila")).toHaveCount(4);
+      await expect(card.locator('.salud-motor-fila[data-salud-estado="ok"]')).toHaveCount(4);
+      await expect(card).toContainText("Previsión diaria");
+      await expect(card.locator(".salud-motor-extractos li.is-atrasado").first()).toContainText("atrasado");
+      await card.locator("[data-salud-recalcular]").click();
+      await expect(card.locator("[data-salud-estado-recalculo]")).toContainText("Recalculado a las");
+      await expect(card.locator('.salud-motor-fila[data-salud-estado="ok"]')).toHaveCount(4);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
 });
 
 // D-N33 (23/11/2026, decisión del hogar): el escenario de supuestos en Ajustes › Plan y operación; fuera de «Base», la cabecera de

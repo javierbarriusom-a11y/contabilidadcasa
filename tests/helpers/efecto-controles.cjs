@@ -122,6 +122,16 @@ const PANTALLAS = [
       await expect(page.locator("#escenarioAjustesCard #miniSavingsRate")).not.toBeEmpty({ timeout: 15000 });
     },
   },
+  {
+    // DUO-04: la tarjeta de salud del cálculo (plegada) en Ajustes › Uso de la app.
+    nombre: "Ajustes › Salud del cálculo", hash: "#ajustes", raiz: "#saludMotorCard",
+    entrar: async (page, { abrirAreaDeAjustes }) => {
+      await abrirAreaDeAjustes(page, "#saludMotorCard");
+      const card = page.locator("#saludMotorCard");
+      if ((await card.getAttribute("open")) === null) await card.locator("summary").click();
+      await expect(card.locator("[data-salud-recalcular]")).toBeVisible({ timeout: 15000 });
+    },
+  },
 ];
 
 const PLAN = "#planOptimoResultado";
@@ -148,6 +158,8 @@ const EFECTOS = [
   { pantalla: "Ajustes › Escenario de supuestos", nombre: "Escenario Prudente", clave: "button[data-escenario-elegir]", control: '[data-escenario-elegir="prudente"]', accion: { tipo: "alternar" }, observa: "#escenarioAjustesCard .escenario-cifras" },
   { pantalla: "Ajustes › Escenario de supuestos", nombre: "Escenario Ahorro alto", clave: "button[data-escenario-elegir]", control: '[data-escenario-elegir="ahorro"]', accion: { tipo: "alternar" }, observa: "#escenarioAjustesCard .escenario-cifras" },
   { pantalla: "Ajustes › Escenario de supuestos", nombre: "Volver a Base", clave: "button[data-escenario-elegir]", control: '[data-escenario-elegir="base"]', accion: { tipo: "alternar" }, observa: "#escenarioAjustesCard .escenario-cifras" },
+  // «Recalcular todo» con los mismos datos no tiene por qué mover cifras: dice que se ha recalculado y a qué hora.
+  { pantalla: "Ajustes › Salud del cálculo", nombre: "Recalcular todo", clave: "button[data-salud-recalcular]", control: "[data-salud-recalcular]", accion: { tipo: "alternar" }, observa: "#saludMotorCard [data-salud-estado-recalculo]", modo: "texto", oExplica: /Recalculado a las/ },
 ];
 
 // Controles que no tienen que mover cifras, con el motivo. Una excepción nueva se razona aquí; «no sé qué hace» no es un motivo.
