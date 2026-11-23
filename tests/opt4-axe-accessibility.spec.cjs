@@ -352,6 +352,40 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// DUO-04 (23/11/2026): la salud del cálculo abierta en Ajustes › Uso de la app y la línea de extractos atrasados de Hoy (desde el 21/12),
+// en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`DUO-04 · contraste de la salud del cálculo y de los extractos atrasados en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 390, height: 844 } });
+    test("#saludMotorCard y [data-hoy-v2-extractos]: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      await page.clock.install({ time: new Date(2026, 11, 22, 10, 0, 0) });
+      await page.goto("/index.html#home");
+      // Los datos de ejemplo no traen movimientos: uno INVENTADO de hace 20 días en la cuenta con extracto deja el extracto atrasado.
+      await page.waitForFunction(() => typeof render === "function" && globalThis.FinanceSaludMotor, null, { timeout: 20000 });
+      await page.evaluate(() => {
+        baseData.transactions = mergeTransactions(baseData.transactions || [], [{ date: "2026-12-02", valueDate: "2026-12-02", month: "2026-12", movement: "SUPER FICTICIO", details: "", amount: -30, balance: null, account: "CaixaBank", source: "extracto bancario" }]);
+        refreshMovementRollups();
+        render();
+      });
+      const linea = page.locator("#hoyV2 [data-hoy-v2-extractos]");
+      await expect(linea).toBeVisible({ timeout: 20000 });
+      let results = await new AxeBuilder({ page }).include("#hoyV2 [data-hoy-v2-extractos]").analyze();
+      let nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+      await page.evaluate(() => { location.hash = "#ajustes"; });
+      const tab = page.locator("#ajustesArea-uso");
+      if (await tab.isVisible()) await tab.click();
+      const card = page.locator("#saludMotorCard");
+      await card.locator("summary").click({ timeout: 20000 });
+      await expect(card.locator("[data-salud-recalcular]")).toBeVisible();
+      await page.mouse.move(0, 0);
+      results = await new AxeBuilder({ page }).include("#saludMotorCard").analyze();
+      nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // UND-08 (22/11/2026; la línea de Hoy desde el 14/12): «¿Me lo puedo permitir?» con una respuesta, en claro y en oscuro.
 for (const scheme of ["light", "dark"]) {
   test.describe(`UND-08 · contraste de «¿Me lo puedo permitir?» en modo ${scheme}`, () => {

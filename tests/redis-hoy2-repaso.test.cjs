@@ -75,7 +75,7 @@ test("sin el script del repaso, no hay entrada", () => {
 
 test("está en Hoy: debajo de las decisiones, abre el repaso desde la propia línea y al cerrar Hoy se repinta", () => {
   // SVD-4 (17/11/2026): entre los avisos de previsión y las decisiones van las propuestas de deuda que esperan respuesta.
-  assert.match(hoy, /\$\{hoyV2Decisions\(model\.todayRead, \[\.\.\.hoyV2AvisosPrevision\(hoy\), \.\.\.\(typeof svdPropuestasHoy === "function" \? svdPropuestasHoy\(hoy\) : \[\]\), \.\.\.\(model\.decisions \|\| \[\]\)\]\)\}\n\s+\$\{hoyV2Repaso\(\)\}\n\s+\$\{hoyV2Esperados\(\)\}/);
+  assert.match(hoy, /\$\{hoyV2Decisions\(model\.todayRead, \[\.\.\.hoyV2AvisosPrevision\(hoy\), \.\.\.\(typeof svdPropuestasHoy === "function" \? svdPropuestasHoy\(hoy\) : \[\]\), \.\.\.\(model\.decisions \|\| \[\]\)\]\)\}\n\s+\$\{hoyV2Repaso\(\)\}\n\s+\$\{hoyV2ExtractosAtrasados\(hoy\)\}\n\s+\$\{hoyV2Esperados\(\)\}/);
   assert.match(hoy, /closest\("\[data-hoy-v2-repaso\]"\);\n\s+if \(repaso\) \{\n\s+globalThis\.repasoV2Open\?\.\(repaso\);/);
   assert.match(repaso, /mismaSemana\(a, b\) \{\n\s+return repasoV2Lunes\(a\) === repasoV2Lunes\(b\);/);
   assert.match(repaso, /const desdeHoy = sobreHoy \|\| Boolean\(opener\?\.hasAttribute\?\.\("data-hoy-v2-repaso"\)\);/);

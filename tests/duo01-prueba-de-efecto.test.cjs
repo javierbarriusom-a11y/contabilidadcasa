@@ -52,7 +52,7 @@ test("DUO-01 · cuando los dos órdenes dan lo mismo, el plan lo dice (cambiar o
   ];
   const r = Plan.plan(Path, coinciden, { startMonthKey: "2026-12", monthly: 200 });
   assert.equal(ui.planOptimoOrdenesCoinciden(r), true);
-  assert.match(ui.planOptimoRazonHtml(r), /los dos órdenes coinciden:<\/strong> la más cara es también la más pequeña/);
+  assert.match(ui.planOptimoRazonHtml(r), /<strong>Orden recomendado: avalancha\.<\/strong> Con vuestras deudas, los dos órdenes coinciden: la más cara es también la más pequeña/);
   const una = Plan.plan(Path, coinciden.slice(0, 1), { startMonthKey: "2026-12", monthly: 200 });
   assert.match(ui.planOptimoRazonHtml(una), /solo hay una deuda en la cuenta/);
   // La más cara es la grande: los órdenes difieren y se explica la avalancha como siempre.

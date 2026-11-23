@@ -362,7 +362,9 @@ function planOptimoRazonHtml(r) {
   if (planOptimoOrdenesCoinciden(r)) {
     const una = (r.recommended.result?.included || []).length <= 1;
     const porque = una ? "solo hay una deuda en la cuenta" : "la más cara es también la más pequeña";
-    return `<p class="cam-frase" data-plan-optimo-coinciden><strong>Con vuestras deudas, los dos órdenes coinciden:</strong> ${porque}, así que avalancha y bola de nieve dan las mismas fechas y los mismos intereses. Cambiar el orden o el margen no mueve ninguna cifra.</p>`;
+    const quien = r.chosen ? "Orden elegido" : "Orden recomendado";
+    const cual = r.recommended.strategy === "bola-nieve" ? "bola de nieve" : "avalancha";
+    return `<p class="cam-frase" data-plan-optimo-coinciden><strong>${quien}: ${cual}.</strong> Con vuestras deudas, los dos órdenes coinciden: ${porque}, así que avalancha y bola de nieve dan las mismas fechas y los mismos intereses. Cambiar el orden o el margen no mueve ninguna cifra.</p>`;
   }
   const rec = r.recommended;
   const first = rec.summary.firstPayoff;

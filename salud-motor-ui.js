@@ -10,7 +10,8 @@ let saludMotorEnganchado = false;
 let saludMotorRecalculadoEn = null;
 
 function saludMotorHoy() {
-  return typeof isoLocalDate === "function" ? isoLocalDate(new Date()) : new Date().toISOString().slice(0, 10);
+  // El día del hogar (hora local), nunca el de toISOString (UTC).
+  return isoLocalDate(new Date());
 }
 
 function saludMotorCuando(iso) {
