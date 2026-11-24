@@ -1,0 +1,107 @@
+/* DUO-05 · D-N37: la barra inferior del móvil (barra-inferior.js). Solo entre 300 y 860 px; tokens --e19-* (claro y oscuro salen de ellos). */
+.barra-inferior {
+  display: none;
+}
+
+@media (min-width: 300px) and (max-width: 860px) {
+  body.con-barra-inferior {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+
+  html:has(body.con-barra-inferior) {
+    scroll-padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+
+  body.con-barra-inferior .barra-inferior {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 70;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    box-sizing: border-box;
+    min-height: calc(56px + env(safe-area-inset-bottom, 0px));
+    padding: 0 0 env(safe-area-inset-bottom, 0px);
+    background: var(--e19-surface);
+    border-top: 1px solid var(--e19-border);
+    font-family: var(--e19-font-sans);
+  }
+
+  body.con-barra-inferior.barra-inf-teclado .barra-inferior {
+    display: none;
+  }
+
+  .barra-inf-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    min-height: 56px;
+    padding: 6px 2px;
+    border: 0;
+    background: none;
+    color: var(--e19-muted);
+    font: inherit;
+    font-size: 11px;
+    line-height: 1.2;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .barra-inf-texto {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* El destino activo: forma (raya de 3 px arriba) además de color. */
+  .barra-inf-item[aria-current="page"] {
+    color: var(--e19-ink);
+    font-weight: 600;
+  }
+
+  .barra-inf-item[aria-current="page"]::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 20%;
+    right: 20%;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: var(--e19-accent-strong);
+  }
+
+  .barra-inf-item:focus-visible {
+    outline: 3px solid var(--e19-ink);
+    outline-offset: -3px;
+  }
+
+  /* Los avisos de abajo (deshacer, versión nueva) suben por encima de la barra. */
+  body.con-barra-inferior .undo-toast,
+  body.con-barra-inferior .update-toast {
+    bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Muy estrecho («Movimientos» no cabe entero): la forma corta. */
+@media (min-width: 300px) and (max-width: 359px) {
+  .barra-inf-texto[data-corto] {
+    font-size: 0;
+  }
+
+  .barra-inf-texto[data-corto]::after {
+    content: attr(data-corto);
+    font-size: 11px;
+  }
+}
+
+@media print {
+  .barra-inferior {
+    display: none !important;
+  }
+}
