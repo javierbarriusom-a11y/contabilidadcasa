@@ -193,8 +193,9 @@
 }
 
 .plan-optimo-comision {
-  display: flex;
-  flex-wrap: wrap;
+  /* Rejilla que se adapta: los campos de mes tienen un ancho mínimo propio y en flex se salían a 320 px. */
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
   gap: 8px 12px;
   margin: 0;
   padding: 8px;
@@ -210,13 +211,14 @@
 }
 
 .plan-optimo-comision .month-picker {
-  flex: 1 1 120px;
   min-width: 0;
 }
 
 .plan-optimo-comision input {
   min-height: 44px;
-  max-width: 100%;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 /* D-N38 · la hoja de la revisión trimestral (revision-trimestral-ui.js), en Ajustes › Uso de la app. */
@@ -269,4 +271,22 @@
   background: var(--e19-surface-sunken);
   border-radius: 8px;
   padding: 8px;
+}
+
+/* DUO-D6 · indicio de usura en una tarjeta revolving (kit-entidad-ui.js), dentro del kit para hablar con la entidad. */
+.kit-usura .month-picker input {
+  min-height: 44px;
+  max-width: 100%;
+}
+
+.kit-usura-indicio {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--e19-warning-soft-border);
+  border-radius: 8px;
+  background: var(--e19-warning-soft);
+  color: var(--e19-ink);
+  font-family: var(--e19-font-sans);
+  font-size: var(--e19-text-sm);
+  overflow-wrap: anywhere;
 }

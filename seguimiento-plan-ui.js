@@ -212,7 +212,8 @@ function segOnClick(event) {
 
 // En Hoy, en «Decidir esta semana»: el mes sin encontrar, con su enlace a Deuda › Plan. Puerta de fecha (D-N30, un cambio de Hoy por
 // semana: el 30/11 DEC-23, el 7/12 UND-06, el 14/12 UND-08, el 21/12 los extractos atrasados de DUO-04): desde el 28/12.
-const SEG_HOY_DESDE = "2026-12-28";
+// D-N39 (24/11): adelantada; antes, 28/12 (antes, un cambio de Hoy por semana, D-N30).
+const SEG_HOY_DESDE = "2026-11-24";
 
 function seguimientoPlanHoy(hoy = isoLocalDate(new Date())) {
   try {

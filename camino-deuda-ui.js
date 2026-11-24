@@ -320,6 +320,12 @@ function planOptimoComisiones(contracts) {
   return (contracts || []).map((c) => ({ id: String(c?.id || ""), ...(g[String(c?.id || "")] || {}) })).filter((x) => x.id && Number(x.pct) > 0);
 }
 
+// DUO-D8: la promoción al 0 % de cada contrato (hasta qué mes), con la comisión, en el mismo grupo.
+function planOptimoPromociones(contracts) {
+  const g = planOptimoComisionesGuardadas();
+  return (contracts || []).map((c) => ({ id: String(c?.id || ""), untilMonth: g[String(c?.id || "")]?.promoHasta || null, aprPct: 0 })).filter((x) => x.id && /^\d{4}-\d{2}$/.test(String(x.untilMonth || "")));
+}
+
 function planOptimoComisionesListaHtml(contracts) {
   const g = planOptimoComisionesGuardadas();
   const filas = (contracts || []).filter((c) => Number(c?.currentPrincipal) > 0 && String(c?.agreement?.status || "").toLowerCase() !== "accepted").map((c) => {
@@ -331,6 +337,7 @@ function planOptimoComisionesListaHtml(contracts) {
       <label class="month-picker"><span>Comisión de ahora (%)</span><input type="number" min="0" max="10" step="0.05" inputmode="decimal" ${campo("pct", 'placeholder="sin comisión"')} /></label>
       <label class="month-picker"><span>Baja a (%)</span><input type="number" min="0" max="10" step="0.05" inputmode="decimal" ${campo("nextPct", 'placeholder="—"')} /></label>
       <label class="month-picker"><span>Desde el mes</span><input type="month" ${campo("untilMonth", "")} /></label>
+      <label class="month-picker"><span>Al 0 % hasta (mes, si tiene promoción)</span><input type="month" ${campo("promoHasta", "")} /></label>
     </fieldset>`;
   });
   return filas.length ? `<div class="plan-optimo-comisiones-filas">${filas.join("")}</div>` : `<p class="e19-kpi-note">No hay deudas con capital pendiente.</p>`;
@@ -351,7 +358,7 @@ function planOptimoOnComision(target) {
   const note = qs("planOptimoNota");
   const raw = String(target.value || "").replace(",", ".").trim();
   let valor = raw;
-  if (campo !== "untilMonth") {
+  if (campo !== "untilMonth" && campo !== "promoHasta") {
     valor = raw === "" ? null : Number(raw);
     if (valor !== null && (!Number.isFinite(valor) || valor < 0 || valor > 10)) {
       target.setAttribute("aria-invalid", "true");
@@ -360,7 +367,7 @@ function planOptimoOnComision(target) {
     }
   } else if (raw && !/^\d{4}-\d{2}$/.test(raw)) {
     target.setAttribute("aria-invalid", "true");
-    if (note) note.textContent = "Elige el mes desde el que baja la comisión.";
+    if (note) note.textContent = campo === "promoHasta" ? "Elige el mes en que acaba la promoción." : "Elige el mes desde el que baja la comisión.";
     return;
   }
   target.removeAttribute("aria-invalid");
@@ -631,6 +638,13 @@ function planOptimoAvisosHtml(r, refs) {
     if (w.id === "por-encima-capacidad") notes.push(`<strong>Por encima de vuestra capacidad libre</strong> (${escapeHtml(money(w.capacity, true))} al mes): con más, la previsión puede bajar del suelo algún mes. Miradlo en Plan › Previsión.`);
     if (w.id === "por-encima-disponible") notes.push(`<strong>El pago inicial pasa de lo que sobra sobre el suelo del colchón</strong> en los próximos 12 meses (${escapeHtml(money(w.available, true))}): os quedaríais por debajo del colchón.`);
     if (w.id === "pago-inicial-sobra") notes.push(`Del pago inicial sobran ${escapeHtml(money(w.amount, true))}: con lo demás ya se saldan las deudas que entran en la cuenta.`);
+    if (w.id === "promocion") {
+      if (w.saldada) notes.push(`<strong>${escapeHtml(w.label)}</strong> se salda antes de que acabe su promoción al 0 % (${escapeHtml(caminoMonthText(w.hasta))}).`);
+      else if (w.saldoAlAcabar !== null) {
+        const mas = w.meses > 0 ? Math.ceil(w.saldoAlAcabar / w.meses / 10) * 10 : null;
+        notes.push(`<strong>Al acabar la promoción de ${escapeHtml(w.label)} (${escapeHtml(caminoMonthText(w.hasta))}) quedarán ${escapeHtml(money(w.saldoAlAcabar, true))}</strong> al ${escapeHtml(planOptimoPct(w.tae))}.${mas ? ` Con unos ${escapeHtml(money(mas, true))} más al mes hasta entonces, la dejaríais a cero antes.` : ""}`);
+      }
+    }
     if (w.id === "comision-quita") notes.push(`<strong>La comisión de ${escapeHtml(w.label)} no cuenta:</strong> el plan la cancela con la quita, y una quita no es amortizar.`);
     if (w.id === "comision-baja") notes.push(`<strong>Esperad a ${escapeHtml(caminoMonthText(w.desde))} para amortizar ${escapeHtml(w.label)}:</strong> su comisión pasa del ${escapeHtml(planOptimoPct(w.pct))} al ${escapeHtml(planOptimoPct(w.nextPct))}. Lo previsto de más antes de esa fecha (${escapeHtml(money(w.antes, true))}) pagaría ${escapeHtml(money(w.ahorro, true))} más de comisión. El plan no lo retrasa solo: decidid si esperar.`);
     if (w.id === "fuera") {
@@ -654,6 +668,7 @@ function planOptimoHtml(engine, contracts, todayKey, refs, Plan) {
   const comunes = {
     startMonthKey: todayKey, lump: planOptimoPago, order: caminoOrder(contracts), available: refs.available,
     strategy: planOptimoOrdenGuardado(), tolerance: planOptimoMargenGuardado(), settlements: ofertas, commissions: planOptimoComisiones(contracts),
+    promotions: planOptimoPromociones(contracts),
   };
   const r = modo === "prevision"
     ? Plan.plan(engine, contracts, { ...comunes, monthly: liquidez.after, monthlyByMonth: liquidez.byMonth })
@@ -686,7 +701,10 @@ function planOptimoHtml(engine, contracts, todayKey, refs, Plan) {
   const opcionesVivas = { ...comunes, strategy: r.recommended.strategy, monthly: liquidezBase.monthly, ...(liquidezBase.byMonth ? { monthlyByMonth: liquidezBase.byMonth } : {}) };
   const euribor = planOptimoEuriborHtml(Plan, engine, contracts, opcionesVivas, r);
   const cuotaPlazo = planOptimoCuotaPlazoHtml(r, contracts, liquidez, modo);
-  return `${planOptimoPreguntaHtml(r)}${heroes}${euribor}${planOptimoRazonHtml(r)}${modo === "prevision" ? planOptimoLiquidezHtml(r, liquidez, fijo) : sinPrevision}${planOptimoTramosHtml(r.recommended.periods)}${cada50}${pago}${cuotaPlazo}${planOptimoQuitasHtml(r, ofertas, contracts)}${planOptimoAvisosHtml(r, refs)}`;
+  // DUO-D4 (duodécima auditoría): la cascada del siguiente euro ya existe, la escalera de WP-42 (Deuda › Ofertas › Comparar). No se duplica:
+  // el plan lleva a ella para la pregunta de antes, «¿todo a deuda?».
+  const escalera = `<p class="e19-kpi-note" data-plan-optimo-escalera>¿Todo lo que sobra a deuda? <a href="#deuda-comparar">La escalera del próximo euro</a> reparte un importe entre colchón, deuda cara, pensión e inversión, con el coste de cada deuda tras impuestos. ¿Juntarlas en un préstamo? <a href="#deuda-prestamo">Préstamo</a> lo compara con seguir como hasta ahora, comisiones incluidas (DUO-D7: ya existía, no se duplica).</p>`;
+  return `${planOptimoPreguntaHtml(r)}${heroes}${euribor}${planOptimoRazonHtml(r)}${modo === "prevision" ? planOptimoLiquidezHtml(r, liquidez, fijo) : sinPrevision}${planOptimoTramosHtml(r.recommended.periods)}${cada50}${pago}${cuotaPlazo}${escalera}${planOptimoQuitasHtml(r, ofertas, contracts)}${planOptimoAvisosHtml(r, refs)}`;
 }
 
 // La llama renderDeudaRuta (views/deuda.js) junto a la del camino, con el motor del camino y el del plan.

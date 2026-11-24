@@ -73,7 +73,7 @@ function renderRevisionTrimestral() {
   try {
     const rev = R.revisar(revisionEntrada(isoLocalDate(new Date())));
     const resumen = card.querySelector("[data-revision-resumen-plegado]");
-    if (resumen) resumen.textContent = `Revisión trimestral (semana del 14/12) · ${rev.decididas} de ${rev.filas.length} decididas`;
+    if (resumen) resumen.textContent = `Revisión trimestral · ${rev.decididas} de ${rev.filas.length} decididas`;
     const cuerpo = card.querySelector("[data-revision-cuerpo]");
     const html = revisionHtml(rev);
     if (cuerpo && cuerpo.__html !== html) {

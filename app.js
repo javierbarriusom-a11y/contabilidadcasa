@@ -25874,7 +25874,9 @@ const UX_ALERT_DESTINOS = {
   overdueDecisionReviewsCount: { target: "ajustes", cta: "Revisar las decisiones" },
 };
 
-function homeDecisionCandidates({ actionCenter, offer, debtPriorities, loadedDecisions, debtRatioStatus }) {
+const DUO_D10_RATIO_ALTO = 0.4;
+
+function homeDecisionCandidates({ actionCenter, offer, debtPriorities, loadedDecisions, debtRatioStatus, debtRatio = null }) {
   const dated = [];
   const undated = [];
   const importCandidate = homeImportSessionCandidate();
@@ -25895,6 +25897,18 @@ function homeDecisionCandidates({ actionCenter, offer, debtPriorities, loadedDec
       const destino = UX_ALERT_DESTINOS[alert.metric] || { target: "alerts-center", cta: "Ver la regla del aviso" };
       undated.push({ title: alert.name, text: alert.action, status: alert.overdue ? "danger" : "warn", ...destino, expiresAt: "" });
     });
+  // DUO-D10 · D-N36 (duodécima auditoría): con las cuotas por encima del 40 % de los ingresos previstos (muy alto, la referencia que usan los
+  // bancos), una línea sin dramatismo: que existe ayuda profesional y la Ley de Segunda Oportunidad. El ratio y su aviso (H-9) ya existían.
+  if (Number.isFinite(debtRatio) && debtRatio >= DUO_D10_RATIO_ALTO) {
+    undated.push({
+      title: `Las cuotas se llevan el ${Math.round(debtRatio * 100)} % de los ingresos previstos`,
+      text: "Por encima del 40 % se considera muy alto. Si se mantiene, no hace falta resolverlo solos: una asociación de consumidores o un servicio de asesoramiento de deuda pueden ayudar, y para deudas que no se pueden pagar existe la Ley de Segunda Oportunidad.",
+      status: "warn",
+      target: "deuda-ruta",
+      cta: "Ver el plan de deuda",
+      expiresAt: "",
+    });
+  }
   if (debtPriorities[0]) {
     undated.push({
       title: "Siguiente deuda a mirar",
@@ -26729,6 +26743,7 @@ function renderHomeDashboard() {
     debtPriorities,
     loadedDecisions,
     debtRatioStatus,
+    debtRatio: Number(savings.debtToIncomeRatio),
   });
   const actionTarget = qs("homeActions");
   actionTarget.classList.add("unified-action-list");

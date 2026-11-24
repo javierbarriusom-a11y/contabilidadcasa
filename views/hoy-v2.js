@@ -444,7 +444,8 @@ function hoyV2Repaso(hoy = isoLocalDate(new Date())) {
 // DUO-04 · UND-22 (duodécima auditoría): una cuenta con extracto que lleva más de 10 días sin movimientos da cifras viejas; hasta ahora solo
 // lo decía el Repaso. Una línea en Hoy que lleva a Importar, solo con algún extracto atrasado. Puerta de fecha (D-N30, un cambio de Hoy por
 // semana): el 30/11 entra DEC-23, el 7/12 UND-06 y el 14/12 UND-08; esta, el 21/12.
-const HOY_V2_EXTRACTOS_DESDE = "2026-12-21";
+// D-N39 (24/11): adelantada; antes, 21/12 (antes, un cambio de Hoy por semana, D-N30).
+const HOY_V2_EXTRACTOS_DESDE = "2026-11-24";
 
 function hoyV2ExtractosAtrasados(hoy = isoLocalDate(new Date())) {
   const Salud = globalThis.FinanceSaludMotor;
@@ -468,7 +469,8 @@ function hoyV2ExtractosAtrasados(hoy = isoLocalDate(new Date())) {
 // en el hueco de su entrada, una línea de conclusión hasta el domingo: «Repaso hecho el martes» y, debajo, lo que se sabe de él
 // (grupos clasificados en ese repaso, % del gasto con partida de los últimos 90 días, la misma cifra que la bandeja, y la racha).
 // Tinte claro y sin botón (ESTADO.md §3, decisión 1): no pide nada. Sin repaso esta semana, la entrada de siempre. Puerta de fecha.
-const HOY_V2_HECHO_DESDE = "2026-11-30";
+// D-N39 (24/11): adelantada; antes, 30/11 (antes, un cambio de Hoy por semana, D-N30).
+const HOY_V2_HECHO_DESDE = "2026-11-24";
 const HOY_V2_DIAS_SEMANA = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 
 function hoyV2RepasoHecho(resumen, hoy = isoLocalDate(new Date())) {
@@ -644,7 +646,8 @@ function hoyV2GuardarArea(area) {
 // Puerta de fecha: desde el 7/12, después de la revisión de las áreas a las dos semanas (UND-23, desde el 22/11). Con indicadores
 // antes, lo medido diría qué áreas abre el indicador y no cuáles busca el hogar; y la semana del 30/11 ya tiene su cambio de Hoy
 // (DEC-23, ESTADO §8.7: uno por semana).
-const HOY_V2_INDICADORES_DESDE = "2026-12-07";
+// D-N39 (24/11): adelantada; antes, 7/12 (antes, un cambio de Hoy por semana, D-N30).
+const HOY_V2_INDICADORES_DESDE = "2026-11-24";
 let hoyV2Indicadores = {};
 
 function hoyV2IndicadoresDe(model, hoy) {
@@ -684,7 +687,8 @@ function hoyV2InsigniaHtml(ind) {
 // UND-08 (undécima auditoría; DEC-31, 22/11/2026): «¿Me lo puedo permitir?» (me-lo-puedo-permitir.js), una línea bajo la cifra de
 // Hoy que abre la hoja. Puerta de fecha: desde el 14/12, porque el 7/12 entra el indicador por área (UND-06) y Hoy cambia una vez por
 // semana (ESTADO §8.7).
-const HOY_V2_PERMITIR_DESDE = "2026-12-14";
+// D-N39 (24/11): adelantada; antes, 14/12 (antes, un cambio de Hoy por semana, D-N30).
+const HOY_V2_PERMITIR_DESDE = "2026-11-24";
 
 function hoyV2PermitirHtml(hoy) {
   if (String(hoy) < HOY_V2_PERMITIR_DESDE || typeof permitirAbrir !== "function") return "";

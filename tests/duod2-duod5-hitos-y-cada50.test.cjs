@@ -58,10 +58,10 @@ function cargarUi(extra = {}) {
   return { ui: context, almacen };
 }
 
-test("DUO-D2 · Hoy: la tarjeta del hito, desde el 4/1/2027 (D-N30) y solo el día en que se ve la deuda saldada", () => {
+test("DUO-D2 · Hoy: la tarjeta del hito, desde el 24/11 (D-N39; antes, el 4/1/2027) y solo el día en que se ve la deuda saldada", () => {
   const guardado = { "fc:deuda-hitos": JSON.stringify({ iniciado: "2026-12-01", saldadas: {} }) };
-  const antes = cargarUi({ guardado, hoy: "2027-01-03" });
-  assert.equal(vm.runInContext('hitoDeudaHoyHtml("2027-01-03")', antes.ui), "", "antes del 4/1, nada (el 28/12 entra la pregunta del seguimiento)");
+  const antes = cargarUi({ guardado, hoy: "2026-11-23" });
+  assert.equal(vm.runInContext('hitoDeudaHoyHtml("2026-11-23")', antes.ui), "", "antes del 24/11, nada (D-N39 adelantó la puerta del 4/1/2027)");
   const { ui } = cargarUi({ guardado, hoy: "2027-01-05" });
   const html = vm.runInContext('hitoDeudaHoyHtml("2027-01-05")', ui);
   assert.match(html, /<strong>Habéis saldado Banco FICTICIO · Tarjeta<\/strong><br>90\.00 € al mes que ya pueden ir a la siguiente deuda\./);
@@ -122,7 +122,7 @@ test("DUO-D5 · cada 50 € más: meses antes e intereses de menos frente al pla
 test("DUO-D2 · cableado: contenedor, scripts, service worker, build, copia, Deuda › Plan y Hoy", () => {
   const html = read("index.html");
   assert.ok(html.indexOf('id="planCierres"') > html.indexOf('id="planSeguimiento"'));
-  assert.match(html, /<script defer src="hitos-deuda\.js\?v=20261124duod2"><\/script>\s*<script defer src="hitos-deuda-ui\.js\?v=20261124duod2"><\/script>/);
+  assert.match(html, /<script defer src="hitos-deuda\.js\?v=20261124duod2"><\/script>\s*<script defer src="hitos-deuda-ui\.js\?v=20261124dn39"><\/script>/);
   ["./hitos-deuda.js", "./hitos-deuda-ui.js"].forEach((f) => assert.ok(read("service-worker.js").includes(`"${f}"`), f));
   ["hitos-deuda.js", "hitos-deuda-ui.js"].forEach((f) => assert.ok(read("tools/build-public-site.mjs").includes(`"${f}"`), f));
   assert.match(read("app.js"), /"deuda-hitos", \/\/ DUO-D2/);
