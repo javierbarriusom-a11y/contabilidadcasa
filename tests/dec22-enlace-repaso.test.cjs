@@ -90,7 +90,7 @@ test("versiones y Novedades: el fichero hay que descargarlo otra vez para tener 
     assert.match(html, new RegExp(`<script defer src="${file.replace(/[./]/g, (c) => `\\${c}`)}\\?v=20261120dec22"></script>`), file);
   });
   // app.js pasó a 20261121dn23 con D-N23 (el acuerdo sustituye a la cuota de hoy desde su mes).
-  assert.match(html, /<script defer src="app\.js\?v=(?:20261120dec22|20261121dn23|20261122resize|20261122und11|20261123duo04)"><\/script>/);
+  assert.match(html, /<script defer src="app\.js\?v=(?:20261120dec22|20261121dn23|20261122resize|20261122und11|20261123duo04|20261124duod1)"><\/script>/);
   const novedad = require("../novedades.js").find((entry) => entry.id === "2026-11-20-repaso-desde-calendario");
   assert.ok(novedad, "línea en Novedades");
   assert.match(novedad.texto, /Descargad otra vez los recordatorios/);

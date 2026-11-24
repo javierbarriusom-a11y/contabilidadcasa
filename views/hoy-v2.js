@@ -730,10 +730,11 @@ function hoyV2AreaPanel(area, model, hoy, asOf, coverage) {
       <div class="hoy-v2-main">
         ${hoyV2Hero({ ...model, asOf, hoy, coverage })}
         ${hoyV2PermitirHtml(hoy)}
-        ${hoyV2Decisions(model.todayRead, [...hoyV2AvisosPrevision(hoy), ...(typeof svdPropuestasHoy === "function" ? svdPropuestasHoy(hoy) : []), ...(model.decisions || [])])}
+        ${hoyV2Decisions(model.todayRead, [...hoyV2AvisosPrevision(hoy), ...(typeof svdPropuestasHoy === "function" ? svdPropuestasHoy(hoy) : []), ...(typeof seguimientoPlanHoy === "function" ? seguimientoPlanHoy(hoy) : []), ...(model.decisions || [])])}
         ${hoyV2Repaso()}
         ${hoyV2ExtractosAtrasados(hoy)}
         ${hoyV2Esperados()}
+        ${typeof hitoDeudaHoyHtml === "function" ? hitoDeudaHoyHtml(hoy) : ""}
       </div>
       <div class="hoy-v2-side">
         ${hoyV2Month(hoy, model.plannedSaving, true)}

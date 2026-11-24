@@ -152,6 +152,8 @@ const EFECTOS = [
   { pantalla: "Deuda › Plan", nombre: "Margen en euros", clave: "#planOptimoMargenAbs", control: "#planOptimoMargenAbs", accion: { tipo: "rellenar", valor: 5000 }, observa: PLAN, oExplica: COINCIDEN },
   { pantalla: "Deuda › Plan", nombre: "Camino: extra al mes", clave: "#caminoDeudaExtra", control: "#caminoDeudaExtra", accion: { tipo: "rellenar", valor: 200 }, observa: CAMINO },
   { pantalla: "Deuda › Plan", nombre: "Camino: deslizador del extra", clave: "#caminoDeudaRango", control: "#caminoDeudaRango", accion: { tipo: "rango", valor: 500 }, observa: CAMINO },
+  // DUO-D1: guardar el plan cambia lo que se ve bajo él (aparece el seguimiento, con sus meses).
+  { pantalla: "Deuda › Plan", nombre: "Este es nuestro plan", clave: "button[data-seg-guardar]", control: "[data-seg-guardar]", accion: { tipo: "alternar" }, observa: "#planSeguimiento", modo: "texto" },
   { pantalla: "Deuda › Ofertas › Simulador visual", nombre: "Las cuotas de hoy ya están en el plan", clave: "input[data-sim-v2-cuotas-en-plan]", control: "[data-sim-v2-cuotas-en-plan]", accion: { tipo: "alternar" }, observa: "#deudaSimuladorV2 [data-sim-v2-cifras]" },
   // La estrategia de cada contrato: su efecto es enseñar los campos de esa estrategia (las cifras cambian al rellenarlos; eso lo prueba SVD).
   { pantalla: "Deuda › Ofertas › Simulador visual", nombre: "Estrategia de un contrato", clave: /^radio:\[data-sim-v2-campo\]=/, control: '[data-sim-v2-campo$="_strategy"][value="refi"]', accion: { tipo: "marcar" }, observa: "#deudaSimuladorV2 .sim-v2-cuentas", modo: "texto" },

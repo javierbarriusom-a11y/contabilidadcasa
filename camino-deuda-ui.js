@@ -12,6 +12,7 @@ const CAMINO_REASON_TEXT = {
   "plazo-incoherente": "su cuota por su plazo no llega ni al capital",
 };
 let caminoExtra = 0;
+let planOptimoResultadoUltimo = null;
 let caminoLast = null;
 
 // «2028-10» → «octubre de 2028». El rótulo corto del resto de Deuda («oct 28») se lee como el día 28.
@@ -393,6 +394,49 @@ function planOptimoPreguntaHtml(r) {
     </div>`;
 }
 
+// DUO-D5 (duodécima auditoría; estilos en seguimiento-plan.css): el valor de cada 50 € más al mes, frente al plan de ahora, con el mismo motor y el mismo orden. Una tabla y
+// no un gráfico: son cuatro filas con dos medidas de escala distinta (meses e intereses), y un gráfico pediría dos ejes. La frase de abajo dice
+// dónde empieza a rendir poco cada 50 € más (cuando adelanta un mes o menos).
+const PLAN_OPTIMO_PASOS = Object.freeze([50, 100, 150, 200]);
+
+function planOptimoCada50(Plan, engine, contracts, comunes, r, base) {
+  const s = r?.recommended?.summary;
+  if (!r?.ok || !s?.debtFreeMonthKey || s.totalInterest === null) return [];
+  let anterior = { meses: 0, intereses: 0 };
+  return PLAN_OPTIMO_PASOS.map((paso) => {
+    const opciones = { ...comunes, strategy: r.recommended.strategy, monthly: base.monthly + paso, ...(base.byMonth ? { monthlyByMonth: base.byMonth.map((v) => v + paso) } : {}) };
+    const alt = Plan.plan(engine, contracts, opciones);
+    const a = alt?.ok ? alt.recommended.summary : null;
+    if (!a?.debtFreeMonthKey || a.totalInterest === null) return null;
+    const fila = {
+      paso,
+      meses: Math.max(0, s.monthsToDebtFree - a.monthsToDebtFree),
+      intereses: Math.max(0, Math.round((s.totalInterest - a.totalInterest) * 100) / 100),
+      fecha: a.debtFreeMonthKey,
+    };
+    fila.mesesDelPaso = fila.meses - anterior.meses;
+    anterior = fila;
+    return fila;
+  }).filter(Boolean);
+}
+
+function planOptimoCada50Html(filas) {
+  if (!filas.length || !filas.some((f) => f.meses > 0 || f.intereses > 0)) return "";
+  const cuerpo = filas.map((f) => `<tr><th scope="row">+${f.paso} €</th><td>${f.meses > 0 ? escapeHtml(caminoMonths(f.meses)) : "el mismo mes"}</td><td>${escapeHtml(money(f.intereses, true))}</td><td>${escapeHtml(caminoMonthText(f.fecha))}</td></tr>`).join("");
+  const poco = filas.find((f, i) => i > 0 && f.mesesDelPaso <= 1);
+  const frase = poco
+    ? `Desde +${poco.paso} €, cada 50 € más adelanta ${poco.mesesDelPaso === 1 ? "solo un mes" : "menos de un mes"}: el salto grande está en los primeros.`
+    : "Cada 50 € más sigue adelantando más de un mes.";
+  return `<div class="plan-optimo-cada50">
+      <table class="plan-optimo-cada50-tabla">
+        <caption>Si ponéis más al mes (frente al plan de ahora, mismo orden)</caption>
+        <thead><tr><th scope="col">Al mes</th><th scope="col">Acabáis antes</th><th scope="col">Intereses de menos</th><th scope="col">Libres en</th></tr></thead>
+        <tbody>${cuerpo}</tbody>
+      </table>
+      <p class="e19-kpi-note" data-plan-optimo-cada50-frase>${escapeHtml(frase)}</p>
+    </div>`;
+}
+
 function planOptimoTramosHtml(periods) {
   if (!periods.length) return "";
   const items = periods.map((p) => {
@@ -492,6 +536,7 @@ function planOptimoHtml(engine, contracts, todayKey, refs, Plan) {
   const r = modo === "prevision"
     ? Plan.plan(engine, contracts, { ...comunes, monthly: liquidez.after, monthlyByMonth: liquidez.byMonth })
     : Plan.plan(engine, contracts, { ...comunes, monthly: fijoMensual, capacity: refs.capacity });
+  planOptimoResultadoUltimo = r; // DUO-D1: el seguimiento del plan guarda y compara este resultado
   const fijo = modo === "prevision" && r.ok ? Plan.plan(engine, contracts, { ...comunes, monthly: liquidez.fixedSafe, strategy: r.recommended.strategy }) : null;
   if (!r.ok) return `<p class="e19-kpi-note">${escapeHtml(r.error)}</p>`;
   if (r.nothing) return `<p class="e19-kpi-note">No hay deudas con capital pendiente: no hay plan que hacer.</p>`;
@@ -511,7 +556,10 @@ function planOptimoHtml(engine, contracts, todayKey, refs, Plan) {
     ? `<p class="e19-kpi-note">El pago inicial va a ${r.recommended.lumpApplied.map((x) => `${escapeHtml(x.label)} (${escapeHtml(money(x.amount, true))}${x.settles ? ", la salda" : ""})`).join(" y ")}.</p>`
     : "";
   const sinPrevision = modo === "fijo" && planOptimoModo !== "fijo" ? `<p class="e19-kpi-note">Sin previsión mensual todavía, el plan pone un importe fijo (de entrada, la capacidad libre).</p>` : "";
-  return `${planOptimoPreguntaHtml(r)}${heroes}${planOptimoRazonHtml(r)}${modo === "prevision" ? planOptimoLiquidezHtml(r, liquidez, fijo) : sinPrevision}${planOptimoTramosHtml(r.recommended.periods)}${pago}${planOptimoQuitasHtml(r, ofertas, contracts)}${planOptimoAvisosHtml(r, refs)}`;
+  // DUO-D5: con la misma liquidez de base (lo de cada mes de la previsión o el importe fijo), cada 50 € más.
+  const liquidezBase = modo === "prevision" ? { monthly: liquidez.after, byMonth: liquidez.byMonth } : { monthly: fijoMensual, byMonth: null };
+  const cada50 = planOptimoCada50Html(planOptimoCada50(Plan, engine, contracts, comunes, r, liquidezBase));
+  return `${planOptimoPreguntaHtml(r)}${heroes}${planOptimoRazonHtml(r)}${modo === "prevision" ? planOptimoLiquidezHtml(r, liquidez, fijo) : sinPrevision}${planOptimoTramosHtml(r.recommended.periods)}${cada50}${pago}${planOptimoQuitasHtml(r, ofertas, contracts)}${planOptimoAvisosHtml(r, refs)}`;
 }
 
 // La llama renderDeudaRuta (views/deuda.js) junto a la del camino, con el motor del camino y el del plan.
@@ -531,6 +579,8 @@ function renderPlanOptimo(engine, contracts, Plan) {
       box.innerHTML = html;
       box.__planHtml = html;
     }
+    globalThis.renderSeguimientoPlan?.(planOptimoResultadoUltimo, contracts || []); // DUO-D1 (seguimiento-plan-ui.js)
+    globalThis.renderHitosDeuda?.(); // DUO-D2 (hitos-deuda-ui.js)
   } catch (error) {
     console.error(`renderPlanOptimo: ${error.message}`);
   }
