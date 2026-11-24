@@ -85,9 +85,9 @@ function cargarHoy(hoyTx) {
   return context;
 }
 
-test("UND-22 · la línea de Hoy: con puerta de fecha el 21/12 (D-N30) y solo con algún extracto atrasado; lleva a Importar", () => {
+test("UND-22 · la línea de Hoy: con puerta de fecha el 24/11 (D-N39; antes, el 21/12) y solo con algún extracto atrasado; lleva a Importar", () => {
   const atrasado = cargarHoy([{ date: "2026-12-01", account: "CaixaBank" }]);
-  assert.equal(vm.runInContext('hoyV2ExtractosAtrasados("2026-12-20")', atrasado), "", "antes del 21/12, nada (el 14/12 entra UND-08)");
+  assert.equal(vm.runInContext('hoyV2ExtractosAtrasados("2026-11-23")', atrasado), "", "antes del 24/11, nada (D-N39 adelantó la puerta del 21/12)");
   const html = vm.runInContext('hoyV2ExtractosAtrasados("2026-12-21")', atrasado);
   assert.match(html, /href="#datos-importar"/);
   assert.match(html, /El extracto de Cuenta FICTICIA lleva 20 días sin importar/);

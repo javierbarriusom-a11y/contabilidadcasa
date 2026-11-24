@@ -686,7 +686,10 @@ function planOptimoHtml(engine, contracts, todayKey, refs, Plan) {
   const opcionesVivas = { ...comunes, strategy: r.recommended.strategy, monthly: liquidezBase.monthly, ...(liquidezBase.byMonth ? { monthlyByMonth: liquidezBase.byMonth } : {}) };
   const euribor = planOptimoEuriborHtml(Plan, engine, contracts, opcionesVivas, r);
   const cuotaPlazo = planOptimoCuotaPlazoHtml(r, contracts, liquidez, modo);
-  return `${planOptimoPreguntaHtml(r)}${heroes}${euribor}${planOptimoRazonHtml(r)}${modo === "prevision" ? planOptimoLiquidezHtml(r, liquidez, fijo) : sinPrevision}${planOptimoTramosHtml(r.recommended.periods)}${cada50}${pago}${cuotaPlazo}${planOptimoQuitasHtml(r, ofertas, contracts)}${planOptimoAvisosHtml(r, refs)}`;
+  // DUO-D4 (duodécima auditoría): la cascada del siguiente euro ya existe, la escalera de WP-42 (Deuda › Ofertas › Comparar). No se duplica:
+  // el plan lleva a ella para la pregunta de antes, «¿todo a deuda?».
+  const escalera = `<p class="e19-kpi-note" data-plan-optimo-escalera>¿Todo lo que sobra a deuda? <a href="#deuda-comparar">La escalera del próximo euro</a> reparte un importe entre colchón, deuda cara, pensión e inversión, con el coste de cada deuda tras impuestos.</p>`;
+  return `${planOptimoPreguntaHtml(r)}${heroes}${euribor}${planOptimoRazonHtml(r)}${modo === "prevision" ? planOptimoLiquidezHtml(r, liquidez, fijo) : sinPrevision}${planOptimoTramosHtml(r.recommended.periods)}${cada50}${pago}${cuotaPlazo}${escalera}${planOptimoQuitasHtml(r, ofertas, contracts)}${planOptimoAvisosHtml(r, refs)}`;
 }
 
 // La llama renderDeudaRuta (views/deuda.js) junto a la del camino, con el motor del camino y el del plan.

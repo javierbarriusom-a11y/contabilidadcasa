@@ -57,7 +57,7 @@ test("UND-08 · si sin el gasto ya se baja del suelo, lo dice; sin datos, sin im
 
 test("UND-08 · en Hoy desde el 14/12 (un cambio de Hoy por semana), con su hoja, su medidor y sin guardar nada", () => {
   const hoy = read("views/hoy-v2.js");
-  assert.match(hoy, /const HOY_V2_PERMITIR_DESDE = "2026-12-14";/);
+  assert.match(hoy, /const HOY_V2_PERMITIR_DESDE = "2026-11-24";/);
   assert.match(hoy, /\$\{hoyV2Hero\(\{ \.\.\.model, asOf, hoy, coverage \}\)\}\n {8}\$\{hoyV2PermitirHtml\(hoy\)\}/);
   const html = read("index.html");
   assert.match(html, /<dialog class="action-review-dialog permitir-dialog" id="permitirDialog" aria-labelledby="permitirTitulo">/);

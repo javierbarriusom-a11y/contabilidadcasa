@@ -35,9 +35,9 @@ function cargar({ expense = [], alerts = [], entrada = {} } = {}) {
 
 test("UND-06 · antes del 7/12 no hay indicadores (la revisión de las áreas de UND-23 se mide sin ellos)", () => {
   const f = cargar({ expense: [{ hasActual: true, variance: 50 }] });
-  assert.match(js, /const HOY_V2_INDICADORES_DESDE = "2026-12-07";/);
-  assert.deepEqual(f.hoyV2IndicadoresDe({ decisions: [{}, {}] }, "2026-12-06"), {});
-  assert.ok(f.hoyV2IndicadoresDe({ decisions: [{}, {}] }, "2026-12-07").seguimiento);
+  assert.match(js, /const HOY_V2_INDICADORES_DESDE = "2026-11-24";/);
+  assert.deepEqual(f.hoyV2IndicadoresDe({ decisions: [{}, {}] }, "2026-11-23"), {});
+  assert.ok(f.hoyV2IndicadoresDe({ decisions: [{}, {}] }, "2026-11-24").seguimiento);
 });
 
 test("UND-06 · Mes: las partidas de gasto por encima de lo previsto, en rojo; lo que sobra no cuenta", () => {
@@ -72,6 +72,6 @@ test("UND-06 · en la pestaña, medido al abrir un área con indicador, con su C
   assert.match(css, /:root\[data-tema="v2"\] \.hoy-v2-insignia\.is-punto \{\s*min-width: 8px;\s*width: 8px;\s*height: 8px;/);
   assert.match(css, /:root\[data-tema="v2"\] \.hoy-v2-insignia\.is-rojo \{[^}]*color: var\(--e19-surface\);/);
   const html = read("index.html");
-  assert.match(html, /views\/hoy-v2\.js\?v=(?:20261122und0[68]|20261123duo04|20261124duod1)/);
+  assert.match(html, /views\/hoy-v2\.js\?v=(?:20261122und0[68]|20261123duo04|20261124duod1|20261124dn39)/);
   assert.match(html, /tema-v2\.css\?v=20261122und0[68]/);
 });

@@ -135,10 +135,10 @@ test("DUO-D1 · la pantalla: sin plan, «Este es nuestro plan»; con plan, la pr
   assert.doesNotMatch(html, /<h[1-6]/, "sin titular nuevo (XGO-01)");
 });
 
-test("DUO-D1 · Hoy: la pregunta en «Decidir esta semana» solo desde el 28/12 (D-N30) y solo con un mes sin encontrar", () => {
+test("DUO-D1 · Hoy: la pregunta en «Decidir esta semana» desde el 24/11 (D-N39; antes, el 28/12) y solo con un mes sin encontrar", () => {
   const { ui, almacen } = cargarUi({ hoy: "2027-01-10" });
   almacen.set("fc:plan-deuda-compromiso", JSON.stringify(foto));
-  assert.equal(vm.runInContext('seguimientoPlanHoy("2026-12-27")', ui).length, 0, "antes del 28/12, nada (el 21/12 entran los extractos atrasados)");
+  assert.equal(vm.runInContext('seguimientoPlanHoy("2026-11-23")', ui).length, 0, "antes del 24/11, nada (D-N39 adelantó la puerta del 28/12)");
   const items = vm.runInContext('seguimientoPlanHoy("2027-01-10")', ui);
   assert.equal(items.length, 1);
   assert.equal(items[0].target, "deuda-ruta");
@@ -150,7 +150,7 @@ test("DUO-D1 · Hoy: la pregunta en «Decidir esta semana» solo desde el 28/12 
 test("DUO-D1 · cableado: contenedor bajo el plan, scripts, hoja, service worker, build, copia y Hoy", () => {
   const html = read("index.html");
   assert.ok(html.indexOf('id="planSeguimiento"') > html.indexOf('id="planOptimoResultado"'));
-  assert.match(html, /<script defer src="seguimiento-plan-deuda\.js\?v=20261124duod1"><\/script>\s*<script defer src="seguimiento-plan-ui\.js\?v=20261124duod1"><\/script>/);
+  assert.match(html, /<script defer src="seguimiento-plan-deuda\.js\?v=20261124duod1"><\/script>\s*<script defer src="seguimiento-plan-ui\.js\?v=20261124dn39"><\/script>/);
   assert.match(html, /seguimiento-plan\.css\?v=20261124dn38/);
   const sw = read("service-worker.js");
   ["./seguimiento-plan-deuda.js", "./seguimiento-plan-ui.js", "./seguimiento-plan.css"].forEach((f) => assert.ok(sw.includes(`"${f}"`), f));

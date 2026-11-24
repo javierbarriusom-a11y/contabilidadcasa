@@ -66,7 +66,7 @@ test("D-N38 · cableado: la hoja plegada en Uso de la app, sus scripts, el servi
   const html = read("index.html");
   assert.ok(html.indexOf('id="revisionTrimestralCard"') > html.indexOf('id="ajustes-uso-app"'));
   assert.match(html, /<details class="e19-card revision-trimestral-card" id="revisionTrimestralCard">\s*<summary data-revision-resumen-plegado>/);
-  assert.match(html, /<script defer src="revision-trimestral\.js\?v=20261124dn38"><\/script>\s*<script defer src="revision-trimestral-ui\.js\?v=20261124dn38"><\/script>/);
+  assert.match(html, /<script defer src="revision-trimestral\.js\?v=20261124dn38"><\/script>\s*<script defer src="revision-trimestral-ui\.js\?v=20261124dn39"><\/script>/);
   ["./revision-trimestral.js", "./revision-trimestral-ui.js"].forEach((f) => assert.ok(read("service-worker.js").includes(`"${f}"`), f));
   ["revision-trimestral.js", "revision-trimestral-ui.js"].forEach((f) => assert.ok(read("tools/build-public-site.mjs").includes(`"${f}"`), f));
   assert.match(read("app.js"), /"revision-trimestral", \/\/ D-N38/);

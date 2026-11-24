@@ -55,9 +55,9 @@ function sandbox({ runs, racha = 1, meta = { pct: 96 } }) {
 }
 
 test("puerta de fecha: es el cambio de Hoy de la semana del 30/11; antes, hecho el repaso, no ocupa pantalla como hasta ahora", () => {
-  assert.match(hoy, /^const HOY_V2_HECHO_DESDE = "2026-11-30";$/m);
+  assert.match(hoy, /^const HOY_V2_HECHO_DESDE = "2026-11-24";$/m);
   const antes = sandbox({ runs: [{ date: "2026-11-24", seconds: 240, clasificados: 3 }] });
-  assert.equal(antes.hoyV2Repaso("2026-11-29"), "");
+  assert.equal(antes.hoyV2Repaso("2026-11-23"), ""); // D-N39: la puerta pasa al 24/11
   const despues = sandbox({ runs: [{ date: "2026-12-01", seconds: 240, clasificados: 3 }] });
   assert.match(despues.hoyV2Repaso("2026-12-02"), /data-hoy-v2-hecho/);
 });
@@ -100,7 +100,7 @@ test("estilos, versiones y Novedades", () => {
   assert.doesNotMatch(css.match(/:root\[data-tema="v2"\] \.hoy-v2-hecho \{[^}]*\}/)[0], /cursor/);
   const html = read("index.html");
   assert.match(html, /views\/repaso-v2\.js\?v=20261121foco/, "views/repaso-v2.js siguió a 20261121foco (el foco al cerrar en Safari)");
-  assert.match(html, /views\/hoy-v2\.js\?v=(?:20261121areas|20261122und|20261123duo04|20261124duod1)/, "views/hoy-v2.js siguió a 20261121areas con Hoy por áreas");
+  assert.match(html, /views\/hoy-v2\.js\?v=(?:20261121areas|20261122und|20261123duo04|20261124duod1|20261124dn39)/, "views/hoy-v2.js siguió a 20261121areas con Hoy por áreas");
   // tema-v2.css pasó a 20261121dec30 con la frase de la semana que viene (DEC-30) y novedades.js, también a 20261121dec45 (DEC-45).
   assert.match(html, /tema-v2\.css\?v=2026112(?:1(?:dec30|dec38c|dec38d|areas|d658)|2und)/); // y a 20261121dec38c y dec38d con DEC-38 a 195 px
   assert.match(html, /novedades\.js\?v=2026112(?:1(?:dec30|dec45|areas|dn27|dn28)|2und)/);

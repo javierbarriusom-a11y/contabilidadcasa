@@ -9,7 +9,8 @@
 
 const HITOS_KEY = "deuda-hitos";
 const CIERRES_KEY = "deuda-cierres";
-const HITO_HOY_DESDE = "2027-01-04";
+// D-N39 (24/11): adelantada; antes, 4/1/2027 (antes, un cambio de Hoy por semana, D-N30).
+const HITO_HOY_DESDE = "2026-11-24";
 const HITO_ESTADO_TEXTO = { pedida: "Pedida", recibida: "La tenemos", hecha: "Hecha", "no-hacia-falta": "No hacía falta", comprobado: "Comprobado" };
 let hitosEnganchado = false;
 
