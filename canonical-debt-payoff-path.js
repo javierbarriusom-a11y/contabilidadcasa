@@ -239,6 +239,10 @@
     const byMonth = Array.isArray(options.extraByMonth) ? options.extraByMonth.map((value) => Math.max(0, finite(value) ?? 0)) : null;
     const extraFor = (index) => (byMonth && index < byMonth.length ? byMonth[index] : extra);
     const offers = settlementMap(options.settlements);
+    // DUO-D8: una promoción al 0 % (o a un tipo menor) hasta un mes: hasta entonces se cobra ese tipo; desde ese mes, la TAE del contrato.
+    const promos = new Map((Array.isArray(options.promotions) ? options.promotions : [])
+      .filter((p) => p && monthKeyOk(p.untilMonth) && Number(finite(p.aprPct) ?? 0) >= 0)
+      .map((p) => [String(p.id), { hasta: monthIndexOf(p.untilMonth) - monthIndexOf(options.startMonthKey), rate: Math.max(0, finite(p.aprPct) ?? 0) / 100 / 12 }]));
 
     const included = [];
     const excluded = [];
@@ -270,7 +274,8 @@
           agreementMonth(entry);
           return;
         }
-        const interest = round2(entry.balance * entry.row.monthlyRate);
+        const promo = promos.get(entry.row.id);
+        const interest = round2(entry.balance * (promo && month < promo.hasta ? promo.rate : entry.row.monthlyRate));
         entry.interest = round2(entry.interest + interest);
         const due = Math.min(entry.row.payment, round2(entry.balance + interest));
         if (!entry.agreement && entry.row.payment - interest <= 0 && !(due >= entry.balance + interest)) entry.stalled = true;
@@ -311,6 +316,11 @@
           entry.payoffIndex = month;
         }
       });
+      // DUO-D8: lo que queda de cada deuda con promoción el último mes de la promoción (desde el siguiente, cobra su TAE).
+      state.forEach((entry) => {
+        const promo = promos.get(entry.row.id);
+        if (promo && month === promo.hasta - 1) entry.promoSaldo = entry.payoffIndex !== null && entry.payoffIndex <= month ? 0 : entry.balance;
+      });
       series.push({ monthKey: addMonths(startMonthKey, month), balance: round2(state.reduce((sum, entry) => sum + entry.balance, 0)), extra: round2(extraFor(month)) });
     }
     if (!firstTarget && ordered.length) firstTarget = { id: ordered[0].id, label: ordered[0].label, aprPct: ordered[0].aprPct };
@@ -334,6 +344,7 @@
         payoffMonthKey: entry.payoffIndex === null ? null : addMonths(startMonthKey, entry.payoffIndex),
         interest: entry.interest,
         extraApplied: entry.extraApplied,
+        ...(entry.promoSaldo !== undefined ? { promoSaldo: round2(entry.promoSaldo) } : {}),
         stalled: entry.stalled && entry.payoffIndex === null,
         declaredInstallments: entry.row.installments || null,
         declaredGapMonths,

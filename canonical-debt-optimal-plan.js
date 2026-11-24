@@ -278,7 +278,7 @@
   /**
    * @param {{project: Function}} payoffEngine FinanceCanonicalDebtPayoffPath
    * @param {Array<Record<string, any>>} contracts filas de contrato canónico (las mismas de «Camino a deuda cero»)
-   * @param {{startMonthKey?: string, monthly?: number, lump?: number, order?: string[], capacity?: number|null, available?: number|null, strategy?: string|null, tolerance?: {pct?: number, abs?: number}|null, settlements?: Array<{id: string, amount: number}>|null, monthlyByMonth?: number[]|null, commissions?: Array<{id: string, pct: number, untilMonth?: string|null, nextPct?: number|null}>|null}} options
+   * @param {{startMonthKey?: string, monthly?: number, lump?: number, order?: string[], capacity?: number|null, available?: number|null, strategy?: string|null, tolerance?: {pct?: number, abs?: number}|null, settlements?: Array<{id: string, amount: number}>|null, monthlyByMonth?: number[]|null, promotions?: Array<{id: string, untilMonth: string, aprPct?: number}>|null, commissions?: Array<{id: string, pct: number, untilMonth?: string|null, nextPct?: number|null}>|null}} options
    *   `monthly`: lo que se pone al mes además de las cuotas; `lump`: pago inicial; `order`: orden de la avalancha (DEB5, TAE tras
    *   deducción fiscal); `capacity` y `available`: la capacidad libre al mes y el dinero por encima del suelo del colchón, solo para avisar;
    *   `strategy`: el orden que ha elegido el hogar («avalancha» o «bola-nieve»; sin elegir, la avalancha y, si procede, la pregunta);
@@ -289,7 +289,10 @@
     const monthly = amount(options.monthly);
     const lump = amount(options.lump);
     const startMonthKey = options.startMonthKey;
-    const baseline = payoffEngine.project(contracts, { startMonthKey, extraMonthly: 0 });
+    // DUO-D8: promociones al 0 % (o a un tipo menor) hasta un mes, por contrato. También en el calendario de hoy: si no, el ahorro contaría
+    // intereses que nunca se iban a pagar.
+    const promotions = (Array.isArray(options.promotions) ? options.promotions : []).filter((p) => p && /^\d{4}-\d{2}$/.test(String(p.untilMonth || "")) && String(p.untilMonth) > String(startMonthKey));
+    const baseline = payoffEngine.project(contracts, { startMonthKey, extraMonthly: 0, promotions });
     if (!baseline.ok) return { ok: false, error: baseline.error };
     if (baseline.nothingToProject) return { ok: true, nothing: true, baseline };
     if (!baseline.included.length) return { ok: true, nothing: false, sinDatos: true, baseline };
@@ -300,9 +303,9 @@
     const ordenAvalancha = comms.size ? ordenNeto(baseline, contracts, comms, options.order || []) : options.order || [];
     const camino = (strategy) => {
       const order = strategy === "avalancha" ? ordenAvalancha : [];
-      const attack = payoffEngine.project(contracts, { startMonthKey, extraMonthly: 0, strategy, order, settlements });
+      const attack = payoffEngine.project(contracts, { startMonthKey, extraMonthly: 0, strategy, order, settlements, promotions });
       const withLump = applyLump(contracts, attack.included, lump, settlements);
-      const result = payoffEngine.project(withLump.contracts, { startMonthKey, extraMonthly: monthly, extraByMonth: byMonth, strategy, order, redirectFreed: true, settlements: withLump.settlements });
+      const result = payoffEngine.project(withLump.contracts, { startMonthKey, extraMonthly: monthly, extraByMonth: byMonth, strategy, order, redirectFreed: true, settlements: withLump.settlements, promotions });
       const resumen = summary(result, baseline);
       // DUO-D3: las comisiones por amortizar restan del ahorro (los intereses de menos no cambian; lo que os ahorráis, sí).
       const coste = costeComisiones(result, withLump.applied, comms);
@@ -347,6 +350,14 @@
     const otras = fuera.excluded.filter((row) => !row.suspended);
     const sumPrincipal = (rows) => round2(rows.reduce((sum, row) => sum + (Number(row.principal) || 0), 0));
     avisosComision(comms, recommended, startMonthKey).forEach((w) => warnings.push(w));
+    // DUO-D8: con promoción, si el plan la salda antes de que acabe o cuánto quedará cuando empiece a cobrar la TAE.
+    promotions.forEach((p) => {
+      const fila = (recommended.result?.included || []).find((r) => r.id === String(p.id));
+      if (!fila) return;
+      const k = mesIndex(p.untilMonth) - mesIndex(startMonthKey);
+      const saldada = fila.payoffIndex !== null && fila.payoffIndex < k;
+      warnings.push({ id: "promocion", deuda: fila.id, label: fila.label, hasta: p.untilMonth, meses: k, saldada, saldoAlAcabar: saldada ? 0 : fila.promoSaldo ?? null, tae: fila.aprPct });
+    });
     // Una deuda que se cancela con una quita no se amortiza: su comisión no cuenta, y se dice (si no, escribirla no cambiaría nada).
     (recommended.result?.included || []).filter((row) => row.settlement && comms.has(row.id)).forEach((row) => warnings.push({ id: "comision-quita", deuda: row.id, label: row.label }));
     if (fuera.excluded.length) {
