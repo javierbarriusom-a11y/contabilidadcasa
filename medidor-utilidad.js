@@ -120,8 +120,6 @@
     { id: "salud-motor", nombre: "Salud del cálculo", accion: ["vez «Recalcular todo»", "veces «Recalcular todo»"], descarte: null, deshecho: null },
     { id: "seguimiento-plan", nombre: "Seguimiento del plan de deuda", accion: ["plan guardado o mes contestado", "planes guardados o meses contestados"], descarte: ["vez dejado de seguir", "veces dejado de seguir"], deshecho: null },
     { id: "hitos-deuda", nombre: "Cierre de las deudas saldadas", accion: ["paso de cierre marcado", "pasos de cierre marcados"], descarte: null, deshecho: null },
-    // DUO-05 · D-N37: la barra inferior del móvil. Acción = un destino o «Más» tocado desde la barra.
-    { id: "barra-inferior", nombre: "Barra inferior del móvil", accion: ["toque en la barra", "toques en la barra"], descarte: null, deshecho: null },
     { id: "ocultar-cifras", nombre: "Ocultar cifras", accion: ["vez ocultadas", "veces ocultadas"], descarte: ["vez enseñadas de nuevo", "veces enseñadas de nuevo"], deshecho: null },
   ];
 
