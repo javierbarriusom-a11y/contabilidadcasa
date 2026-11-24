@@ -50,7 +50,7 @@ test("D-N33 · fuera de la barra lateral; en Ajustes › Plan y operación con l
   for (const clave of ["base", "prudente", "ahorro"]) assert.match(grupo, new RegExp(`data-escenario-elegir="${clave}" aria-pressed=`));
   const cabecera = html.slice(html.indexOf('<header class="topbar">'), html.indexOf("</header>"));
   assert.match(cabecera, /<p class="escenario-aviso" id="escenarioAviso" role="status" hidden><\/p>/);
-  assert.match(html, /<script defer src="escenario-ui\.js\?v=20261123dn33"><\/script>/);
+  assert.match(html, /<script defer src="escenario-ui\.js\?v=(?:20261123dn33|20261124dn38)"><\/script>/);
   assert.ok(html.indexOf('src="escenario-ui.js?v=') < html.indexOf('src="app.js?v='));
   assert.match(read("tools/build-public-site.mjs"), /^ {2}"escenario-ui\.js",$/m);
   assert.match(read("service-worker.js"), /^ {2}"\.\/escenario-ui\.js",$/m);

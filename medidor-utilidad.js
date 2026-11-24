@@ -114,6 +114,12 @@
     // UND-08 (DEC-31): «¿Me lo puedo permitir?». Acción = una consulta con respuesta (una por hoja abierta). Métrica: consultas por semana.
     { id: "me-lo-permito", nombre: "¿Me lo puedo permitir?", accion: ["consulta", "consultas"], descarte: null, deshecho: null },
     // UND-17 (DEC-36): el ojo de la cabecera. Acción = ocultar las cifras; descarte = volver a enseñarlas. Vista = días en que se tocó.
+    // D-N38 (duodécima auditoría): lo que la primera revisión trimestral (semana del 14/12) tiene que poder juzgar. El escenario de
+    // supuestos (D-N33) no se medía: acción = elegir un escenario. Y las funciones nuevas de la duodécima, que ya anotaban.
+    { id: "escenario-supuestos", nombre: "Escenario de supuestos", accion: ["escenario elegido", "escenarios elegidos"], descarte: null, deshecho: null },
+    { id: "salud-motor", nombre: "Salud del cálculo", accion: ["vez «Recalcular todo»", "veces «Recalcular todo»"], descarte: null, deshecho: null },
+    { id: "seguimiento-plan", nombre: "Seguimiento del plan de deuda", accion: ["plan guardado o mes contestado", "planes guardados o meses contestados"], descarte: ["vez dejado de seguir", "veces dejado de seguir"], deshecho: null },
+    { id: "hitos-deuda", nombre: "Cierre de las deudas saldadas", accion: ["paso de cierre marcado", "pasos de cierre marcados"], descarte: null, deshecho: null },
     { id: "ocultar-cifras", nombre: "Ocultar cifras", accion: ["vez ocultadas", "veces ocultadas"], descarte: ["vez enseñadas de nuevo", "veces enseñadas de nuevo"], deshecho: null },
   ];
 

@@ -194,6 +194,8 @@ const SHELL_URLS = [
   "./seguimiento-plan-ui.js",
   "./hitos-deuda.js",
   "./hitos-deuda-ui.js",
+  "./revision-trimestral.js",
+  "./revision-trimestral-ui.js",
   "./me-lo-puedo-permitir.js",
   "./ajustes-areas.js",
   "./escenario-ui.js",

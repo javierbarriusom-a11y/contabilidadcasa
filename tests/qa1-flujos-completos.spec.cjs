@@ -12589,6 +12589,80 @@ test.describe("DUO-D1 · Seguimiento del plan de deuda", () => {
   }
 });
 
+// D-N38 · UND-24 (24/11/2026): la hoja de la revisión trimestral en Ajustes › Uso de la app. Propone; el hogar decide; nada se retira desde aquí.
+test.describe("D-N38 · Revisión trimestral", () => {
+  for (const [nombre, viewport] of [["a 1280 px", { width: 1280, height: 900 }], ["a 390 px", { width: 390, height: 844 }]]) {
+    test(`las pantallas heredadas y las funciones con su propuesta, la decisión y el acta, ${nombre}`, async ({ page }) => {
+      test.setTimeout(90000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#ajustes");
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      await abrirAreaDeAjustes(page, "#revisionTrimestralCard");
+      const card = page.locator("#revisionTrimestralCard");
+      await expect(card.locator("summary")).toContainText(/Revisión trimestral \(semana del 14\/12\) · 0 de \d+ decididas/, { timeout: 15000 });
+      await card.locator("summary").click();
+      const plan = card.locator('[data-revision-fila="pantalla:debt-roadmap"]');
+      await expect(plan).toContainText("candidata de la duodécima");
+      await expect(plan).toContainText("Propuesta: Se retira");
+      await expect(card.locator('[data-revision-fila="funcion:escenario-supuestos"]')).toContainText("Escenario de supuestos");
+      await plan.locator("select").selectOption("retira");
+      await expect(card.locator("[data-revision-resumen]")).toContainText(/^1 de \d+ decididas/);
+      await expect(card.locator("[data-revision-acta]")).toContainText("Se retira (1): Plan de deuda.");
+      await page.reload();
+      await abrirAreaDeAjustes(page, "#revisionTrimestralCard");
+      await expect(page.locator("#revisionTrimestralCard summary")).toContainText(/1 de \d+ decididas/, { timeout: 15000 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
+// DUO-D3 (duodécima auditoría, 24/11/2026), desde lo guardado: la comisión de un contrato resta del ahorro; con pago inicial, reducir plazo o
+// cuota; con tipo variable declarado en la revisión del tipo, el rango si el Euribor sube o baja un punto. Contratos INVENTADOS.
+test.describe("DUO-D3 · El coste real de amortizar", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  for (const [nombre, viewport] of [["a 1280 px", { width: 1280, height: 900 }], ["a 390 px @safari", { width: 390, height: 844 }]]) {
+    test(`comisión, cuota o plazo y el rango del Euribor en el plan óptimo, ${nombre}`, async ({ page }) => {
+      test.setTimeout(120000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await arrancarEnCaliente(page, { viewport });
+      await page.evaluate(() => { location.hash = "#deuda-ruta"; });
+      const plan = page.locator("#planOptimoResultado");
+      await page.fill("#planOptimoMensual", "300");
+      await expect(plan.locator(".plan-optimo-tramos li").first()).toContainText("300 € al mes de más", { timeout: 20000 });
+      await expect(plan).not.toContainText("de comisiones");
+      const det = page.locator("#planOptimoComisiones");
+      await det.locator("summary").click();
+      const pct = det.locator('fieldset').filter({ hasText: "Banco FICTICIO" }).locator('[data-comision-campo="pct"]');
+      await pct.fill("1");
+      await pct.press("Tab");
+      await expect(plan.locator(".cam-hero").nth(1)).toContainText("de comisiones");
+      // Con pago inicial que no salda la deuda, la elección de la entidad: reducir plazo o cuota.
+      await page.fill("#planOptimoPago", "500");
+      await expect(plan.locator(".plan-optimo-cuota-plazo")).toContainText("reducir plazo o cuota");
+      await expect(plan.locator(".plan-optimo-cuota-plazo")).toContainText("reducir cuota");
+      // Tipo variable declarado (diferencial) para la Caja: el rango.
+      await page.evaluate(() => {
+        const caja = canonicalDebtContractRows().find((c) => c.entity === "Caja FICTICIA");
+        storageSet(storageKey("rate-review"), JSON.stringify({ byContract: { [caja.id]: { spread: 0.99 } } }));
+      });
+      await page.fill("#planOptimoMensual", "310");
+      await expect(plan.locator("[data-plan-optimo-euribor]")).toContainText(/si el Euribor sube un punto, libres en|aunque el Euribor suba o baje un punto, acabáis el mismo mes/, { timeout: 15000 });
+      // Lo escrito se recuerda.
+      await page.reload();
+      await page.evaluate(() => { location.hash = "#deuda-ruta"; });
+      await page.locator("#planOptimoComisiones summary").click({ timeout: 20000 });
+      await expect(page.locator('#planOptimoComisiones fieldset').filter({ hasText: "Banco FICTICIO" }).locator('[data-comision-campo="pct"]')).toHaveValue("1");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 // DUO-D5 y DUO-D2 (duodécima auditoría, 24/11/2026), desde lo guardado: «Si ponéis más al mes» en el plan óptimo; y, al dejar a cero el capital
 // de la tarjeta FICTICIA en Contratos, su cierre en Deuda › Plan (la carta, los ficheros y la CIRBE).
 test.describe("DUO-D5 y DUO-D2 · Cada 50 € más y el cierre de una deuda saldada", () => {

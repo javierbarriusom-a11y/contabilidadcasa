@@ -352,6 +352,33 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// DUO-D3 y D-N38 (24/11/2026): las comisiones por contrato del plan óptimo y la hoja de la revisión trimestral, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`DUO-D3 y D-N38 · contraste de las comisiones y de la revisión trimestral en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 390, height: 844 } });
+    test("#planOptimoComisiones y #revisionTrimestralCard: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+      await arrancarEnCaliente(page, { viewport: { width: 390, height: 844 } });
+      await page.evaluate(() => { location.hash = "#deuda-ruta"; });
+      await page.locator("#planOptimoComisiones summary").click({ timeout: 20000 });
+      await expect(page.locator("#planOptimoComisiones fieldset").first()).toBeVisible();
+      await page.mouse.move(0, 0);
+      let results = await new AxeBuilder({ page }).include("#planOptimoComisiones").analyze();
+      let nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+      await page.evaluate(() => { location.hash = "#ajustes"; });
+      const tab = page.locator("#ajustesArea-uso");
+      if (await tab.isVisible()) await tab.click();
+      await page.locator("#revisionTrimestralCard summary").click({ timeout: 20000 });
+      await page.locator('#revisionTrimestralCard [data-revision-fila="pantalla:debt-roadmap"] select').selectOption("retira");
+      await page.mouse.move(0, 0);
+      results = await new AxeBuilder({ page }).include("#revisionTrimestralCard").analyze();
+      nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // DUO-D1 (24/11/2026): el seguimiento del plan de deuda con un mes hecho, la pregunta de un mes sin encontrar y «Otra cantidad» abierta,
 // en claro y en oscuro. Contratos y movimientos INVENTADOS.
 for (const scheme of ["light", "dark"]) {
