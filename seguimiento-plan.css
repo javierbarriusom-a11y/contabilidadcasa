@@ -270,3 +270,21 @@
   border-radius: 8px;
   padding: 8px;
 }
+
+/* DUO-D6 · indicio de usura en una tarjeta revolving (kit-entidad-ui.js), dentro del kit para hablar con la entidad. */
+.kit-usura .month-picker input {
+  min-height: 44px;
+  max-width: 100%;
+}
+
+.kit-usura-indicio {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--e19-warning-soft-border);
+  border-radius: 8px;
+  background: var(--e19-warning-soft);
+  color: var(--e19-ink);
+  font-family: var(--e19-font-sans);
+  font-size: var(--e19-text-sm);
+  overflow-wrap: anywhere;
+}

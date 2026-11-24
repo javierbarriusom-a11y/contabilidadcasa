@@ -132,6 +132,47 @@ function kitSeguimientoHtml(id) {
     </div>`;
 }
 
+// DUO-D6 · D-N36 (duodécima auditoría; «ok», adelantada por D-N39): el indicio de usura en una tarjeta revolving. El Tribunal Supremo (2023)
+// tomó como referencia que la TAE supere en más de 6 puntos la media de las revolving del mes de la contratación (estadísticas del Banco de
+// España). La media la escribe el hogar (nunca se descarga ni se supone). Se dice «indicio», nunca «es usura»: depende de cada caso.
+const KIT_USURA_PUNTOS = 6;
+
+function kitUsura(apr, medio) {
+  const tae = Number(apr);
+  const ref = Number(medio);
+  if (!(tae > 0) || !(ref > 0)) return { calculable: false };
+  const diferencia = Math.round((tae - ref) * 100) / 100;
+  return { calculable: true, tae, medio: ref, diferencia, indicio: diferencia > KIT_USURA_PUNTOS };
+}
+
+function kitPct(n) {
+  return `${String(Math.round(Number(n) * 100) / 100).replace(".", ",")} %`;
+}
+
+function kitUsuraResultadoHtml(contract, medio) {
+  const u = kitUsura(contract.apr, medio);
+  if (contract.apr === null || contract.apr === undefined || !(Number(contract.apr) > 0)) {
+    return `<p class="e19-kpi-note" data-kit-usura-resultado>Falta la TAE de la tarjeta en Contratos: sin ella no se puede comparar.</p>`;
+  }
+  if (!u.calculable) {
+    return `<p class="e19-kpi-note" data-kit-usura-resultado>Escribid la TAE media de las tarjetas revolving del mes en que contratasteis esta (Banco de España, estadísticas de tipos de interés). Con ella, la comparo con la de vuestra tarjeta (${escapeHtml(kitPct(contract.apr))}).</p>`;
+  }
+  if (u.indicio) {
+    return `<p class="kit-usura-indicio" data-kit-usura-resultado><strong>Indicio:</strong> la TAE de la tarjeta (${escapeHtml(kitPct(u.tae))}) supera en ${escapeHtml(String(u.diferencia).replace(".", ","))} puntos la media de las revolving de su mes (${escapeHtml(kitPct(u.medio))}). Según el criterio del Tribunal Supremo (2023), más de ${KIT_USURA_PUNTOS} puntos puede considerarse usura. Merece una consulta con una asociación de consumidores o un abogado: si se declarase, se devolvería lo pagado por encima del capital. Primero se reclama por escrito al servicio de atención al cliente de la entidad; sin respuesta en un mes, al Banco de España.</p>`;
+  }
+  return `<p class="e19-kpi-note" data-kit-usura-resultado><strong>Sin indicio</strong> por este criterio: la TAE (${escapeHtml(kitPct(u.tae))}) está ${u.diferencia > 0 ? `${escapeHtml(String(u.diferencia).replace(".", ","))} puntos por encima` : "por debajo o igual"} de la media de su mes (${escapeHtml(kitPct(u.medio))}); el criterio son más de ${KIT_USURA_PUNTOS}. Aun así, se puede revisar si os explicaron bien cómo funcionaba (transparencia).</p>`;
+}
+
+function kitUsuraHtml(contract) {
+  if (!kitRevolving(contract)) return "";
+  const medio = kitSeguimiento(String(contract.id)).tipoMedio;
+  return `<section aria-labelledby="kitUsuraT" class="kit-usura"><h3 id="kitUsuraT">¿Es abusiva la TAE de la tarjeta?</h3>
+      <label class="month-picker"><span>TAE media de las revolving del mes de la contratación (%)</span>
+        <input type="number" min="0" max="60" step="0.01" inputmode="decimal" data-kit-tipo-medio value="${medio === undefined || medio === null ? "" : escapeHtml(String(medio))}" placeholder="p. ej. la del Banco de España" /></label>
+      <div data-kit-usura>${kitUsuraResultadoHtml(contract, medio)}</div>
+    </section>`;
+}
+
 function kitHtml(contract) {
   const id = String(contract.id);
   return `<div class="kit-entidad-cabecera">
@@ -145,6 +186,7 @@ function kitHtml(contract) {
       <pre class="kit-entidad-carta" id="kitEntidadCarta">${escapeHtml(kitCarta(contract).join("\n"))}</pre>
       <p class="e19-kpi-note kit-entidad-no-imprimir">Lo que va entre corchetes lo rellenáis vosotros: la app no pone vuestros nombres ni el DNI en ningún papel.</p>
     </section>
+    ${kitUsuraHtml(contract)}
     <section aria-labelledby="kitSegT" class="kit-entidad-no-imprimir"><h3 id="kitSegT">Seguimiento</h3>${kitSeguimientoHtml(id)}</section>
     <p class="e19-kpi-note">Es una guía para pedir información, no asesoramiento legal.</p>
     <div class="kit-entidad-botones kit-entidad-no-imprimir">
@@ -240,6 +282,24 @@ function attachKitEntidad(doc = document) {
   if (!doc || doc.__kitEntidad) return false;
   doc.__kitEntidad = true;
   doc.addEventListener("click", kitOnClick);
+  // DUO-D6: la TAE media de referencia se guarda con el seguimiento del contrato y el resultado se repinta al escribirla.
+  doc.addEventListener("input", (event) => {
+    const campo = event.target?.closest?.("#kitEntidad [data-kit-tipo-medio]");
+    if (!campo || !kitAbiertoId) return;
+    const raw = String(campo.value || "").replace(",", ".").trim();
+    const valor = raw === "" ? null : Number(raw);
+    if (valor !== null && (!Number.isFinite(valor) || valor < 0 || valor > 60)) {
+      campo.setAttribute("aria-invalid", "true");
+      return;
+    }
+    campo.removeAttribute("aria-invalid");
+    const todo = kitSeguimientoTodo();
+    todo[kitAbiertoId] = { ...(todo[kitAbiertoId] || {}), tipoMedio: valor };
+    kitGuard(() => storageSet(storageKey(KIT_ENTIDAD_KEY), JSON.stringify(todo)), null);
+    const contrato = kitContrato(kitAbiertoId);
+    const caja = qs("kitEntidadCuerpo")?.querySelector("[data-kit-usura]");
+    if (contrato && caja) caja.innerHTML = kitUsuraResultadoHtml(contrato, valor);
+  });
   qs("kitEntidad")?.addEventListener("close", () => {
     kitAbiertoId = null;
     if (kitOpener?.isConnected) kitOpener.focus();

@@ -151,7 +151,7 @@ test("DUO-D1 · cableado: contenedor bajo el plan, scripts, hoja, service worker
   const html = read("index.html");
   assert.ok(html.indexOf('id="planSeguimiento"') > html.indexOf('id="planOptimoResultado"'));
   assert.match(html, /<script defer src="seguimiento-plan-deuda\.js\?v=20261124duod1"><\/script>\s*<script defer src="seguimiento-plan-ui\.js\?v=20261124dn39"><\/script>/);
-  assert.match(html, /seguimiento-plan\.css\?v=20261124dn38/);
+  assert.match(html, /seguimiento-plan\.css\?v=20261124duod6/);
   const sw = read("service-worker.js");
   ["./seguimiento-plan-deuda.js", "./seguimiento-plan-ui.js", "./seguimiento-plan.css"].forEach((f) => assert.ok(sw.includes(`"${f}"`), f));
   const build = read("tools/build-public-site.mjs");
