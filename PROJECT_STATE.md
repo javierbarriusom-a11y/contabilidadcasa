@@ -113,6 +113,16 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 24 de noviembre de 2026 (540): todo lo de la duodécima hecho hasta hoy, en el sitio
+
+- **#680 (DUO-D3 y D-N38):** «Verify and deploy Pages» **1558 en verde** (main 0533def2) y «Published availability» **413 en verde**.
+- **#681 (D-N39, DUO-D6, DUO-D10 y DUO-D8):** CI en verde a la primera, Safari incluido, sin relanzar. Paso a listo y fusión con squash comprobada la cabeza 31f6ac29: **main 85aee9df**. «Verify and deploy Pages» **1560 en verde**; «Published availability» lanzada sobre main.
+- Rama de trabajo rehecha desde origin/main + `merge -s ours` de la rama remota anterior.
+- **Desde hoy, en Hoy y a la vez** (D-N39): «Hecho esta semana», el indicador por área, «¿Me lo puedo permitir?», los extractos atrasados, la pregunta del seguimiento del plan y el hito al saldar una deuda. Riesgo a vigilar en la revisión trimestral: el medidor no separa el efecto de cada cambio y Hoy puede saturarse; una función sin uso puede deberse a la avalancha y no a que sobre.
+- **Pendiente del hogar:** DUO-05 rehecha como barra que se esconde al bajar (sí/no); DUO-02 (un solo «¿Y si…?») retira una pantalla en uso; UND-21 depende de D-N11.
+- **Validación:** solo documentación; `npm test` sin cambios de código respecto a la 539 (6.964/6.964).
+- **Siguiente número de decisión libre: D-N40.**
+
 ## Cierre de sesión — 24 de noviembre de 2026 (539): D-N39, todo lo que esperaba fecha, ya; DUO-D6, DUO-D10 y DUO-D8; la barra inferior, aparte
 
 - **Publicado de antes:** «Verify and deploy Pages» **1556 en verde** (#679 en el sitio) y «Published availability» **412 en verde**. #680 (DUO-D3 y D-N38) con su CI en verde, Safari incluido: fusionado comprobada la cabeza c15bf737, **main 0533def2**; su despliegue, en curso al escribir esto.
