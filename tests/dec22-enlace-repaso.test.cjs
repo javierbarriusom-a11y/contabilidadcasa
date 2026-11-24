@@ -83,14 +83,14 @@ test("versiones y Novedades: el fichero hay que descargarlo otra vez para tener 
   const html = read("index.html");
   // views/repaso-v2.js siguió a 20261120dec23 con DEC-23 (los grupos clasificados de cada repaso).
   assert.match(html, /<script defer src="views\/repaso-v2\.js\?v=(?:20261120dec2[23]|20261121foco2?)"><\/script>/);
-  assert.match(html, /<script defer src="novedades\.js\?v=(?:20261120dec2[23]|20261121dec30|20261121dec45|20261121areas|20261121dn27|20261121dn28|20261122und|20261122und11|20261122und17|20261122und13|20261122und08|20261122und04|20261122undn33)"><\/script>/); // 21/11: DEC-30, la semana que viene; DEC-45, «¿te sirve?»
+  assert.match(html, /<script defer src="novedades\.js\?v=(?:20261120dec2[23]|20261121dec30|20261121dec45|20261121areas|20261121dn27|20261121dn28|20261122und|20261122und11|20261122und17|20261122und13|20261122und08|20261122und04|20261122undn33|20261124dn38)"><\/script>/); // 21/11: DEC-30, la semana que viene; DEC-45, «¿te sirve?»
   // medidor-utilidad.js pasó a 20261121dec45 con «¿te sirve?» en Novedades (DEC-45).
-  assert.match(html, /<script defer src="medidor-utilidad\.js\?v=(?:20261121dec45|20261122und|20261122und17|20261122und13|20261122und08|20261122und04|20261122undn33)"><\/script>/);
+  assert.match(html, /<script defer src="medidor-utilidad\.js\?v=(?:20261121dec45|20261122und|20261122und17|20261122und13|20261122und08|20261122und04|20261122undn33|20261124dn38)"><\/script>/);
   ["canonical-reminders.js", "recordatorios-ui.js"].forEach((file) => {
     assert.match(html, new RegExp(`<script defer src="${file.replace(/[./]/g, (c) => `\\${c}`)}\\?v=20261120dec22"></script>`), file);
   });
   // app.js pasó a 20261121dn23 con D-N23 (el acuerdo sustituye a la cuota de hoy desde su mes).
-  assert.match(html, /<script defer src="app\.js\?v=(?:20261120dec22|20261121dn23|20261122resize|20261122und11|20261123duo04|20261124duod1|20261124duod3)"><\/script>/);
+  assert.match(html, /<script defer src="app\.js\?v=(?:20261120dec22|20261121dn23|20261122resize|20261122und11|20261123duo04|20261124duod1|20261124duod3|20261124dn38)"><\/script>/);
   const novedad = require("../novedades.js").find((entry) => entry.id === "2026-11-20-repaso-desde-calendario");
   assert.ok(novedad, "línea en Novedades");
   assert.match(novedad.texto, /Descargad otra vez los recordatorios/);

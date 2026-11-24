@@ -1353,6 +1353,7 @@ const BACKUP_LOCAL_STORES = [
   "plan-deuda-respuestas", // DUO-D1: lo que el hogar contestó de cada mes (sí, otra cantidad, este mes no, no era esto)
   "deuda-hitos", // DUO-D2: el primer día en que la app vio cada deuda saldada (y cuáles ya lo estaban al empezar)
   "deuda-cierres", // DUO-D2: los pasos de cierre que el hogar marcó por deuda saldada (carta, ficheros, CIRBE), con su fecha
+  "revision-trimestral", // D-N38: lo que el hogar decidió de cada pantalla y función en la revisión trimestral (se queda, se funde, se retira)
   "payroll-split-drafts", // WP-47: borradores del reparto de la nómina y su lista de transferencias
   "shadow-debt-answers", // WP-41: lo que el hogar respondió a cada compromiso que parecía deuda en la sombra
   "cirbe-report", // WP-40: filas del informe de la CIRBE tecleadas por el hogar y su fecha
@@ -23715,6 +23716,7 @@ function renderAjustes() {
   renderAjustesFinancialCalendar();
   globalThis.renderRecordatorios?.(globalThis.FinanceCanonicalReminders); // WP-32 (recordatorios-ui.js)
   globalThis.renderLoQuePide?.(globalThis.FinanceCanonicalDataContracts); // XDA-01 (lo-que-pide-ui.js), solo con su interruptor encendido
+  globalThis.renderRevisionTrimestral?.(); // D-N38 (revision-trimestral-ui.js): la hoja de la revisión trimestral
   globalThis.renderSaludMotor?.(); // DUO-04 (salud-motor-ui.js): salud del cálculo y extractos atrasados, en Ajustes › Uso de la app
   syncA18IncomeControls();
   renderA18RuleCategoryOptions();

@@ -116,7 +116,10 @@
     doc.__escenarioUi = true;
     doc.addEventListener("click", (event) => {
       const boton = event.target?.closest?.("[data-escenario-elegir]");
-      if (boton) elegir(doc, boton.dataset.escenarioElegir);
+      if (boton) {
+        elegir(doc, boton.dataset.escenarioElegir);
+        root.FinanceMedidor?.anotar?.("escenario-supuestos", "accion"); // D-N38: para la revisión trimestral
+      }
     });
     const nombre = doc.getElementById("scenarioName");
     if (nombre && typeof root.MutationObserver === "function") {
