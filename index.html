@@ -51,6 +51,7 @@
     <link rel="stylesheet" href="deuda-tipo.css?v=20261007wp13a1" />
     <link rel="stylesheet" href="camino-deuda.css?v=20261122und11" />
     <link rel="stylesheet" href="salud-motor.css?v=20261123duo04" />
+    <link rel="stylesheet" href="seguimiento-plan.css?v=20261124duod1" />
     <link rel="stylesheet" href="prestamo-deuda.css?v=20261120dec38b" />
     <link rel="stylesheet" href="nominas.css?v=20261008wp31a1" />
     <link rel="stylesheet" href="anomalias.css?v=20261012wp36a2" />
@@ -2255,6 +2256,9 @@
               </details>
               <p class="e19-kpi-note" id="planOptimoNota" role="status"></p>
               <div id="planOptimoResultado" aria-live="polite"></div>
+              <!-- DUO-D1 (seguimiento-plan-deuda.js + seguimiento-plan-ui.js; D-N35): «Este es nuestro plan» y, guardado, cada mes lo de más
+                   buscado en los extractos; solo se pregunta lo que no se encuentra. Sin titular nuevo. -->
+              <div id="planSeguimiento" aria-live="polite"></div>
             </article>
 
             <!-- WP-19 (NDB-01, docs/WP19_DISENO.md): «¿cuándo acabamos y qué cambia con más?». La pinta camino-deuda-ui.js; no borra ni sustituye nada de lo de abajo. Proyección, no compromiso; no ejecuta nada. -->
@@ -8457,11 +8461,13 @@
     <script defer src="canonical-rate-review.js?v=20261007wp20a1"></script>
     <script defer src="revision-tipo-ui.js?v=20261007wp20a1"></script>
     <script defer src="canonical-debt-payoff-path.js?v=20261123duod9"></script>
-    <script defer src="canonical-debt-optimal-plan.js?v=20261123duod9"></script>
-    <script defer src="camino-deuda-ui.js?v=20261123duod9"></script>
+    <script defer src="canonical-debt-optimal-plan.js?v=20261124duod1"></script>
+    <script defer src="camino-deuda-ui.js?v=20261124duod1"></script>
     <script defer src="kit-entidad-ui.js?v=20261122und13"></script>
     <script defer src="salud-motor.js?v=20261123duo04"></script>
     <script defer src="salud-motor-ui.js?v=20261123duo04"></script>
+    <script defer src="seguimiento-plan-deuda.js?v=20261124duod1"></script>
+    <script defer src="seguimiento-plan-ui.js?v=20261124duod1"></script>
     <script defer src="me-lo-puedo-permitir.js?v=20261122und08"></script>
     <script defer src="ajustes-areas.js?v=20261122und04b"></script>
     <script defer src="escenario-ui.js?v=20261123dn33"></script>
@@ -8527,7 +8533,7 @@
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
     <script defer src="views/cobertura-ajuste.js?v=20261019cobro"></script>
-    <script defer src="views/hoy-v2.js?v=20261123duo04"></script>
+    <script defer src="views/hoy-v2.js?v=20261124duod1"></script>
     <script defer src="views/deuda-simulador-v2.js?v=20261123duo01"></script>
     <script defer src="views/movimientos-v2.js?v=20261119dat07"></script>
     <script defer src="views/importar-v2.js?v=20261116xda04b"></script>
@@ -8554,7 +8560,7 @@
     <script defer src="siguiente-paso-ui.js?v=20261028wp17"></script>
     <script defer src="cierre-guia-ui.js?v=20261104cierreC3"></script>
     <script defer src="antes-de-decidir-ui.js?v=20261113xda10pr3"></script>
-    <script defer src="app.js?v=20261123duo04"></script>
+    <script defer src="app.js?v=20261124duod1"></script>
     <script defer src="p2-ui.js?v=20261119priv4"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

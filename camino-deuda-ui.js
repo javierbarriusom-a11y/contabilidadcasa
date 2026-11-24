@@ -12,6 +12,7 @@ const CAMINO_REASON_TEXT = {
   "plazo-incoherente": "su cuota por su plazo no llega ni al capital",
 };
 let caminoExtra = 0;
+let planOptimoResultadoUltimo = null;
 let caminoLast = null;
 
 // «2028-10» → «octubre de 2028». El rótulo corto del resto de Deuda («oct 28») se lee como el día 28.
@@ -492,6 +493,7 @@ function planOptimoHtml(engine, contracts, todayKey, refs, Plan) {
   const r = modo === "prevision"
     ? Plan.plan(engine, contracts, { ...comunes, monthly: liquidez.after, monthlyByMonth: liquidez.byMonth })
     : Plan.plan(engine, contracts, { ...comunes, monthly: fijoMensual, capacity: refs.capacity });
+  planOptimoResultadoUltimo = r; // DUO-D1: el seguimiento del plan guarda y compara este resultado
   const fijo = modo === "prevision" && r.ok ? Plan.plan(engine, contracts, { ...comunes, monthly: liquidez.fixedSafe, strategy: r.recommended.strategy }) : null;
   if (!r.ok) return `<p class="e19-kpi-note">${escapeHtml(r.error)}</p>`;
   if (r.nothing) return `<p class="e19-kpi-note">No hay deudas con capital pendiente: no hay plan que hacer.</p>`;
@@ -531,6 +533,7 @@ function renderPlanOptimo(engine, contracts, Plan) {
       box.innerHTML = html;
       box.__planHtml = html;
     }
+    globalThis.renderSeguimientoPlan?.(planOptimoResultadoUltimo, contracts || []); // DUO-D1 (seguimiento-plan-ui.js)
   } catch (error) {
     console.error(`renderPlanOptimo: ${error.message}`);
   }

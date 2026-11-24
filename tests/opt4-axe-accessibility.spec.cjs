@@ -352,6 +352,40 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// DUO-D1 (24/11/2026): el seguimiento del plan de deuda con un mes hecho, la pregunta de un mes sin encontrar y «Otra cantidad» abierta,
+// en claro y en oscuro. Contratos y movimientos INVENTADOS.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`DUO-D1 · contraste del seguimiento del plan de deuda en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 390, height: 844 } });
+    test("#planSeguimiento: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+      await arrancarEnCaliente(page, { viewport: { width: 390, height: 844 } });
+      await page.evaluate(() => { location.hash = "#deuda-ruta"; });
+      await page.locator("#planSeguimiento [data-seg-guardar]").click({ timeout: 20000 });
+      await page.evaluate(() => {
+        const S = FinanceSeguimientoPlanDeuda;
+        const key = storageKey("plan-deuda-compromiso");
+        const foto = JSON.parse(storageGet(key, "null"));
+        foto.meses = foto.meses.map((m) => ({ ...m, mes: S.sumarMeses(m.mes, -2) }));
+        storageSet(key, JSON.stringify(foto));
+        const m0 = foto.meses[0];
+        baseData.transactions = mergeTransactions(baseData.transactions || [], [{ date: `${m0.mes}-08`, valueDate: `${m0.mes}-08`, month: m0.mes, movement: "BANCO FICTICIO AMORTIZACION", details: "", amount: -(m0.cuota + m0.extra), balance: null, account: "CaixaBank", source: "extracto bancario" }]);
+        refreshMovementRollups();
+        render();
+      });
+      await page.evaluate(() => { location.hash = "#deuda-contratos"; });
+      await page.evaluate(() => { location.hash = "#deuda-ruta"; });
+      await page.locator("#planSeguimiento [data-seg-otra]").click({ timeout: 20000 });
+      await expect(page.locator("#segOtraImporte")).toBeVisible();
+      await expect(page.locator("#planSeguimiento [data-seg-detectado]")).toBeVisible();
+      await page.mouse.move(0, 0);
+      const results = await new AxeBuilder({ page }).include("#planSeguimiento").analyze();
+      const nodes = results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      expect(nodes, nodes.slice(0, 6).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // DUO-04 (23/11/2026): la salud del cálculo abierta en Ajustes › Uso de la app y la línea de extractos atrasados de Hoy (desde el 21/12),
 // en claro y en oscuro.
 for (const scheme of ["light", "dark"]) {

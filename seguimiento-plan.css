@@ -1,0 +1,91 @@
+/* DUO-D1 · el seguimiento del plan de deuda (seguimiento-plan-ui.js), bajo el plan óptimo en Deuda › Plan. Solo tokens --e19-*. */
+.seg-plan {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--e19-border);
+  font-family: var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.seg-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.seg-botones .e19-btn,
+.seg-plan > p > .e19-btn,
+.seg-otra .e19-btn {
+  min-height: 44px;
+}
+
+.seg-pregunta {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid var(--e19-warning-soft-border);
+  border-radius: 8px;
+  background: var(--e19-warning-soft);
+  color: var(--e19-ink);
+  font-size: var(--e19-text-sm);
+}
+
+.seg-otra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.seg-otra input {
+  min-height: 44px;
+}
+
+.seg-meses {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  font-size: var(--e19-text-sm);
+}
+
+.seg-mes {
+  display: grid;
+  grid-template-columns: 1.4em minmax(0, 1fr);
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--e19-border);
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+
+.seg-forma {
+  font-size: var(--e19-text-base);
+  line-height: 1.2;
+}
+
+.seg-mes[data-seg-mes-estado="futuro"] {
+  border-style: dashed;
+}
+
+.seg-detalle {
+  color: var(--e19-muted);
+}
+
+.seg-no-era {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--e19-ink);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.seg-no-era:focus-visible {
+  outline: 3px solid var(--e19-ink);
+  outline-offset: 2px;
+}

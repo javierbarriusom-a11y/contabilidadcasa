@@ -131,9 +131,9 @@ test("UND-11 y UND-12 · la tarjeta: «lo que permita la previsión» por defect
   assert.match(html, /<input type="radio" name="planOptimoModo" value="prevision" checked \/> Lo que permita la previsión \(sin bajar del suelo\)/);
   assert.match(html, /<input type="radio" name="planOptimoModo" value="fijo" \/> Un importe fijo/);
   assert.match(html, /<details class="plan-optimo-margen plan-optimo-quitas" id="planOptimoQuitas">/);
-  assert.match(html, /canonical-debt-optimal-plan\.js\?v=20261123duod9/);
+  assert.match(html, /canonical-debt-optimal-plan\.js\?v=20261124duod1/);
   assert.match(html, /canonical-debt-payoff-path\.js\?v=20261123duod9/);
-  assert.match(html, /camino-deuda-ui\.js\?v=20261123duod9/);
+  assert.match(html, /camino-deuda-ui\.js\?v=20261124duod1/);
   const ui = read("camino-deuda-ui.js");
   assert.match(ui, /planOptimoModo = "fijo"; \/\/ UND-12: escribir un importe es elegir el importe fijo/);
   assert.match(ui, /Plan\.liquidityPlan\(refs\.rows/);

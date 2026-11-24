@@ -1348,6 +1348,8 @@ const BACKUP_LOCAL_STORES = [
   "plan-optimo-orden", // D-N27: el orden que el hogar eligió para el plan óptimo de saldo (avalancha o bola de nieve)
   "plan-optimo-margen", // D-N27: el margen con el que el plan óptimo pregunta si empezar por la deuda más pequeña
   "plan-optimo-quitas", // UND-11: las ofertas de quita que el hogar escribe en el plan óptimo, por contrato
+  "plan-deuda-compromiso", // DUO-D1: la foto del plan de deuda que el hogar decidió seguir («Este es nuestro plan»)
+  "plan-deuda-respuestas", // DUO-D1: lo que el hogar contestó de cada mes (sí, otra cantidad, este mes no, no era esto)
   "payroll-split-drafts", // WP-47: borradores del reparto de la nómina y su lista de transferencias
   "shadow-debt-answers", // WP-41: lo que el hogar respondió a cada compromiso que parecía deuda en la sombra
   "cirbe-report", // WP-40: filas del informe de la CIRBE tecleadas por el hogar y su fecha

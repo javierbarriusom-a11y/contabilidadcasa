@@ -117,6 +117,8 @@
         out.push({
           fromIndex: from, toIndex: row.payoffIndex, targetId: target.id, targetLabel: target.label, extra: pool, extraMin: pools.length ? Math.min(...pools) : 0, extraMax: top,
           extraTotal: round2(pools.reduce((sum, value) => sum + value, 0)), payoffMonthKey: row.payoffMonthKey, settledId: row.id, settledLabel: row.label,
+          // DUO-D1: lo de más de cada mes del tramo (extra + cuotas ya liberadas), para seguir el plan mes a mes.
+          pools,
           ...(target.settlement ? { quita: { amount: target.settlement.amount, paid: target.extraApplied, forgiven: target.settlement.forgiven, settled: target.settlement.settled, yieldPct: target.settlement.yieldPct } } : {}),
         });
       }
