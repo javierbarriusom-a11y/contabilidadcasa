@@ -8952,9 +8952,9 @@ test.describe("DEC-23 · «Hecho esta semana» en Hoy", () => {
     await expect(page.locator("#hoyV2 .hoy-v2-header")).toBeVisible({ timeout: 20000 });
   };
 
-  test("antes del 30/11 no sale (cada cambio de Hoy tiene su semana)", async ({ page }) => {
+  test("antes del 24/11 no sale (D-N39 adelantó la puerta del 30/11)", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await conRepaso(page, new Date(2026, 10, 25, 10, 0, 0), [{ date: "2026-11-24", seconds: 260, saldos: true, importado: false, clasificados: 4 }]);
+    await conRepaso(page, new Date(2026, 10, 23, 15, 0, 0), [{ date: "2026-11-23", seconds: 260, saldos: true, importado: false, clasificados: 4 }]);
     await expect(page.locator("#hoyV2 [data-hoy-v2-hecho]")).toHaveCount(0);
     await expect(page.locator("#hoyV2 [data-hoy-v2-repaso]")).toHaveCount(0);
   });
@@ -12602,7 +12602,7 @@ test.describe("D-N38 · Revisión trimestral", () => {
       await page.reload();
       await abrirAreaDeAjustes(page, "#revisionTrimestralCard");
       const card = page.locator("#revisionTrimestralCard");
-      await expect(card.locator("summary")).toContainText(/Revisión trimestral \(semana del 14\/12\) · 0 de \d+ decididas/, { timeout: 15000 });
+      await expect(card.locator("summary")).toContainText(/Revisión trimestral · 0 de \d+ decididas/, { timeout: 15000 });
       await card.locator("summary").click();
       const plan = card.locator('[data-revision-fila="pantalla:debt-roadmap"]');
       await expect(plan).toContainText("candidata de la duodécima");
@@ -12837,8 +12837,8 @@ test.describe("UND-04 · Ajustes por áreas en el móvil", () => {
 // UND-08 (undécima auditoría; DEC-31, 22/11/2026, la línea de Hoy desde el 14/12): «¿Me lo puedo permitir?». La frase es la del cálculo
 // con la previsión de Hoy; no guarda nada; el foco vuelve a la línea al cerrar; el medidor cuenta una consulta por hoja.
 test.describe("UND-08 · ¿Me lo puedo permitir?", () => {
-  test("antes del 14/12 no sale en Hoy (un cambio de Hoy por semana)", async ({ page }) => {
-    await page.clock.install({ time: new Date(2026, 11, 10, 10, 0, 0) });
+  test("antes del 24/11 no sale en Hoy (D-N39 adelantó la puerta del 14/12)", async ({ page }) => {
+    await page.clock.install({ time: new Date(2026, 10, 20, 10, 0, 0) });
     await page.goto("/index.html#home");
     await expect(page.locator("#hoyV2 .hoy-v2-figure")).toBeVisible({ timeout: 20000 });
     await expect(page.locator("#hoyV2 [data-permitir-abrir]")).toHaveCount(0);
@@ -12933,8 +12933,8 @@ test.describe("UND-13 · Kit para hablar con la entidad", () => {
 // UND-06 (undécima auditoría; 22/11/2026, activo desde el 7/12): el indicador de cada área de Hoy. Lo que enseña cada pestaña es lo que
 // calcula hoyV2IndicadoresDe; su texto entra en el nombre de la pestaña, y abrir un área con indicador lo cuenta el medidor.
 test.describe("UND-06 · Indicador por área de Hoy", () => {
-  test("antes del 7/12 no hay indicadores (la revisión de las áreas se mide sin ellos)", async ({ page }) => {
-    await page.clock.install({ time: new Date(2026, 11, 3, 10, 0, 0) });
+  test("antes del 24/11 no hay indicadores (D-N39 adelantó la puerta del 7/12)", async ({ page }) => {
+    await page.clock.install({ time: new Date(2026, 10, 20, 10, 0, 0) });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/index.html#home");
     await expect(page.locator("#hoyV2 .hoy-v2-areas")).toBeVisible({ timeout: 20000 });
