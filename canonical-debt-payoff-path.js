@@ -227,7 +227,7 @@
 
   /**
    * @param {Array<Record<string, any>>} contracts filas de contrato canónico (id, entity, type, paymentStatus, currentPrincipal, currentPayment, apr, remainingInstallments)
-   * @param {{startMonthKey?: string, extraMonthly?: number, strategy?: string, order?: string[], redirectFreed?: boolean, extraByMonth?: number[], settlements?: Array<{id: string, amount: number, prepaid?: number}>}} [options]
+   * @param {{startMonthKey?: string, extraMonthly?: number, strategy?: string, order?: string[], redirectFreed?: boolean, extraByMonth?: number[], settlements?: Array<{id: string, amount: number, prepaid?: number}>, promotions?: Array<{id: string, untilMonth: string, aprPct?: number}>}} [options]
    */
   function project(contracts, options = {}) {
     const extra = options.extraMonthly === undefined ? 0 : (typeof options.extraMonthly === "number" ? options.extraMonthly : NaN);
