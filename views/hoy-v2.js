@@ -734,6 +734,7 @@ function hoyV2AreaPanel(area, model, hoy, asOf, coverage) {
         ${hoyV2Repaso()}
         ${hoyV2ExtractosAtrasados(hoy)}
         ${hoyV2Esperados()}
+        ${typeof hitoDeudaHoyHtml === "function" ? hitoDeudaHoyHtml(hoy) : ""}
       </div>
       <div class="hoy-v2-side">
         ${hoyV2Month(hoy, model.plannedSaving, true)}

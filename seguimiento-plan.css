@@ -89,3 +89,96 @@
   outline: 3px solid var(--e19-ink);
   outline-offset: 2px;
 }
+
+/* DUO-D5 · «Si ponéis más al mes» (camino-deuda-ui.js), en el plan óptimo. Cabe a 390 px: celdas compactas y texto que parte. */
+.plan-optimo-cada50 {
+  margin: 12px 0;
+}
+
+.plan-optimo-cada50-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--e19-font-sans);
+  font-size: var(--e19-text-sm);
+  color: var(--e19-ink);
+  table-layout: fixed;
+}
+
+.plan-optimo-cada50-tabla caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 6px;
+}
+
+.plan-optimo-cada50-tabla th,
+.plan-optimo-cada50-tabla td {
+  padding: 6px 4px;
+  border-top: 1px solid var(--e19-border);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.plan-optimo-cada50-tabla thead th {
+  color: var(--e19-muted);
+  font-weight: 500;
+  border-top: 0;
+}
+
+.plan-optimo-cada50-tabla td {
+  font-variant-numeric: tabular-nums;
+}
+
+/* DUO-D2 · cerrar las deudas saldadas (hitos-deuda-ui.js), bajo el seguimiento, y la tarjeta del hito en Hoy (estilo de .hoy-v2-hecho). */
+.hitos-cierre {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--e19-border);
+  font-family: var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.hitos-cierre-lista,
+.hito-pasos {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  font-size: var(--e19-text-sm);
+}
+
+.hito-cierre {
+  margin-bottom: 12px;
+  overflow-wrap: anywhere;
+}
+
+.hito-paso {
+  display: grid;
+  grid-template-columns: 1.4em minmax(0, 1fr);
+  gap: 6px;
+  padding: 6px 0;
+  border-top: 1px solid var(--e19-border);
+}
+
+.hito-paso-forma {
+  font-size: var(--e19-text-base);
+  line-height: 1.2;
+}
+
+.hito-paso-estado {
+  color: var(--e19-muted);
+}
+
+.hito-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.hito-botones .e19-btn {
+  min-height: 44px;
+}
+
+.hito-deuda-hoy a {
+  color: inherit;
+}

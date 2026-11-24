@@ -12589,6 +12589,50 @@ test.describe("DUO-D1 · Seguimiento del plan de deuda", () => {
   }
 });
 
+// DUO-D5 y DUO-D2 (duodécima auditoría, 24/11/2026), desde lo guardado: «Si ponéis más al mes» en el plan óptimo; y, al dejar a cero el capital
+// de la tarjeta FICTICIA en Contratos, su cierre en Deuda › Plan (la carta, los ficheros y la CIRBE).
+test.describe("DUO-D5 y DUO-D2 · Cada 50 € más y el cierre de una deuda saldada", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  for (const [nombre, viewport] of [["a 1280 px", { width: 1280, height: 900 }], ["a 390 px", { width: 390, height: 844 }]]) {
+    test(`la tabla de cada 50 € más y los tres pasos de cierre al saldar una deuda, ${nombre}`, async ({ page }) => {
+      test.setTimeout(120000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await arrancarEnCaliente(page, { viewport });
+      await page.evaluate(() => { location.hash = "#deuda-ruta"; });
+      await page.fill("#planOptimoMensual", "200");
+      const tabla = page.locator("#planOptimoResultado .plan-optimo-cada50-tabla");
+      await expect(tabla).toBeVisible({ timeout: 20000 });
+      await expect(tabla.locator("tbody tr")).toHaveCount(4);
+      await expect(tabla.locator("tbody th").first()).toHaveText("+50 €");
+      await expect(page.locator("[data-plan-optimo-cada50-frase]")).toContainText("cada 50 € más");
+      await expect(page.locator("#planCierres")).toBeEmpty();
+      // Saldar la tarjeta: capital pendiente a cero en Contratos.
+      await page.evaluate(() => { location.hash = "#deuda-contratos"; });
+      const fila = page.locator("[data-deuda-contrato-row]").filter({ has: page.locator('input[data-deuda-contrato-field="entity"][value="Banco FICTICIO"]') });
+      const capital = fila.locator('input[data-deuda-contrato-field="currentPrincipal"]');
+      await capital.fill("0");
+      await capital.press("Tab");
+      await page.evaluate(() => { location.hash = "#deuda-ruta"; });
+      const cierre = page.locator("#planCierres");
+      await expect(cierre).toContainText("Cerrar las deudas saldadas", { timeout: 15000 });
+      await expect(cierre).toContainText("Banco FICTICIO");
+      await cierre.locator('[data-hito-paso="carta"][data-hito-marcar="pedida"]').click();
+      await expect(cierre).toContainText(/Pedida el \d{2}\/\d{2}\/\d{4}/);
+      await cierre.locator('[data-hito-paso="carta"][data-hito-marcar="recibida"]').click();
+      await cierre.locator('[data-hito-paso="ficheros"][data-hito-marcar="no-hacia-falta"]').click();
+      await cierre.locator('[data-hito-paso="cirbe"][data-hito-marcar="comprobado"]').click();
+      await expect(cierre).toContainText("cierre completo (carta, ficheros y CIRBE)");
+      // Lo marcado se recuerda al volver a abrir la app.
+      await page.reload();
+      await page.evaluate(() => { location.hash = "#deuda-ruta"; });
+      await expect(page.locator("#planCierres")).toContainText("cierre completo", { timeout: 20000 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
 // DUO-04 (duodécima auditoría; UND-03 y UND-22): la salud del cálculo en Ajustes › Uso de la app, desde lo guardado.
 test.describe("DUO-04 · Salud del cálculo", () => {
   const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
