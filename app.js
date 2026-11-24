@@ -1348,6 +1348,7 @@ const BACKUP_LOCAL_STORES = [
   "plan-optimo-orden", // D-N27: el orden que el hogar eligió para el plan óptimo de saldo (avalancha o bola de nieve)
   "plan-optimo-margen", // D-N27: el margen con el que el plan óptimo pregunta si empezar por la deuda más pequeña
   "plan-optimo-quitas", // UND-11: las ofertas de quita que el hogar escribe en el plan óptimo, por contrato
+  "plan-optimo-comisiones", // DUO-D3: la comisión por amortizar antes de cada contrato (y, si baja, a cuánto y desde qué mes)
   "plan-deuda-compromiso", // DUO-D1: la foto del plan de deuda que el hogar decidió seguir («Este es nuestro plan»)
   "plan-deuda-respuestas", // DUO-D1: lo que el hogar contestó de cada mes (sí, otra cantidad, este mes no, no era esto)
   "deuda-hitos", // DUO-D2: el primer día en que la app vio cada deuda saldada (y cuáles ya lo estaban al empezar)

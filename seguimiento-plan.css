@@ -185,3 +185,36 @@
 .hito-deuda-hoy a {
   color: inherit;
 }
+
+/* DUO-D3 · comisión por amortizar antes (camino-deuda-ui.js): un grupo por contrato, que parte en el móvil. */
+.plan-optimo-comisiones-filas {
+  display: grid;
+  gap: 12px;
+}
+
+.plan-optimo-comision {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid var(--e19-border);
+  border-radius: 8px;
+  min-width: 0;
+}
+
+.plan-optimo-comision legend {
+  font-weight: 600;
+  padding: 0 4px;
+  overflow-wrap: anywhere;
+}
+
+.plan-optimo-comision .month-picker {
+  flex: 1 1 120px;
+  min-width: 0;
+}
+
+.plan-optimo-comision input {
+  min-height: 44px;
+  max-width: 100%;
+}

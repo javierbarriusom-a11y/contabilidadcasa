@@ -248,6 +248,7 @@ let planOptimoLast = null;
 let planOptimoModo = null;
 // UND-11 (22/11/2026): las ofertas de quita que teclea el hogar, por contrato, en este navegador.
 const PLAN_OPTIMO_QUITAS_KEY = "plan-optimo-quitas";
+const PLAN_OPTIMO_COMISIONES_KEY = "plan-optimo-comisiones"; // DUO-D3: la comisión por amortizar antes de cada contrato
 
 // D-N27 (21/11/2026, «ok, pero me preguntas antes y poder modificar»): el orden elegido y el margen para preguntar se recuerdan en
 // este navegador. Sin elegir, la avalancha; si la bola de nieve cuesta poco más y salda antes la primera, se pregunta.
@@ -306,6 +307,68 @@ function planOptimoQuitasListaHtml(contracts) {
       <input type="number" min="0" max="100000" step="10" inputmode="decimal" data-plan-optimo-quita="${escapeHtml(id)}" value="${escapeHtml(valor)}" placeholder="sin oferta" /></label>`;
   });
   return filas.length ? `<div class="cam-control plan-optimo-quitas-filas">${filas.join("")}</div>` : `<p class="e19-kpi-note">No hay deudas con capital pendiente.</p>`;
+}
+
+// DUO-D3: la comisión por amortizar antes, por contrato (la de ahora y, si baja, a cuánto y desde qué mes). Nunca se supone.
+function planOptimoComisionesGuardadas() {
+  const g = planOptimoGuard(() => JSON.parse(storageGet(storageKey(PLAN_OPTIMO_COMISIONES_KEY), "{}")), {}) || {};
+  return g && typeof g === "object" && !Array.isArray(g) ? g : {};
+}
+
+function planOptimoComisiones(contracts) {
+  const g = planOptimoComisionesGuardadas();
+  return (contracts || []).map((c) => ({ id: String(c?.id || ""), ...(g[String(c?.id || "")] || {}) })).filter((x) => x.id && Number(x.pct) > 0);
+}
+
+function planOptimoComisionesListaHtml(contracts) {
+  const g = planOptimoComisionesGuardadas();
+  const filas = (contracts || []).filter((c) => Number(c?.currentPrincipal) > 0 && String(c?.agreement?.status || "").toLowerCase() !== "accepted").map((c) => {
+    const id = String(c.id || "");
+    const v = g[id] || {};
+    const nombre = [c.entity, c.type].filter(Boolean).join(" ").trim() || c.label || id;
+    const campo = (k, extra) => `data-plan-optimo-comision="${escapeHtml(id)}" data-comision-campo="${k}" value="${escapeHtml(v[k] === undefined || v[k] === null ? "" : String(v[k]))}" ${extra}`;
+    return `<fieldset class="plan-optimo-comision"><legend>${escapeHtml(nombre)}</legend>
+      <label class="month-picker"><span>Comisión de ahora (%)</span><input type="number" min="0" max="10" step="0.05" inputmode="decimal" ${campo("pct", 'placeholder="sin comisión"')} /></label>
+      <label class="month-picker"><span>Baja a (%)</span><input type="number" min="0" max="10" step="0.05" inputmode="decimal" ${campo("nextPct", 'placeholder="—"')} /></label>
+      <label class="month-picker"><span>Desde el mes</span><input type="month" ${campo("untilMonth", "")} /></label>
+    </fieldset>`;
+  });
+  return filas.length ? `<div class="plan-optimo-comisiones-filas">${filas.join("")}</div>` : `<p class="e19-kpi-note">No hay deudas con capital pendiente.</p>`;
+}
+
+function planOptimoPintarComisiones(contracts) {
+  const lista = qs("planOptimoComisionesLista");
+  if (!lista) return;
+  const firma = JSON.stringify((contracts || []).map((c) => [c?.id, c?.currentPrincipal, c?.agreement?.status]));
+  if (lista.__firma === firma) return;
+  lista.__firma = firma;
+  lista.innerHTML = planOptimoComisionesListaHtml(contracts);
+}
+
+function planOptimoOnComision(target) {
+  const campo = target.dataset.comisionCampo;
+  const id = target.dataset.planOptimoComision;
+  const note = qs("planOptimoNota");
+  const raw = String(target.value || "").replace(",", ".").trim();
+  let valor = raw;
+  if (campo !== "untilMonth") {
+    valor = raw === "" ? null : Number(raw);
+    if (valor !== null && (!Number.isFinite(valor) || valor < 0 || valor > 10)) {
+      target.setAttribute("aria-invalid", "true");
+      if (note) note.textContent = "Escribe la comisión como un porcentaje entre 0 y 10, por ejemplo 1 o 0,5 (vacío: sin comisión).";
+      return;
+    }
+  } else if (raw && !/^\d{4}-\d{2}$/.test(raw)) {
+    target.setAttribute("aria-invalid", "true");
+    if (note) note.textContent = "Elige el mes desde el que baja la comisión.";
+    return;
+  }
+  target.removeAttribute("aria-invalid");
+  if (note) note.textContent = "";
+  const todas = planOptimoComisionesGuardadas();
+  todas[id] = { ...(todas[id] || {}), [campo]: valor === "" ? null : valor };
+  planOptimoGuardar(PLAN_OPTIMO_COMISIONES_KEY, JSON.stringify(todas));
+  planOptimoRepintar();
 }
 
 function planOptimoPintarQuitas(contracts) {
@@ -437,6 +500,63 @@ function planOptimoCada50Html(filas) {
     </div>`;
 }
 
+// DUO-D3: al amortizar con el pago inicial, la entidad pregunta si reducir plazo o cuota. El plan supone plazo (lo que más intereses
+// ahorra); con la previsión justa en los próximos 6 meses, la cuota da aire y se dice cuánto cuesta. Cálculo de APX6
+// (FinanceDebtComparator.amortizeReduceQuotaVsTerm), con la TAE y los plazos que quedan del contrato.
+function planOptimoCuotaPlazoHtml(r, contracts, liquidez, modo) {
+  const C = globalThis.FinanceDebtComparator;
+  if (!C?.amortizeReduceQuotaVsTerm || !r?.ok) return "";
+  const porId = new Map((contracts || []).map((c) => [String(c.id), c]));
+  const justa = modo === "prevision" && Array.isArray(liquidez?.byMonth) && liquidez.byMonth.slice(0, 6).some((v) => !(Number(v) > 0));
+  const filas = (r.recommended.lumpApplied || []).filter((x) => !x.settles && !x.quita).map((x) => {
+    const c = porId.get(String(x.id));
+    if (!c || !(Number(c.apr) >= 0) || c.apr === null) return "";
+    // Sin plazo declarado (una tarjeta), el que sale de su cuota y su TAE.
+    let meses = Number(c.remainingInstallments);
+    if (!(meses > 0)) {
+      const i = Number(c.apr) / 1200;
+      const p = Number(c.currentPrincipal);
+      const m = Number(c.currentPayment);
+      meses = i === 0 ? Math.ceil(p / m) : m > p * i ? Math.ceil(-Math.log(1 - (p * i) / m) / Math.log(1 + i)) : 0;
+    }
+    if (!(meses > 0) || !Number.isFinite(meses)) return "";
+    const k = C.amortizeReduceQuotaVsTerm({ principal: Number(c.currentPrincipal), annualRatePct: Number(c.apr), months: meses, lumpSum: x.amount });
+    if (!k?.calculable) return "";
+    const diferencia = Math.max(0, Math.round((k.reduceTerm.interestSaved - k.reduceQuota.interestSaved) * 100) / 100);
+    const consejo = justa
+      ? `Con la previsión justa los próximos meses, <strong>reducir cuota</strong> da aire: cuesta ${escapeHtml(money(diferencia, true))} más de intereses.`
+      : `Por defecto, <strong>reducir plazo</strong>: ahorra ${escapeHtml(money(diferencia, true))} más (es lo que supone el plan).`;
+    return `<li><strong>${escapeHtml(x.label)}</strong> (${escapeHtml(money(x.amount, true))}): reducir plazo, ${escapeHtml(money(k.reduceTerm.interestSaved, true))} menos de intereses y ${escapeHtml(caminoMonths(k.reduceTerm.monthsReduced))} antes; reducir cuota, ${escapeHtml(money(k.reduceQuota.interestSaved, true))} menos y ${escapeHtml(money(k.reduceQuota.paymentReduction, true))} al mes de liquidez. ${consejo}</li>`;
+  }).filter(Boolean);
+  return filas.length ? `<div class="plan-optimo-cuota-plazo"><p class="cam-frase">Al amortizar, la entidad os preguntará si <strong>reducir plazo o cuota</strong>:</p><ul class="plan-optimo-tramos">${filas.join("")}</ul></div>` : "";
+}
+
+// DUO-D3: las deudas a tipo variable (las que tienen diferencial en la revisión del tipo, WP-20) dan un rango y no una fecha.
+function planOptimoVariables() {
+  const g = planOptimoGuard(() => JSON.parse(storageGet(storageKey("rate-review"), "{}")), {}) || {};
+  const por = g.byContract && typeof g.byContract === "object" ? g.byContract : {};
+  return new Set(Object.keys(por).filter((id) => Number.isFinite(Number(por[id]?.spread))));
+}
+
+function planOptimoEuriborHtml(Plan, engine, contracts, opciones, r) {
+  const variables = planOptimoVariables();
+  const afectadas = (contracts || []).filter((c) => variables.has(String(c.id)) && Number(c.apr) >= 0 && c.apr !== null && Number(c.currentPrincipal) > 0);
+  if (!afectadas.length || !r?.ok || !r.recommended.summary.debtFreeMonthKey) return "";
+  const con = (delta) => {
+    const cambiados = (contracts || []).map((c) => (variables.has(String(c.id)) && c.apr !== null ? { ...c, apr: Math.max(0, Number(c.apr) + delta) } : c));
+    const alt = Plan.plan(engine, cambiados, opciones);
+    return alt?.ok ? alt.recommended.summary.debtFreeMonthKey : null;
+  };
+  const sube = con(1);
+  const baja = con(-1);
+  if (!sube || !baja) return "";
+  const nombres = afectadas.map((c) => [c.entity, c.type].filter(Boolean).join(" ")).join(", ");
+  if (sube === baja && sube === r.recommended.summary.debtFreeMonthKey) {
+    return `<p class="e19-kpi-note" data-plan-optimo-euribor>Con tipo variable en ${escapeHtml(nombres)}: aunque el Euribor suba o baje un punto, acabáis el mismo mes.</p>`;
+  }
+  return `<p class="e19-kpi-note" data-plan-optimo-euribor>Con tipo variable en ${escapeHtml(nombres)}: si el Euribor sube un punto, libres en <strong>${escapeHtml(caminoMonthText(sube))}</strong>; si baja un punto, en <strong>${escapeHtml(caminoMonthText(baja))}</strong>. La fecha de arriba es con el tipo de hoy.</p>`;
+}
+
 function planOptimoTramosHtml(periods) {
   if (!periods.length) return "";
   const items = periods.map((p) => {
@@ -511,6 +631,8 @@ function planOptimoAvisosHtml(r, refs) {
     if (w.id === "por-encima-capacidad") notes.push(`<strong>Por encima de vuestra capacidad libre</strong> (${escapeHtml(money(w.capacity, true))} al mes): con más, la previsión puede bajar del suelo algún mes. Miradlo en Plan › Previsión.`);
     if (w.id === "por-encima-disponible") notes.push(`<strong>El pago inicial pasa de lo que sobra sobre el suelo del colchón</strong> en los próximos 12 meses (${escapeHtml(money(w.available, true))}): os quedaríais por debajo del colchón.`);
     if (w.id === "pago-inicial-sobra") notes.push(`Del pago inicial sobran ${escapeHtml(money(w.amount, true))}: con lo demás ya se saldan las deudas que entran en la cuenta.`);
+    if (w.id === "comision-quita") notes.push(`<strong>La comisión de ${escapeHtml(w.label)} no cuenta:</strong> el plan la cancela con la quita, y una quita no es amortizar.`);
+    if (w.id === "comision-baja") notes.push(`<strong>Esperad a ${escapeHtml(caminoMonthText(w.desde))} para amortizar ${escapeHtml(w.label)}:</strong> su comisión pasa del ${escapeHtml(planOptimoPct(w.pct))} al ${escapeHtml(planOptimoPct(w.nextPct))}. Lo previsto de más antes de esa fecha (${escapeHtml(money(w.antes, true))}) pagaría ${escapeHtml(money(w.ahorro, true))} más de comisión. El plan no lo retrasa solo: decidid si esperar.`);
     if (w.id === "fuera") {
       // DUO-D9: sin desglose (motor anterior), todo como «sin datos».
       const datos = w.datos || { count: w.count, principal: w.principal };
@@ -519,7 +641,7 @@ function planOptimoAvisosHtml(r, refs) {
     }
   }
   if (refs.available !== null && !r.lump && refs.available > 0) notes.push(`Por encima del suelo del colchón tenéis unos ${escapeHtml(money(refs.available, true))} que la previsión no toca en 12 meses: probad a poner parte como pago inicial.`);
-  notes.push("Se calcula con «Camino a deuda cero» (capital, cuota y TAE de cada contrato), pero aquí las cuotas que se liberan al saldar una deuda <strong>sí</strong> pasan a la siguiente. A lo pactado con una entidad no se le adelanta nada. Sin comisiones por amortizar antes ni cambios de tipo. Una quita se supone en pie hasta que se paga, y mientras se junta la deuda sigue con su cuota. Es una propuesta: no ejecuta nada.");
+  notes.push("Se calcula con «Camino a deuda cero» (capital, cuota y TAE de cada contrato), pero aquí las cuotas que se liberan al saldar una deuda <strong>sí</strong> pasan a la siguiente. A lo pactado con una entidad no se le adelanta nada. Las comisiones por amortizar antes cuentan si las escribís en «Comisión por amortizar antes»; el tipo es el de hoy (con tipo variable, se da el rango si el Euribor sube o baja un punto). Una quita se supone en pie hasta que se paga, y mientras se junta la deuda sigue con su cuota. Es una propuesta: no ejecuta nada.");
   return notes.map((note) => `<p class="e19-kpi-note">${note}</p>`).join("");
 }
 
@@ -531,7 +653,7 @@ function planOptimoHtml(engine, contracts, todayKey, refs, Plan) {
   const ofertas = planOptimoQuitas(contracts);
   const comunes = {
     startMonthKey: todayKey, lump: planOptimoPago, order: caminoOrder(contracts), available: refs.available,
-    strategy: planOptimoOrdenGuardado(), tolerance: planOptimoMargenGuardado(), settlements: ofertas,
+    strategy: planOptimoOrdenGuardado(), tolerance: planOptimoMargenGuardado(), settlements: ofertas, commissions: planOptimoComisiones(contracts),
   };
   const r = modo === "prevision"
     ? Plan.plan(engine, contracts, { ...comunes, monthly: liquidez.after, monthlyByMonth: liquidez.byMonth })
@@ -544,7 +666,9 @@ function planOptimoHtml(engine, contracts, todayKey, refs, Plan) {
   const s = r.recommended.summary;
   const base = r.baseline;
   // UND-11: con quitas, lo que se ahorra son los intereses más lo perdonado.
-  const ahorroHero = s.forgiven > 0
+  const ahorroHero = s.commissionCost > 0
+    ? caminoHeroHtml("Lo que os ahorráis", s.totalSaved === null ? "—" : money(s.totalSaved, true), `${s.interestSaved === null ? "" : `${money(s.interestSaved, true)} de intereses`}${s.forgiven > 0 ? ` + ${money(s.forgiven, true)} perdonados` : ""} − ${money(s.commissionCost, true)} de comisiones`)
+    : s.forgiven > 0
     ? caminoHeroHtml("Lo que os ahorráis", s.totalSaved === null ? "—" : money(s.totalSaved, true), `${s.interestSaved === null ? "" : `${money(s.interestSaved, true)} de intereses + `}${money(s.forgiven, true)} que os perdonan`)
     : caminoHeroHtml("Intereses que os ahorráis", s.interestSaved === null ? "—" : money(s.interestSaved, true), s.totalInterest === null ? "alguna deuda no acaba" : `pagaréis ${money(s.totalInterest, true)} en lugar de ${money(base.totalInterest ?? 0, true)}`);
   const heroes = `<div class="cam-heroes">
@@ -559,7 +683,10 @@ function planOptimoHtml(engine, contracts, todayKey, refs, Plan) {
   // DUO-D5: con la misma liquidez de base (lo de cada mes de la previsión o el importe fijo), cada 50 € más.
   const liquidezBase = modo === "prevision" ? { monthly: liquidez.after, byMonth: liquidez.byMonth } : { monthly: fijoMensual, byMonth: null };
   const cada50 = planOptimoCada50Html(planOptimoCada50(Plan, engine, contracts, comunes, r, liquidezBase));
-  return `${planOptimoPreguntaHtml(r)}${heroes}${planOptimoRazonHtml(r)}${modo === "prevision" ? planOptimoLiquidezHtml(r, liquidez, fijo) : sinPrevision}${planOptimoTramosHtml(r.recommended.periods)}${cada50}${pago}${planOptimoQuitasHtml(r, ofertas, contracts)}${planOptimoAvisosHtml(r, refs)}`;
+  const opcionesVivas = { ...comunes, strategy: r.recommended.strategy, monthly: liquidezBase.monthly, ...(liquidezBase.byMonth ? { monthlyByMonth: liquidezBase.byMonth } : {}) };
+  const euribor = planOptimoEuriborHtml(Plan, engine, contracts, opcionesVivas, r);
+  const cuotaPlazo = planOptimoCuotaPlazoHtml(r, contracts, liquidez, modo);
+  return `${planOptimoPreguntaHtml(r)}${heroes}${euribor}${planOptimoRazonHtml(r)}${modo === "prevision" ? planOptimoLiquidezHtml(r, liquidez, fijo) : sinPrevision}${planOptimoTramosHtml(r.recommended.periods)}${cada50}${pago}${cuotaPlazo}${planOptimoQuitasHtml(r, ofertas, contracts)}${planOptimoAvisosHtml(r, refs)}`;
 }
 
 // La llama renderDeudaRuta (views/deuda.js) junto a la del camino, con el motor del camino y el del plan.
@@ -574,6 +701,7 @@ function renderPlanOptimo(engine, contracts, Plan) {
     if (mensual && planOptimoMensual === null && document.activeElement !== mensual) mensual.value = String(Math.max(0, Math.floor((refs.capacity || 0) / 10) * 10));
     planOptimoSincronizarControles();
     planOptimoPintarQuitas(contracts || []);
+    planOptimoPintarComisiones(contracts || []);
     const html = planOptimoHtml(engine, contracts || [], isoLocalDate(new Date()).slice(0, 7), refs, Plan);
     if (box.__planHtml !== html) {
       box.innerHTML = html;
@@ -667,6 +795,7 @@ function planOptimoOnInput(event) {
   const target = event.target;
   if (target && (target.id === "planOptimoMargenPct" || target.id === "planOptimoMargenAbs")) { planOptimoOnMargen(target); return; }
   if (target?.dataset?.planOptimoQuita !== undefined) { planOptimoOnQuita(target); return; }
+  if (target?.dataset?.planOptimoComision !== undefined) { planOptimoOnComision(target); return; }
   if (!target || (target.id !== "planOptimoMensual" && target.id !== "planOptimoPago")) return;
   const parsed = caminoParseExtra(target.value);
   const note = qs("planOptimoNota");

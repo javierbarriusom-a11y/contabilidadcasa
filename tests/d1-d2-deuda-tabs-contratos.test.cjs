@@ -943,7 +943,7 @@ test("D-2c · el formulario de alta y su error viven en el HTML de Deuda › Con
 // formato, no un valor congelado, para no romper con cada bump legítimo posterior.
 test("D-1/D-2/D-2d/D10 · viaja en el shell offline versionado, con bump de app.js/deuda.js/design-tokens.css", () => {
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app.js\?v=20261124duod1/);
+  assert.match(html, /app.js\?v=20261124duod3/);
   assert.match(html, /design-tokens\.css\?v=20261120dec38b/);
   assert.match(app, /views\/deuda\.js\?v=\d{8}[a-z0-9]+/);
 });

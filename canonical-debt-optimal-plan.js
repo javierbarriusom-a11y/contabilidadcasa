@@ -206,6 +206,75 @@
     };
   }
 
+  // DUO-D3 (duodécima auditoría): la comisión por amortizar antes, por contrato. `pct` es la de ahora; si baja en un mes conocido
+  // (`untilMonth`, desde el que aplica `nextPct`, como en DEB8), se tiene en cuenta. La app nunca la supone: solo la que escribe el hogar.
+  function mesIndex(key) {
+    const [y, m] = String(key).split("-").map(Number);
+    return y * 12 + (m - 1);
+  }
+
+  function comisiones(list, startMonthKey) {
+    const out = new Map();
+    (Array.isArray(list) ? list : []).forEach((item) => {
+      const pct = Number(item?.pct);
+      if (!item || !(pct > 0) || pct > 10) return;
+      const next = Number(item.nextPct);
+      const until = /^\d{4}-\d{2}$/.test(String(item.untilMonth || "")) ? String(item.untilMonth) : null;
+      const baja = until && Number.isFinite(next) && next >= 0 && next < pct ? { untilMonth: until, nextPct: round2(next) } : null;
+      const vigente = baja && startMonthKey && mesIndex(startMonthKey) >= mesIndex(baja.untilMonth) ? baja.nextPct : round2(pct);
+      out.set(String(item.id), { pct: vigente, original: round2(pct), baja: baja && vigente === round2(pct) ? baja : null });
+    });
+    return out;
+  }
+
+  // La avalancha con la comisión: lo que rinde amortizar una deuda es su TAE (tras la deducción fiscal, DEB5) menos la comisión repartida
+  // en los años que le quedan. Sin comisiones, el orden de siempre.
+  function ordenNeto(baseline, contracts, comms, baseOrder) {
+    const porId = new Map((Array.isArray(contracts) ? contracts : []).map((c) => [String(c.id), c]));
+    const rank = new Map((baseOrder || []).map((id, i) => [String(id), i]));
+    const filas = baseline.included.filter((row) => !row.agreement).map((row) => {
+      const fiscal = Math.min(100, Math.max(0, Number(porId.get(row.id)?.fiscalDeductionPct) || 0));
+      const anos = Math.max(1, ((row.payoffIndex ?? 359) + 1) / 12);
+      const c = comms.get(row.id);
+      return { id: row.id, neto: row.aprPct * (1 - fiscal / 100) - (c ? c.pct / anos : 0), rank: rank.has(row.id) ? rank.get(row.id) : Infinity };
+    });
+    return filas.sort((x, y) => y.neto - x.neto || x.rank - y.rank || x.id.localeCompare(y.id)).map((f) => f.id);
+  }
+
+  // Lo que cuesta en comisiones lo puesto de más en cada deuda (y el pago inicial que rebajó su capital). Las quitas no son amortizar.
+  function costeComisiones(result, lumpApplied, comms) {
+    if (!comms.size || !result?.ok) return { total: 0, porDeuda: [] };
+    const inicial = new Map((lumpApplied || []).filter((x) => !x.quita).map((x) => [x.id, x.amount]));
+    const porDeuda = result.included
+      .filter((row) => !row.settlement && comms.has(row.id))
+      .map((row) => {
+        const amortizado = round2((row.extraApplied || 0) + (inicial.get(row.id) || 0));
+        return { id: row.id, label: row.label, pct: comms.get(row.id).pct, amortizado, coste: round2((amortizado * comms.get(row.id).pct) / 100) };
+      })
+      .filter((x) => x.coste > 0);
+    return { total: round2(porDeuda.reduce((sum, x) => sum + x.coste, 0)), porDeuda };
+  }
+
+  // Si la comisión de una deuda baja pronto, cuánto de lo previsto de más se pagaría antes con la comisión alta.
+  function avisosComision(comms, rec, startMonthKey) {
+    const out = [];
+    comms.forEach((c, id) => {
+      if (!c.baja) return;
+      const k = mesIndex(c.baja.untilMonth) - mesIndex(startMonthKey);
+      if (k <= 0 || k > 24) return;
+      let antes = 0;
+      (rec.periods || []).filter((p) => p.targetId === id).forEach((p) => {
+        for (let i = p.fromIndex; i <= p.toIndex && i < k; i += 1) antes += Array.isArray(p.pools) ? (p.pools[i - p.fromIndex] ?? p.extra) : p.extra;
+      });
+      (rec.lumpApplied || []).filter((x) => x.id === id && !x.quita).forEach((x) => { antes += x.amount; });
+      antes = round2(antes);
+      const ahorro = round2((antes * (c.pct - c.baja.nextPct)) / 100);
+      const fila = (rec.result?.included || []).find((r) => r.id === id);
+      if (ahorro > 0) out.push({ id: "comision-baja", deuda: id, label: fila?.label || id, pct: c.pct, nextPct: c.baja.nextPct, desde: c.baja.untilMonth, antes, ahorro });
+    });
+    return out;
+  }
+
   /**
    * @param {{project: Function}} payoffEngine FinanceCanonicalDebtPayoffPath
    * @param {Array<Record<string, any>>} contracts filas de contrato canónico (las mismas de «Camino a deuda cero»)
@@ -227,12 +296,23 @@
 
     const settlements = Array.isArray(options.settlements) ? options.settlements.filter((item) => item && amount(item.amount) > 0).map((item) => ({ id: String(item.id), amount: amount(item.amount) })) : [];
     const byMonth = Array.isArray(options.monthlyByMonth) ? options.monthlyByMonth.map(amount) : null;
+    const comms = comisiones(options.commissions, startMonthKey);
+    const ordenAvalancha = comms.size ? ordenNeto(baseline, contracts, comms, options.order || []) : options.order || [];
     const camino = (strategy) => {
-      const order = strategy === "avalancha" ? options.order || [] : [];
+      const order = strategy === "avalancha" ? ordenAvalancha : [];
       const attack = payoffEngine.project(contracts, { startMonthKey, extraMonthly: 0, strategy, order, settlements });
       const withLump = applyLump(contracts, attack.included, lump, settlements);
       const result = payoffEngine.project(withLump.contracts, { startMonthKey, extraMonthly: monthly, extraByMonth: byMonth, strategy, order, redirectFreed: true, settlements: withLump.settlements });
-      return { strategy, result, lumpApplied: withLump.applied, lumpUnused: withLump.unused, periods: result.ok ? periods(result, monthly, byMonth) : [], summary: summary(result, baseline) };
+      const resumen = summary(result, baseline);
+      // DUO-D3: las comisiones por amortizar restan del ahorro (los intereses de menos no cambian; lo que os ahorráis, sí).
+      const coste = costeComisiones(result, withLump.applied, comms);
+      if (coste.total > 0) {
+        resumen.commissionCost = coste.total;
+        resumen.commissionByDebt = coste.porDeuda;
+        if (resumen.totalSaved !== null) resumen.totalSaved = round2(resumen.totalSaved - coste.total);
+        else if (resumen.interestSaved !== null) resumen.totalSaved = round2(resumen.interestSaved + resumen.forgiven - coste.total);
+      }
+      return { strategy, result, lumpApplied: withLump.applied, lumpUnused: withLump.unused, periods: result.ok ? periods(result, monthly, byMonth) : [], summary: resumen };
     };
     const avalancha = camino("avalancha");
     const bola = camino("bola-nieve");
@@ -266,6 +346,9 @@
     const suspendidas = fuera.excluded.filter((row) => row.suspended);
     const otras = fuera.excluded.filter((row) => !row.suspended);
     const sumPrincipal = (rows) => round2(rows.reduce((sum, row) => sum + (Number(row.principal) || 0), 0));
+    avisosComision(comms, recommended, startMonthKey).forEach((w) => warnings.push(w));
+    // Una deuda que se cancela con una quita no se amortiza: su comisión no cuenta, y se dice (si no, escribirla no cambiaría nada).
+    (recommended.result?.included || []).filter((row) => row.settlement && comms.has(row.id)).forEach((row) => warnings.push({ id: "comision-quita", deuda: row.id, label: row.label }));
     if (fuera.excluded.length) {
       warnings.push({
         id: "fuera", count: fuera.excluded.length, principal: fuera.excludedPrincipal,
@@ -298,5 +381,5 @@
     };
   }
 
-  return { SCHEMA_ID, SNOWBALL_TOLERANCE, plan, applyLump, periods, tolerance, liquidityPlan };
+  return { SCHEMA_ID, SNOWBALL_TOLERANCE, plan, applyLump, periods, tolerance, liquidityPlan, comisiones };
 });

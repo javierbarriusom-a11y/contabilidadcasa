@@ -105,6 +105,7 @@ const PANTALLAS = [
       await expect(page.locator("#planOptimoResultado .cam-hero").first()).toBeVisible({ timeout: 20000 });
       await abrirDetalles(page, "#planOptimoQuitas");
       await abrirDetalles(page, "#planOptimoMargen");
+      await abrirDetalles(page, "#planOptimoComisiones");
     },
   },
   {
@@ -146,6 +147,8 @@ const EFECTOS = [
   { pantalla: "Deuda › Plan", nombre: "Modo: un importe fijo", clave: "radio:planOptimoModo=fijo", control: 'input[name="planOptimoModo"][value="fijo"]', accion: { tipo: "marcar" }, observa: PLAN },
   { pantalla: "Deuda › Plan", nombre: "Pago inicial", clave: "#planOptimoPago", control: "#planOptimoPago", accion: { tipo: "rellenar", valor: 1000 }, observa: PLAN },
   { pantalla: "Deuda › Plan", nombre: "Oferta de quita", clave: "input[data-plan-optimo-quita]", control: "input[data-plan-optimo-quita]", accion: { tipo: "rellenar", valor: 1500 }, observa: PLAN },
+  // DUO-D3: la comisión de un contrato resta del ahorro (y puede cambiar el orden). Los tres campos del contrato son una familia.
+  { pantalla: "Deuda › Plan", nombre: "Comisión por amortizar antes", clave: "input[data-plan-optimo-comision]", control: 'input[data-plan-optimo-comision][data-comision-campo="pct"]', accion: { tipo: "rellenar", valor: 2 }, observa: PLAN, oExplica: /no cuenta: el plan la cancela con la quita/ },
   { pantalla: "Deuda › Plan", nombre: "Orden: bola de nieve", clave: "radio:planOptimoOrden=bola-nieve", control: 'input[name="planOptimoOrden"][value="bola-nieve"]', accion: { tipo: "marcar" }, observa: PLAN, oExplica: COINCIDEN },
   { pantalla: "Deuda › Plan", nombre: "Orden: avalancha", clave: "radio:planOptimoOrden=avalancha", control: 'input[name="planOptimoOrden"][value="avalancha"]', accion: { tipo: "marcar" }, observa: PLAN, oExplica: COINCIDEN },
   { pantalla: "Deuda › Plan", nombre: "Margen en %", clave: "#planOptimoMargenPct", control: "#planOptimoMargenPct", accion: { tipo: "rellenar", valor: 40 }, observa: PLAN, oExplica: COINCIDEN },
