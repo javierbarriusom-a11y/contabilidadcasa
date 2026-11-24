@@ -96,6 +96,8 @@
 }
 
 .plan-optimo-cada50-tabla {
+  /* min-width: 0 anula el `table { min-width: 1120px }` genérico de styles.css, como en las demás tablas e19. */
+  min-width: 0;
   width: 100%;
   border-collapse: collapse;
   font-family: var(--e19-font-sans);
@@ -116,6 +118,7 @@
   border-top: 1px solid var(--e19-border);
   text-align: left;
   vertical-align: top;
+  white-space: normal;
   overflow-wrap: anywhere;
 }
 
