@@ -278,7 +278,7 @@
   /**
    * @param {{project: Function}} payoffEngine FinanceCanonicalDebtPayoffPath
    * @param {Array<Record<string, any>>} contracts filas de contrato canónico (las mismas de «Camino a deuda cero»)
-   * @param {{startMonthKey?: string, monthly?: number, lump?: number, order?: string[], capacity?: number|null, available?: number|null, strategy?: string|null, tolerance?: {pct?: number, abs?: number}|null, settlements?: Array<{id: string, amount: number}>|null, monthlyByMonth?: number[]|null}} options
+   * @param {{startMonthKey?: string, monthly?: number, lump?: number, order?: string[], capacity?: number|null, available?: number|null, strategy?: string|null, tolerance?: {pct?: number, abs?: number}|null, settlements?: Array<{id: string, amount: number}>|null, monthlyByMonth?: number[]|null, commissions?: Array<{id: string, pct: number, untilMonth?: string|null, nextPct?: number|null}>|null}} options
    *   `monthly`: lo que se pone al mes además de las cuotas; `lump`: pago inicial; `order`: orden de la avalancha (DEB5, TAE tras
    *   deducción fiscal); `capacity` y `available`: la capacidad libre al mes y el dinero por encima del suelo del colchón, solo para avisar;
    *   `strategy`: el orden que ha elegido el hogar («avalancha» o «bola-nieve»; sin elegir, la avalancha y, si procede, la pregunta);

@@ -37,9 +37,10 @@ function revisionResumen(M, store, id, hoy) {
 function revisionEntrada(hoy) {
   const M = globalThis.FinanceMedidor;
   const store = M?.leer ? M.leer() : {};
-  const legacy = [...document.querySelectorAll('a[data-e17-group="legacy"][href^="#"]')].map((a) => a.getAttribute("href").slice(1));
+  // Con el nombre del menú («Plan de deuda»), que es el que reconoce el hogar, no el título largo de la vista.
+  const legacy = [...document.querySelectorAll('a[data-e17-group="legacy"][href^="#"]')].map((a) => ({ id: a.getAttribute("href").slice(1), nombre: a.textContent.trim() }));
   const filas = typeof usoAppRows === "function" ? usoAppRows() : [];
-  const pantallas = legacy.map((id) => filas.find((f) => f.id === id) || { id, title: id, count: 0, last: null });
+  const pantallas = legacy.map(({ id, nombre }) => ({ ...(filas.find((f) => f.id === id) || { id, count: 0, last: null }), title: nombre || id }));
   const funciones = (M?.FUNCIONES || []).map((f) => ({
     id: f.id, nombre: f.nombre, conAccion: Boolean(f.accion), laboratorio: /apagad/.test(String(f.descarte?.[0] || "")), resumen: revisionResumen(M, store, f.id, hoy),
   }));
