@@ -58,8 +58,8 @@ test("«Decisiones abiertas» en el móvil: una columna (la de 34 px era para el
 test("versiones y Novedades", () => {
   const html = read("index.html");
   assert.match(html, /views\/hoy-v2\.js\?v=(?:20261121areas|20261122und|20261123duo04|20261124duod1|20261124dn39)/, "views/hoy-v2.js");
-  for (const file of ["tema-v2.css", "styles.css"]) assert.match(html, new RegExp(`${file.replace(".", "\\.")}\\?v=2026112(?:1(?:areas|d658)|2und|5tred1|5tred2|5tre3c)`), file); // a «d658» con lo que traía #658
-  assert.match(html, /novedades\.js\?v=2026112(?:1(?:areas|dn27|dn28)|2und|5dn40|5tred2|5tre3c)/, "novedades.js siguió a 20261121dn27 con D-N23 y D-N27");
+  for (const file of ["tema-v2.css", "styles.css"]) assert.match(html, new RegExp(`${file.replace(".", "\\.")}\\?v=2026112(?:1(?:areas|d658)|2und|5tred1|5tred2|5tre3c|5tred4)`), file); // a «d658» con lo que traía #658
+  assert.match(html, /novedades\.js\?v=2026112(?:1(?:areas|dn27|dn28)|2und|5dn40|5tred2|5tre3c|5tred4)/, "novedades.js siguió a 20261121dn27 con D-N23 y D-N27");
   assert.match(read("novedades.js"), /id: "2026-11-21-hoy-por-areas"/);
 });
 

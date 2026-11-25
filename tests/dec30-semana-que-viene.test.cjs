@@ -95,8 +95,8 @@ test("DEC-30 · cableado: en la Previsión bajo el gráfico y primera en el «Li
   assert.match(css, /:root\[data-tema="v2"\] \.prev-v2-semana \{[^}]*color: var\(--e19-ink\);/);
   const html = read("index.html");
   ["canonical-forecast-contract.js", "views/prevision-v2.js"].forEach((file) => assert.ok(html.includes(`${file}?v=20261121dec30`), file));
-  assert.match(html, /tema-v2\.css\?v=2026112(?:1(?:dec30|dec38c|dec38d|areas|d658)|2und|5tred1|5tred2|5tre3c)/, "tema-v2.css siguió a 20261121dec38c y dec38d con DEC-38 a 195 px");
-  assert.match(html, /novedades\.js\?v=2026112(?:1(?:dec30|dec45|areas|dn27|dn28)|2und|5dn40|5tred2|5tre3c)/, "novedades.js siguió a 20261121dec45 con DEC-45");
+  assert.match(html, /tema-v2\.css\?v=2026112(?:1(?:dec30|dec38c|dec38d|areas|d658)|2und|5tred1|5tred2|5tre3c|5tred4)/, "tema-v2.css siguió a 20261121dec38c y dec38d con DEC-38 a 195 px");
+  assert.match(html, /novedades\.js\?v=2026112(?:1(?:dec30|dec45|areas|dn27|dn28)|2und|5dn40|5tred2|5tre3c|5tred4)/, "novedades.js siguió a 20261121dec45 con DEC-45");
   const novedad = require("../novedades.js").find((entry) => entry.id === "2026-11-21-semana-que-viene");
   assert.equal(novedad.fecha, "2026-11-21");
   assert.equal(novedad.href, "#plan");

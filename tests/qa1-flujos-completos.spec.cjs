@@ -29,7 +29,7 @@ const cierreDeSiempre = (page) => page.addInitScript(() => { try { localStorage.
 const { pulsar, registrarEventos } = require("./helpers/pulsar-o-explicar.cjs");
 const { cronometro, informarSiFalla } = require("./helpers/cronometro-pasos.cjs");
 // TRE-D1: las pruebas de los controles de siempre de Deuda › Plan entran en «todo el detalle»; las de la vista nueva lo desactivan.
-const { deudaDeSiempre, deudaPlanNueva } = require("./helpers/deuda-plan-nueva.cjs");
+const { deudaDeSiempre, deudaPlanNueva, deudaContratosNueva } = require("./helpers/deuda-plan-nueva.cjs");
 test.beforeEach(async ({ page }) => { await deudaDeSiempre(page); });
 
 // Funciones en prueba con interruptor propio: desde el 29/10/2026 nacen encendidas. Las pruebas que recorren «apagada» y «encendida»
@@ -13644,4 +13644,90 @@ test.describe("TRE-D2 · Deuda › Ajustar el plan", () => {
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }
+});
+
+// TRE-D4 + TRE-23 (decimotercera §2.5; auditoría de diseño §5.2, PR 4): Deuda › Contratos en tarjetas con su ficha. «Completar ahora»
+// recorre lo que falta de uno en uno; la ficha guarda con «Guardar» (por la misma función que la tabla) y se deshace; las herramientas
+// de siempre, a dos toques. 0 desbordamiento a 320 px. Arranque en caliente, contratos FICTICIOS.
+test.describe("TRE-D4 · Deuda › Contratos nuevo", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+    const etiqueta = viewport.width === 390 ? " @safari" : "";
+    test(`tarjetas, lo que falta de uno en uno, la ficha con su vista previa, deshacer y las herramientas, a ${viewport.width} px${etiqueta}`, async ({ page }) => {
+      test.setTimeout(150000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await arrancarEnCaliente(page, { viewport });
+      await page.evaluate(() => { location.hash = "deuda-contratos"; });
+      await deudaContratosNueva(page);
+      const vista = page.locator("#deudaContratosV2");
+      await expect(vista.locator(".cv2-tarjeta")).toHaveCount(2, { timeout: 20000 });
+      await expect(page.locator("#deudaContratosTable")).toBeHidden();
+      await expect(vista.locator(".dcv2-resumen")).toHaveText(/^2 vivos · 7\.500\s€ · cuota 250\s€ al mes$/);
+      // En el orden del plan, con su fin con el plan (la fecha única de D-N40 es la del último).
+      await expect(vista.locator(".cv2-tarjeta").first()).toContainText("1.º en el plan");
+      const fin = await page.evaluate(() => String(homeDebtOutlook().libreDeDeuda).slice(0, 7));
+      const mes = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"][Number(fin.slice(5, 7)) - 1];
+      await expect(vista.locator(".cv2-tarjeta").last()).toContainText(`fuera en ${mes} de ${fin.slice(0, 4)}`);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
+      // «Faltan 2 datos»: el capital inicial de los dos; «Completar ahora» abre la ficha en ese campo, vacío, con «1 de 2».
+      await expect(vista.locator("[data-dcv2-faltan]")).toHaveAttribute("data-dcv2-faltan", "2");
+      await vista.locator('[data-dcv2="completar"]').click();
+      const ficha = page.locator("#deudaContratoFicha");
+      await expect(ficha.locator(".dcv2-recorrido")).toContainText("1 de 2");
+      await expect(ficha.locator("#dcv2-initialPrincipal")).toBeFocused();
+      await expect(ficha.locator("#dcv2-initialPrincipal")).toHaveValue("");
+      // A la vista, diez campos como mucho; sin desbordar.
+      expect(await ficha.locator("[data-dcv2-campo]").count()).toBeLessThanOrEqual(10);
+      expect(await ficha.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+      // La vista previa se mueve al escribir, antes de guardar.
+      await ficha.locator("#dcv2-initialPrincipal").fill("3000");
+      await expect(ficha.locator("#dcv2Previa")).toContainText("20 % pagado de 3.000");
+      await ficha.locator('[data-dcv2-ficha="guardar"]').click();
+      // Pasa al siguiente; «Saltar» lo deja para luego y cierra.
+      await expect(ficha.locator(".dcv2-recorrido")).toContainText("2 de 2");
+      await ficha.locator('[data-dcv2-ficha="saltar"]').click();
+      await expect(ficha).toBeHidden();
+      const primera = vista.locator(".cv2-tarjeta").first();
+      await expect(primera).toContainText("20 % pagado");
+      await expect(primera.locator(".cv2-barra")).toHaveCount(1);
+      await expect(vista.locator("[data-dcv2-faltan]")).toHaveAttribute("data-dcv2-faltan", "1");
+      // Deshacer devuelve lo de antes.
+      await page.$eval("#undoToast button", (button) => button.click());
+      await expect(primera).toContainText("% pagado: falta el capital inicial");
+      // Un dato fuera de rango no se guarda y lo dice en su campo; corregido, se guarda.
+      await vista.locator("[data-dcv2-editar]").last().click();
+      await ficha.locator("#dcv2-apr").fill("70");
+      await ficha.locator('[data-dcv2-ficha="guardar"]').click();
+      await expect(ficha.locator('[data-dcv2-error="apr"]')).toHaveText("La TAE va de 0 a 60 %.");
+      await expect(ficha.locator("#dcv2-apr")).toHaveAttribute("aria-invalid", "true");
+      await ficha.locator("#dcv2-apr").fill("9");
+      await ficha.locator('[data-dcv2-ficha="guardar"]').click();
+      await expect(ficha).toBeHidden();
+      await expect(vista.locator(".cv2-tarjeta", { hasText: "Caja FICTICIA" })).toContainText("9 %");
+      // Las herramientas de siempre, a dos toques: abrir el plegado y la herramienta; y volver sin recargar.
+      await vista.locator("[data-dcv2-herramientas] > summary").click();
+      await vista.locator('[data-dcv2-herramienta="#cirbeCard"]').click();
+      await expect(page.locator("#cirbeCard")).toBeVisible();
+      await vista.locator('[data-dcv2="volver"]').click();
+      await expect(vista.locator(".cv2-tarjeta")).toHaveCount(2);
+      // El kit de UND-13, desde la tarjeta.
+      await vista.locator(".cv2-tarjeta").first().locator("[data-kit-entidad]").click();
+      await expect(page.locator("#kitEntidad")).toBeVisible();
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+  test("a 320 px, ni la vista ni la ficha desbordan", async ({ page }) => {
+    test.setTimeout(120000);
+    const viewport = { width: 320, height: 700 };
+    await arrancarEnCaliente(page, { viewport });
+    await page.evaluate(() => { location.hash = "deuda-contratos"; });
+    await deudaContratosNueva(page);
+    await expect(page.locator("#deudaContratosV2 .cv2-tarjeta")).toHaveCount(2, { timeout: 20000 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
+    await page.locator("#deudaContratosV2 [data-dcv2-editar]").first().click();
+    const ficha = page.locator("#deudaContratoFicha");
+    await expect(ficha.locator("#dcv2Previa")).not.toBeEmpty();
+    expect(await ficha.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+  });
 });

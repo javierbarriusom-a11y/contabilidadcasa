@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-25-contratos-nuevos",
+      fecha: "2026-11-25",
+      texto: "Deuda › Contratos, nueva: una tarjeta por contrato con su % pagado y cuándo acaba, lo que falta y una ficha para editarlo.",
+      href: "#deuda-contratos",
+    },
+    {
       id: "2026-11-25-comparar-formas",
       fecha: "2026-11-25",
       texto: "Deuda › Plan › «Comparar con otras formas»: el plan, el otro orden, pagar con la caja, un préstamo y solo las cuotas, lado a lado.",

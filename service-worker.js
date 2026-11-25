@@ -271,6 +271,8 @@ const SHELL_URLS = [
   "./views/hoy-v2.js",
   "./views/deuda-simulador-v2.js",
   "./views/deuda-plan-v2.js",
+  "./views/componentes-v2.js",
+  "./views/deuda-contratos-v2.js",
   "./views/movimientos-v2.js",
   "./views/plan-v2.js",
   "./views/prevision-v2.js",
