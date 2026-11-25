@@ -49,8 +49,9 @@ function caminoOrder(contracts) {
   return priority?.calculable ? priority.rows.map((row) => row.id) : [];
 }
 
-function caminoHeroHtml(label, value, note) {
-  return `<div class="cam-hero"><span class="cam-hero-label">${escapeHtml(label)}</span><strong class="cam-hero-value">${escapeHtml(value)}</strong><small class="cam-hero-note">${escapeHtml(note)}</small></div>`;
+// `fecha`: «unica» marca la fecha de libre de deuda que manda en toda la app (D-N40); «comparacion», una con nombre. La lee TRE-07.
+function caminoHeroHtml(label, value, note, fecha = "") {
+  return `<div class="cam-hero"${fecha ? ` data-fecha-libre="${fecha}"` : ""}><span class="cam-hero-label">${escapeHtml(label)}</span><strong class="cam-hero-value">${escapeHtml(value)}</strong><small class="cam-hero-note">${escapeHtml(note)}</small></div>`;
 }
 
 // DUO-D9 (docs/PROPUESTA_DUODECIMA_AUDITORIA_2026-11-23.md): una deuda con los pagos suspendidos (lo que la app trata como impago) no entra en
@@ -97,17 +98,19 @@ function caminoMilestonesHtml(result, baselineById, todayKey) {
       <li class="cam-hito cam-hoy"><span class="cam-hito-nombre">Hoy</span><span class="cam-hito-barra" aria-hidden="true"></span><span class="cam-hito-mes">${escapeHtml(caminoMonthText(todayKey))}</span></li>${items}</ol>`;
 }
 
-// La fecha que cuenta Hoy sale del plazo declarado (escenarioMotorContractPayoffMonth); esta, de capital, cuota y TAE. Si no coinciden se dice.
+// D-N40: Hoy y el titular cuentan la fecha del plan; esta nota compara las dos lecturas «sin extra»: los plazos firmados
+// (escenarioMotorContractPayoffMonth) y el capital, la cuota y la TAE de este camino. Si no coinciden, algún dato no cuadra.
 function caminoHoyNote(result) {
   if (typeof homeDebtOutlook !== "function" || !result.debtFreeMonthKey) return "";
   const base = result.baseline ? result.baseline.debtFreeMonthKey : result.debtFreeMonthKey;
   const outlook = homeDebtOutlook();
-  const hoy = /^\d{4}-\d{2}/.test(String(outlook?.libreDeDeuda || "")) ? String(outlook.libreDeDeuda).slice(0, 7) : "";
+  const plazos = outlook?.segunPlazos ?? outlook?.libreDeDeuda;
+  const hoy = /^\d{4}-\d{2}/.test(String(plazos || "")) ? String(plazos).slice(0, 7) : "";
   if (!hoy || !base) return "";
   const months = (key) => Number(key.slice(0, 4)) * 12 + Number(key.slice(5, 7));
   // Hasta dos meses es el redondeo de la última cuota (el mismo margen que el aviso de datos que no cuadran): no se avisa.
   if (Math.abs(months(hoy) - months(base)) <= globalThis.FinanceCanonicalDebtPayoffPath.LARGE_GAP_MONTHS) return "";
-  return `<strong>Dos fechas distintas:</strong> Hoy y el título de esta pantalla cuentan los plazos declarados (${escapeHtml(caminoMonthText(hoy))}); aquí se calcula con el capital, la cuota y la TAE (${escapeHtml(caminoMonthText(base))} sin extra). Revisa capital, cuota, TAE y plazo en Contratos: una de las dos lecturas está sobre un dato que no cuadra.`;
+  return `<strong>Los plazos no cuadran:</strong> según los plazos firmados acabaríais en ${escapeHtml(caminoMonthText(hoy))}; con el capital, la cuota y la TAE, en ${escapeHtml(caminoMonthText(base))} (los dos sin poner nada de más). Revisa capital, cuota, TAE y plazo en Contratos: una de las dos lecturas está sobre un dato que no cuadra.`;
 }
 
 function caminoNotesHtml(result) {
@@ -659,8 +662,9 @@ function planOptimoAvisosHtml(r, refs) {
   return notes.map((note) => `<p class="e19-kpi-note">${note}</p>`).join("");
 }
 
-function planOptimoHtml(engine, contracts, todayKey, refs, Plan) {
-  if (!Plan) return "";
+// TRE-D0 (D-N40): el cálculo del plan, aparte de su pintado, para que el titular de Deuda › Plan, la tira de cifras y Hoy lean
+// exactamente el mismo resultado que el plan óptimo (deudaFechaUnica), no otro motor.
+function planOptimoCalcular(engine, contracts, todayKey, refs, Plan) {
   const fijoMensual = planOptimoMensual === null ? Math.max(0, Math.floor((refs.capacity || 0) / 10) * 10) : planOptimoMensual;
   const liquidez = typeof Plan.liquidityPlan === "function" && refs.floor !== null ? Plan.liquidityPlan(refs.rows, { startMonthKey: todayKey, floor: refs.floor, lump: planOptimoPago }) : { ok: false };
   const modo = planOptimoModoEfectivo(liquidez);
@@ -673,6 +677,78 @@ function planOptimoHtml(engine, contracts, todayKey, refs, Plan) {
   const r = modo === "prevision"
     ? Plan.plan(engine, contracts, { ...comunes, monthly: liquidez.after, monthlyByMonth: liquidez.byMonth })
     : Plan.plan(engine, contracts, { ...comunes, monthly: fijoMensual, capacity: refs.capacity });
+  return { r, liquidez, modo, ofertas, comunes, fijoMensual };
+}
+
+// D-N40 (25/11/2026, «sí» del hogar) · TRE-D0: una sola fecha de «libre de deuda» en toda la app. La del plan guardado con «Este es
+// nuestro plan» (DUO-D1) o, si no hay, la del plan óptimo con lo elegido en esta pantalla. Las demás fechas (solo las cuotas, los
+// plazos firmados, una estrategia de la pestaña «Orden de ataque») son comparaciones y se dicen con su nombre. Devuelve null si no
+// hay deuda viva o el plan no se puede calcular (sin TAE ni plazo): entonces quien la usa cae a los plazos y lo dice.
+// `monthKey` puede llevar detrás « · queda deuda …» si hay deudas que no entran en el plan (como escenarioMotorLibreDeDeuda).
+let deudaFechaUnicaCache = { key: "", value: null };
+let deudaFechaUnicaCalculando = false;
+
+function deudaFechaUnicaLeerCompromiso() {
+  return planOptimoGuard(() => {
+    const raw = storageGet(storageKey("plan-deuda-compromiso"), "");
+    return raw ? JSON.parse(raw) : null;
+  }, null);
+}
+
+function deudaFechaUnicaClave(contracts, todayKey, compromiso) {
+  const guardado = (key) => planOptimoGuard(() => storageGet(storageKey(key), ""), "");
+  const firma = planOptimoGuard(() => (typeof simulationSignature !== "undefined" && simulationSignature) || (typeof modelComputationSignature === "function" ? modelComputationSignature() : ""), "");
+  return JSON.stringify([
+    firma, todayKey, contracts.map((c) => [c.id, c.paymentStatus, c.currentPrincipal, c.currentPayment, c.apr, c.remainingInstallments]),
+    compromiso ? [compromiso.fechaLibre, compromiso.guardadoEl] : null, planOptimoModo, planOptimoMensual, planOptimoPago,
+    guardado(PLAN_OPTIMO_ORDEN_KEY), guardado(PLAN_OPTIMO_MARGEN_KEY), guardado(PLAN_OPTIMO_QUITAS_KEY), guardado(PLAN_OPTIMO_COMISIONES_KEY),
+  ]);
+}
+
+function deudaFechaUnicaSufijo(r) {
+  if (r.completo !== false) return "";
+  const fuera = r.recommended?.result?.ok ? r.recommended.result.excluded : r.baseline?.excluded;
+  const excluidas = Array.isArray(fuera) ? fuera : [];
+  return excluidas.length && excluidas.every((x) => x.reason === "sin-cuota-activa") ? " · queda deuda sin cuota activa" : " · queda deuda fuera del plan";
+}
+
+function deudaFechaUnica() {
+  if (deudaFechaUnicaCalculando) return null; // planOptimoReferencias puede volver a pedir la deuda de Hoy: nunca en bucle
+  const engine = globalThis.FinanceCanonicalDebtPayoffPath;
+  const Plan = globalThis.FinanceCanonicalDebtOptimalPlan;
+  if (!engine || !Plan || typeof escenarioMotorDebtOptions !== "function") return null;
+  deudaFechaUnicaCalculando = true;
+  try {
+    const contracts = escenarioMotorDebtOptions() || [];
+    if (!contracts.some((c) => Number(c?.currentPrincipal) > 0)) return null;
+    const todayKey = isoLocalDate(new Date()).slice(0, 7);
+    const compromiso = deudaFechaUnicaLeerCompromiso();
+    const key = deudaFechaUnicaClave(contracts, todayKey, compromiso);
+    if (deudaFechaUnicaCache.key === key) return deudaFechaUnicaCache.value;
+    const { r } = planOptimoCalcular(engine, contracts, todayKey, planOptimoReferencias(), Plan);
+    let value = null;
+    if (r?.ok && !r.nothing && !r.sinDatos) {
+      const vivo = r.recommended?.summary?.debtFreeMonthKey || null;
+      const sufijo = deudaFechaUnicaSufijo(r);
+      if (compromiso && /^\d{4}-\d{2}$/.test(String(compromiso.fechaLibre || ""))) {
+        value = { monthKey: `${compromiso.fechaLibre}${sufijo}`, mes: compromiso.fechaLibre, fuente: "plan-guardado", nombre: "vuestro plan", vivo };
+      } else if (vivo) {
+        value = { monthKey: `${vivo}${sufijo}`, mes: vivo, fuente: "plan-optimo", nombre: "el plan óptimo", vivo };
+      }
+    }
+    deudaFechaUnicaCache = { key, value };
+    return value;
+  } catch (error) {
+    console.error(`deudaFechaUnica: ${error.message}`);
+    return null;
+  } finally {
+    deudaFechaUnicaCalculando = false;
+  }
+}
+
+function planOptimoHtml(engine, contracts, todayKey, refs, Plan) {
+  if (!Plan) return "";
+  const { r, liquidez, modo, ofertas, comunes, fijoMensual } = planOptimoCalcular(engine, contracts, todayKey, refs, Plan);
   planOptimoResultadoUltimo = r; // DUO-D1: el seguimiento del plan guarda y compara este resultado
   const fijo = modo === "prevision" && r.ok ? Plan.plan(engine, contracts, { ...comunes, monthly: liquidez.fixedSafe, strategy: r.recommended.strategy }) : null;
   if (!r.ok) return `<p class="e19-kpi-note">${escapeHtml(r.error)}</p>`;
@@ -686,8 +762,12 @@ function planOptimoHtml(engine, contracts, todayKey, refs, Plan) {
     : s.forgiven > 0
     ? caminoHeroHtml("Lo que os ahorráis", s.totalSaved === null ? "—" : money(s.totalSaved, true), `${s.interestSaved === null ? "" : `${money(s.interestSaved, true)} de intereses + `}${money(s.forgiven, true)} que os perdonan`)
     : caminoHeroHtml("Intereses que os ahorráis", s.interestSaved === null ? "—" : money(s.interestSaved, true), s.totalInterest === null ? "alguna deuda no acaba" : `pagaréis ${money(s.totalInterest, true)} en lugar de ${money(base.totalInterest ?? 0, true)}`);
+  // D-N40: con un plan guardado que da otra fecha, la de aquí es la de los ajustes de ahora (comparación); la que manda es la guardada.
+  const compromiso = deudaFechaUnicaLeerCompromiso();
+  const otroQueElGuardado = Boolean(compromiso?.fechaLibre) && compromiso.fechaLibre !== s.debtFreeMonthKey;
+  const heroLabel = otroQueElGuardado ? `Con estos ajustes, ${planOptimoHeroLabel(r).toLowerCase()}` : planOptimoHeroLabel(r);
   const heroes = `<div class="cam-heroes">
-      ${caminoHeroHtml(planOptimoHeroLabel(r), s.debtFreeMonthKey ? caminoMonthText(s.debtFreeMonthKey) : "sin fecha", `${s.monthsSaved > 0 ? `${caminoMonths(s.monthsSaved)} antes que hoy (${caminoMonthText(base.debtFreeMonthKey)})` : base.beyondHorizon ? "hoy alguna deuda no acaba" : "como el calendario actual"}${planOptimoHeroFuera(r)}`)}
+      ${caminoHeroHtml(heroLabel, s.debtFreeMonthKey ? caminoMonthText(s.debtFreeMonthKey) : "sin fecha", `${s.monthsSaved > 0 ? `${caminoMonths(s.monthsSaved)} antes que pagando solo las cuotas (${caminoMonthText(base.debtFreeMonthKey)})` : base.beyondHorizon ? "pagando solo las cuotas, alguna deuda no acaba" : "como pagando solo las cuotas"}${otroQueElGuardado ? ` · vuestro plan guardado: ${caminoMonthText(compromiso.fechaLibre)}` : ""}${planOptimoHeroFuera(r)}`, otroQueElGuardado ? "comparacion" : "unica")}
       ${ahorroHero}
       ${caminoHeroHtml("Primera deuda saldada", s.firstPayoff ? s.firstPayoff.label : "—", s.firstPayoff ? caminoMonthText(s.firstPayoff.payoffMonthKey) : "")}
     </div>`;

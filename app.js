@@ -231,11 +231,11 @@ const HEAVY_RENDER_VIEWS = new Set([
 const VIEW_CHUNKS = {
   "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20261105pulido1", rootId: "presupuestoMesRoot" },
   "estado-semana": { src: "views/estado-semana.js?v=20260904a1", rootId: "estadoSemanaRoot" },
-  "deuda-comparar": { src: "views/deuda.js?v=20261122und13", rootId: "deuda-comparar" },
-  "deuda-ruta": { src: "views/deuda.js?v=20261122und13", rootId: "deuda-ruta" },
-  "deuda-prestamo": { src: "views/deuda.js?v=20261122und13", rootId: "deuda-prestamo" },
-  "deuda-contratos": { src: "views/deuda.js?v=20261122und13", rootId: "deuda-contratos" },
-  "deuda-simulador": { src: "views/deuda.js?v=20261122und13", rootId: "deuda-simulador" },
+  "deuda-comparar": { src: "views/deuda.js?v=20261125dn40", rootId: "deuda-comparar" },
+  "deuda-ruta": { src: "views/deuda.js?v=20261125dn40", rootId: "deuda-ruta" },
+  "deuda-prestamo": { src: "views/deuda.js?v=20261125dn40", rootId: "deuda-prestamo" },
+  "deuda-contratos": { src: "views/deuda.js?v=20261125dn40", rootId: "deuda-contratos" },
+  "deuda-simulador": { src: "views/deuda.js?v=20261125dn40", rootId: "deuda-simulador" },
   "inversion-cartera": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-cartera" },
   "inversion-rebalanceo": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-rebalanceo" },
   "inversion-fiscal": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-fiscal" },
@@ -4489,7 +4489,7 @@ function topbarStatusFigures() {
   const debtOutlook = homeDebtOutlook();
   const libreParcial = debtOutlook.estimable && / · /.test(debtOutlook.libreDeDeudaLabel); // con deuda sin cuota activa no hay fecha de libertad (Deuda dice «sin fecha estimable»): la fecha baja a la línea secundaria
   const libreDeDeudaValue = debtOutlook.settled ? "Sin deuda" : debtOutlook.estimable && !libreParcial ? debtOutlook.libreDeDeudaLabel : "Sin fecha";
-  const libreDeDeudaSub = debtOutlook.settled ? "sin contratos vivos" : libreParcial ? debtOutlook.libreDeDeudaLabel.replace(" · ", " en las cuotas activas · ") : debtOutlook.estimable ? "" : String(debtOutlook.libreDeDeuda || "sin fecha estimable");
+  const libreDeDeudaSub = debtOutlook.settled ? "sin contratos vivos" : libreParcial ? debtOutlook.libreDeDeudaLabel.replace(" · ", " en las cuotas activas · ") : debtOutlook.estimable ? `según ${debtOutlook.fuenteNombre || "los plazos firmados"}` : String(debtOutlook.libreDeDeuda || "sin fecha estimable"); // D-N40: dice de dónde sale
   const months = cuadroMandosAllMonths().slice(0, 12);
   const cushionBand = analisisCushionBand(months, lastSimulation, Number(state?.emergencyBufferMonths || 0));
   const worst = analisisCushionWorst(cushionBand);
@@ -27577,18 +27577,24 @@ function homeDebtOutlook() {
   const contracts = escenarioMotorDebtOptions();
   // La firma del modelo no incluye los contratos: dar de alta, editar o quitar uno no la mueve, y Hoy seguía enseñando la deuda anterior hasta recargar.
   const key = `${simulationSignature || modelComputationSignature()}|${JSON.stringify(contracts.map((c) => [c.id, c.paymentStatus, c.currentPrincipal, c.currentPayment, c.apr, c.remainingInstallments]))}`;
-  if (homeDebtOutlookCache.key === key && homeDebtOutlookCache.value) return homeDebtOutlookCache.value;
-  const summary = debtStrategySummary("no-tocar", escenarioMotorBaseInput(), debtStrategyReserveDefault());
-  const value = {
-    pendingPrincipal: round2(contracts.reduce((sum, contract) => sum + Number(contract.currentPrincipal || 0), 0)),
-    contracts: contracts.length,
-    libreDeDeuda: summary.libreDeDeuda,
-    libreDeDeudaLabel: escenarioMotorMonthLabel(summary.libreDeDeuda).replace(/ (\d{2})(?=$| · )/, " 20$1"), // «sept 2029», no «sept 29» (se leía como un día)
-    estimable: /^\d{4}-\d{2}/.test(String(summary.libreDeDeuda || "")),
-    settled: String(summary.libreDeDeuda || "") === "sin deuda pendiente",
-  };
-  homeDebtOutlookCache = { key, value };
-  return value;
+  const etiqueta = (valor) => escenarioMotorMonthLabel(valor).replace(/ (\d{2})(?=$| · )/, " 20$1"); // «sept 2029», no «sept 29» (se leía como un día)
+  if (!(homeDebtOutlookCache.key === key && homeDebtOutlookCache.value)) {
+    const summary = debtStrategySummary("no-tocar", escenarioMotorBaseInput(), debtStrategyReserveDefault());
+    const value = {
+      pendingPrincipal: round2(contracts.reduce((sum, contract) => sum + Number(contract.currentPrincipal || 0), 0)),
+      contracts: contracts.length,
+      libreDeDeuda: summary.libreDeDeuda,
+      libreDeDeudaLabel: etiqueta(summary.libreDeDeuda),
+      estimable: /^\d{4}-\d{2}/.test(String(summary.libreDeDeuda || "")),
+      settled: String(summary.libreDeDeuda || "") === "sin deuda pendiente",
+      fuente: "plazos", fuenteNombre: "los plazos firmados", segunPlazos: summary.libreDeDeuda, segunPlazosLabel: etiqueta(summary.libreDeDeuda),
+    };
+    homeDebtOutlookCache = { key, value };
+  }
+  // D-N40 · TRE-D0: manda la fecha del plan (deudaFechaUnica, camino-deuda-ui.js); la de los plazos queda como comparación con nombre.
+  const unica = typeof deudaFechaUnica === "function" ? deudaFechaUnica() : null;
+  if (!unica) return homeDebtOutlookCache.value;
+  return { ...homeDebtOutlookCache.value, libreDeDeuda: unica.monthKey, libreDeDeudaLabel: etiqueta(unica.monthKey), estimable: true, settled: false, fuente: unica.fuente, fuenteNombre: unica.nombre };
 }
 
 

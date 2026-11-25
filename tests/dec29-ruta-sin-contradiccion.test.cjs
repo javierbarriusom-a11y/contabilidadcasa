@@ -47,7 +47,13 @@ test("DEC-29 · el subtítulo no dice «0 € de coste»; con coste, sí", () =>
   assert.equal(sandbox.subtitulo({ label: "Préstamo", costeLabel: "Intereses del nuevo préstamo" }, "p", { total: 2, costeTotal: 50, cajaMinima: 0 }), "Préstamo: 2 decisiones, 50 € de intereses del nuevo préstamo, caja mínima 0 €.");
 });
 
-test("DEC-29 · renderDeudaRuta usa las dos funciones", () => {
-  assert.match(deuda, /titleEl\.textContent = deudaRutaTitulo\(summary\.libreDeDeuda, summary\.result\?\.debtStateFinal \|\| contracts\);/);
-  assert.match(deuda, /subtitleEl\.textContent = deudaRutaSubtitulo\(def, deudaRutaSelectedStrategy, summary\);/);
+// D-N40 (25/11/2026, «sí» del hogar) · TRE-D0: esta prueba fijaba el titular al final de la ruta de la pestaña activa *ejecutada*, que es
+// justo el fallo P0 de la decimotercera auditoría («Sin deuda pendiente» con deuda viva). Ahora el titular es la fecha única de la app
+// (homeDebtOutlook ← deudaFechaUnica) y la frase de la ruta baja, en condicional, a «Orden de ataque». Lo comprueba más a fondo
+// tests/tre-d0-fecha-unica.test.cjs.
+test("DEC-29 · renderDeudaRuta usa las dos funciones, cada una en su sitio (D-N40)", () => {
+  assert.match(deuda, /titleEl\.textContent = deudaRutaTitulo\(outlook\.libreDeDeuda, contracts\);/);
+  assert.doesNotMatch(deuda, /titleEl\.textContent = deudaRutaTitulo\(summary\./, "el titular nunca sale de la ruta ejecutada");
+  assert.match(deuda, /subtitleEl\.textContent = deudaRutaSubtituloFuente\(outlook\);/);
+  assert.match(deuda, /Si aplicáis esta ruta: \$\{deudaRutaSubtitulo\(def, /);
 });

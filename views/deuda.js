@@ -781,7 +781,11 @@ function renderDeudaRutaAttackTable(contracts, summary, resultadosById, def) {
   const body = qs("deudaRutaAttackBody");
   const foot = qs("deudaRutaAttackFoot");
   const note = qs("deudaRutaAttackNote");
-  if (note) note.textContent = def?.desc || "";
+  // D-N40 · TRE-D0: lo que haría esta ruta (antes, titular de la pantalla) se dice aquí y en condicional: es una forma de hacerlo, no el plan.
+  const siAplicais = summary && Number.isFinite(summary.total) && typeof deudaRutaSubtitulo === "function"
+    ? ` Si aplicáis esta ruta: ${deudaRutaSubtitulo(def, typeof deudaRutaSelectedStrategy === "string" ? deudaRutaSelectedStrategy : "", summary)}`
+    : "";
+  if (note) note.textContent = `${def?.desc || ""}${siAplicais}`.trim();
   if (!body) return;
   if (!contracts.length) {
     body.innerHTML = `<tr><td colspan="6" class="registrar-mes-empty">${escapeHtml(deudaRutaEmptyTimelineText(summary))}</td></tr>`;
@@ -809,7 +813,7 @@ function renderDeudaRutaAttackTable(contracts, summary, resultadosById, def) {
   // dentro del horizonte; si no, ya es una frase descriptiva («sin fecha estimable...») — el título
   // de la pantalla la muestra completa, así que aquí basta con la estrategia para no repetirla.
   const esFechaLibre = /^\d{4}-\d{2}/.test(String(summary.libreDeDeuda || ""));
-  const libreLabel = esFechaLibre ? `Libre de deuda: ${escenarioMotorMonthLabel(summary.libreDeDeuda)}` : def?.label || "";
+  const libreLabel = esFechaLibre ? `Con esta ruta, libres en ${escenarioMotorMonthLabel(summary.libreDeDeuda)}` : def?.label || ""; // D-N40: comparación con nombre
   if (foot) {
     foot.innerHTML = `<tr>
       <td></td>
@@ -832,11 +836,20 @@ function deudaRutaTitulo(libreDeDeuda, deudas) {
   const faltan = sinCuota === 1 ? "falta 1 sin cuota" : `faltan ${sinCuota} sin cuota`;
   const mes = valor.match(/^(\d{4}-\d{2})/);
   if (mes && / · queda deuda sin cuota activa/.test(valor)) return `Libre de las deudas con cuota en ${escenarioMotorMonthLabel(mes[1])} · ${faltan}`;
+  if (mes && / · queda deuda fuera del plan/.test(valor)) return `Libre de las deudas que entran en el plan en ${escenarioMotorMonthLabel(mes[1])}`; // D-N40
   if (mes) return `Sin deuda en ${escenarioMotorMonthLabel(mes[1])}`;
   if (valor === "sin deuda pendiente") return "Sin deuda pendiente";
   if (valor.startsWith("sin fecha estimable")) return `Sin fecha: ninguna deuda tiene cuota activa (${faltan})`;
   if (valor === "fuera de horizonte") return "Libre de deuda más allá del horizonte del plan";
   return valor ? `Libre de deuda: ${valor}` : "Libre de deuda: —";
+}
+
+// D-N40 · TRE-D0: de dónde sale la fecha del titular (la única de la app); las demás fechas de la pantalla son comparaciones con nombre.
+function deudaRutaSubtituloFuente(outlook) {
+  if (!outlook || outlook.settled) return "";
+  if (outlook.fuente === "plan-guardado") return "Según vuestro plan, el guardado con «Este es nuestro plan». Las demás fechas de esta pantalla son comparaciones.";
+  if (outlook.fuente === "plan-optimo") return "Según el plan óptimo de abajo, con lo que tenéis elegido. Las demás fechas de esta pantalla son comparaciones.";
+  return "Según los plazos firmados: el plan óptimo no se puede calcular con los datos de Contratos (falta la TAE o el plazo de alguna deuda).";
 }
 
 // DEC-29: sin «0 € de coste total ejecutado»; si la ruta no cuesta nada, no se dice.
@@ -870,10 +883,16 @@ function renderDeudaRuta() {
   const def = DEBT_STRATEGY_DEFINITIONS.find((item) => item.id === deudaRutaSelectedStrategy);
   const resultadosById = new Map((summary.result?.resultados || []).map((item) => [item.id, item]));
 
+  // D-N40 · TRE-D0: el titular es la fecha única (la de Hoy y la tira), no el final de la ruta de la pestaña activa *ejecutada*
+  // (con «Avalancha», liquidar con caja, decía «Sin deuda pendiente» con deuda viva). Esa ruta se dice en «Orden de ataque», en condicional.
+  const outlook = homeDebtOutlook();
   const titleEl = qs("deudaRutaTitle");
-  if (titleEl) titleEl.textContent = deudaRutaTitulo(summary.libreDeDeuda, summary.result?.debtStateFinal || contracts);
+  if (titleEl) {
+    titleEl.textContent = deudaRutaTitulo(outlook.libreDeDeuda, contracts);
+    titleEl.dataset.fechaLibre = "unica";
+  }
   const subtitleEl = qs("deudaRutaSubtitle");
-  if (subtitleEl) subtitleEl.textContent = deudaRutaSubtitulo(def, deudaRutaSelectedStrategy, summary);
+  if (subtitleEl) subtitleEl.textContent = deudaRutaSubtituloFuente(outlook);
 
   const deudaViva = buildDeudaVivaSeries(baseInput.months, contracts, summary.decisions, resultadosById);
   const chartWindow = deudaRutaChartWindow(deudaViva, summary.result?.series || [], baseInput.months);
