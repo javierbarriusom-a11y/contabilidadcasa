@@ -60,7 +60,8 @@ test("shortDate sigue igual para el motor de fechas (oro de WP-07)", () => {
 });
 
 test("la fecha libre de deuda lleva el año entero, también con la coletilla de deuda sin cuota", () => {
-  const line = app.split("\n").find((text) => text.includes("libreDeDeudaLabel: escenarioMotorMonthLabel(summary.libreDeDeuda)"));
+  // D-N40 (25/11/2026): la etiqueta se construye en un solo sitio (`etiqueta`) para la fecha del plan y la de los plazos.
+  const line = app.split("\n").find((text) => text.includes("const etiqueta = (valor) => escenarioMotorMonthLabel(valor)"));
   assert.ok(line, "la etiqueta se construye donde siempre");
   const regex = /\.replace\((\/.+\/), "(.+?)"\)/.exec(line);
   assert.ok(regex, "lleva su replace");

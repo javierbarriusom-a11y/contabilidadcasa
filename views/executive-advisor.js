@@ -60,7 +60,7 @@ function renderExecutiveAccounts(ctx) {
     : null;
   const minCaixa12 = minCaixaRow ? Number(minCaixaRow.agentCaixa || 0) : Number(ctx.balances.caixa || 0);
   const nextDebt = ctx.debtOptimization?.steps?.[0];
-  const balanceDateText = state.balanceDate || defaultBalanceDate();
+  const balanceDateText = shortDate(state.balanceDate || defaultBalanceDate()) || state.balanceDate || defaultBalanceDate(); // TRE-10: sin fecha ISO
   const cards = [
     ["CaixaBank ahora", money(ctx.balances.caixa, true), `Saldo a ${balanceDateText}. Reserva operativa: ${money(ctx.plan.caixaFloor, true)}.`],
     ["Mediolanum ahora", money(ctx.balances.mediolanum, true), `Saldo a ${balanceDateText}. Cuenta de ahorro y huchas.`],

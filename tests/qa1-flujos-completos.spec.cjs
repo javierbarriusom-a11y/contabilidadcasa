@@ -28,6 +28,9 @@ const cierreDeSiempre = (page) => page.addInitScript(() => { try { localStorage.
 // Pulsar y, si no se puede, decir qué pasaba en la página (dos pruebas que fallan de vez en cuando en el CI).
 const { pulsar, registrarEventos } = require("./helpers/pulsar-o-explicar.cjs");
 const { cronometro, informarSiFalla } = require("./helpers/cronometro-pasos.cjs");
+// TRE-D1: las pruebas de los controles de siempre de Deuda › Plan entran en «todo el detalle»; las de la vista nueva lo desactivan.
+const { deudaDeSiempre, deudaPlanNueva } = require("./helpers/deuda-plan-nueva.cjs");
+test.beforeEach(async ({ page }) => { await deudaDeSiempre(page); });
 
 // Funciones en prueba con interruptor propio: desde el 29/10/2026 nacen encendidas. Las pruebas que recorren «apagada» y «encendida»
 // empiezan con ella apagada, como haría el hogar al apagarla; después la encienden con su interruptor. Solo si aún no hay elección,
@@ -13215,6 +13218,257 @@ test.describe("Deuda › Ruta · plan óptimo de saldo", () => {
       await expect(page.locator("#planOptimoNota")).toContainText("Escribe un importe");
       await expect(page.locator("#planOptimoPago")).toHaveAttribute("aria-invalid", "true");
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
+// TRE-07 (decimotercera auditoría, §4.2 y §7.2) · D-N40 (25/11/2026, «sí» del hogar): coherencia de la cifra protagonista de deuda en
+// toda la app. Es la prueba que habría cazado el §1.1 (cuatro fechas de «libre de deuda» en una pantalla, una quinta en la tira) y el
+// §1.2 («Sin deuda pendiente» con deuda viva). Con el arranque en caliente (contratos y movimientos FICTICIOS), en cada ruta del menú:
+//  1. con deuda viva, ninguna pantalla dice «Sin deuda pendiente» ni «Ya sin deuda», y la tira no dice «Sin deuda»;
+//  2. la tira, Hoy, el titular de Deuda › Plan y el héroe del plan dan el mismo mes que homeDebtOutlook (la fecha única);
+//  3. cualquier otra frase con una fecha de «libre(s)» da ese mes o dice con qué se compara (solo las cuotas, los plazos firmados,
+//     si aplicáis una ruta…). Una fecha nueva sin nombre en cualquier pantalla rompe la prueba.
+test.describe("TRE-07 · Una sola fecha de libre de deuda en toda la app (D-N40)", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  const MESES = { ene: 1, feb: 2, mar: 3, abr: 4, may: 5, jun: 6, jul: 7, ago: 8, sep: 9, oct: 10, nov: 11, dic: 12 };
+  const FECHA = /\b(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)[a-záéíóú]*\.?(?: de)? ((?:20)?\d{2})\b/gi;
+  const COMPARACION = /solo las cuotas|plazos firmados|si aplicáis|con esta ruta|con estos ajustes|sin extra|importe fijo|vuestro plan guardado|sin poner nada|con los saldos de hoy/i;
+  const mesesDe = (texto) => [...String(texto).matchAll(FECHA)].map((m) => `20${m[2].slice(-2)}-${String(MESES[m[1].toLowerCase().slice(0, 3)]).padStart(2, "0")}`);
+
+  async function leerPantalla(page) {
+    return page.evaluate(() => {
+      const visible = (el) => Boolean(el && el.offsetParent !== null && el.getClientRects().length);
+      const zonas = [...document.querySelectorAll("main section.view-section:not([hidden]), main .view.active, #hoyV2:not([hidden])")].filter(visible);
+      const lineas = zonas.flatMap((z) => z.innerText.split("\n")).map((l) => l.trim()).filter(Boolean);
+      const tira = [...document.querySelectorAll(".topbar-status-figure")].filter(visible)
+        .find((f) => /libre de deuda/i.test(f.querySelector("small")?.textContent || ""));
+      return {
+        lineas,
+        tira: tira ? { valor: tira.querySelector("strong")?.textContent.trim() || "", sub: tira.querySelector("em")?.textContent.trim() || "" } : null,
+        // Del héroe del plan, solo su cifra (la etiqueta y la nota van pegadas en el texto y la nota trae la comparación).
+        unicas: [...document.querySelectorAll('[data-fecha-libre="unica"]')].filter(visible).map((el) => (el.querySelector(".cam-hero-value") || el).textContent.replace(/\s+/g, " ").trim()),
+      };
+    });
+  }
+
+  function comprobar(ruta, leido, esperado) {
+    const todo = leido.lineas.join("\n");
+    expect(todo, `${ruta}: «Sin deuda pendiente» con deuda viva`).not.toMatch(/sin deuda pendiente|ya sin deuda/i);
+    if (leido.tira) {
+      expect(leido.tira.valor, `${ruta}: la tira dice «Sin deuda» con deuda viva`).not.toBe("Sin deuda");
+      expect(mesesDe(leido.tira.valor), `${ruta}: la fecha de la tira`).toEqual([esperado]);
+      expect(leido.tira.sub, `${ruta}: la tira dice de dónde sale la fecha`).toMatch(/^según /);
+    }
+    for (const texto of leido.unicas) expect(mesesDe(texto)[0], `${ruta}: fecha protagonista «${texto}»`).toBe(esperado);
+    for (const linea of leido.lineas.filter((l) => /\blibres?\b|sin deuda en/i.test(l))) {
+      const otras = mesesDe(linea).filter((mes) => mes !== esperado);
+      if (otras.length) expect(linea, `${ruta}: otra fecha de libre de deuda sin decir con qué se compara`).toMatch(COMPARACION);
+    }
+  }
+
+  test("en las rutas del menú, a 1280 px", async ({ page }) => {
+    test.setTimeout(240000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await arrancarEnCaliente(page);
+    await page.evaluate(() => { location.hash = "deuda-ruta"; });
+    await expect(page.locator("#deudaRutaTitle")).toHaveAttribute("data-fecha-libre", "unica");
+    const { esperado, viva, fuente } = await page.evaluate(() => {
+      const o = homeDebtOutlook();
+      return { esperado: String(o.libreDeDeuda).slice(0, 7), viva: o.pendingPrincipal, fuente: o.fuente };
+    });
+    expect(viva, "el arranque en caliente deja deuda viva").toBeGreaterThan(0);
+    expect(fuente, "con contratos con TAE y cuota, la fecha es la del plan óptimo").toBe("plan-optimo");
+    expect(esperado).toMatch(/^\d{4}-\d{2}$/);
+    // La de Deuda › Plan, la primera: titular y héroe del plan, el mismo mes.
+    await expect(page.locator("#deudaRutaTitle")).toContainText(/\d{4}/);
+    await expect(page.locator('#planOptimoResultado [data-fecha-libre="unica"]')).toHaveCount(1);
+    const rutas = await page.evaluate(() => [...new Set([...document.querySelectorAll('#primarySidebar a[href^="#"]')].map((a) => a.getAttribute("href").slice(1)).filter(Boolean))]);
+    expect(rutas.length).toBeGreaterThan(30);
+    for (const ruta of rutas) {
+      await test.step(ruta, async () => {
+        await page.evaluate((h) => { location.hash = h; }, ruta);
+        await page.waitForTimeout(500);
+        comprobar(ruta, await leerPantalla(page), esperado);
+      });
+    }
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("Hoy y Deuda › Plan, a 390 px @safari", async ({ page }) => {
+    test.setTimeout(120000);
+    await arrancarEnCaliente(page, { viewport: { width: 390, height: 844 } });
+    const esperado = await page.evaluate(() => String(homeDebtOutlook().libreDeDeuda).slice(0, 7));
+    for (const ruta of ["home", "deuda-ruta", "deuda-comparar"]) {
+      await page.evaluate((h) => { location.hash = h; }, ruta);
+      await page.waitForTimeout(700);
+      comprobar(ruta, await leerPantalla(page), esperado);
+    }
+    await page.evaluate(() => { location.hash = "deuda-ruta"; });
+    await expect(page.locator("#deudaRutaTitle")).not.toContainText(/sin deuda pendiente/i);
+    await expect(page.locator("#deudaRutaAttackNote")).toContainText("Si aplicáis esta ruta:");
+  });
+
+  test("con un plan guardado, manda su fecha; el plan óptimo con otros ajustes queda como comparación con nombre", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await arrancarEnCaliente(page);
+    await page.evaluate(() => { location.hash = "deuda-ruta"; });
+    const seg = page.locator("#planSeguimiento");
+    await expect(seg.locator("[data-seg-guardar]")).toHaveText("Este es nuestro plan", { timeout: 20000 });
+    await page.fill("#planOptimoMensual", "300");
+    await expect(page.locator("#planOptimoResultado .plan-optimo-tramos li").first()).toContainText("300 € al mes de más");
+    await seg.locator("[data-seg-guardar]").click();
+    await expect(seg).toContainText("Vuestro plan", { timeout: 10000 });
+    const guardada = await page.evaluate(() => JSON.parse(storageGet(storageKey("plan-deuda-compromiso"), "null")).fechaLibre);
+    // Otros ajustes (más al mes): el plan óptimo da otra fecha, pero manda la del plan guardado.
+    await page.fill("#planOptimoMensual", "900");
+    await expect(page.locator("#planOptimoResultado .plan-optimo-tramos li").first()).toContainText("900 € al mes de más");
+    await expect(page.locator('#planOptimoResultado [data-fecha-libre="comparacion"]')).toContainText("Con estos ajustes");
+    expect(await page.evaluate(() => homeDebtOutlook().fuente)).toBe("plan-guardado");
+    // Sin repintar la pantalla entera: el titular y la tira siguen solos a los controles y al plan guardado.
+    await expect(page.locator("#deudaRutaSubtitle")).toContainText("Según vuestro plan");
+    const leido = await leerPantalla(page);
+    expect(leido.tira?.sub).toBe("según vuestro plan");
+    comprobar("deuda-ruta (plan guardado)", leido, guardada);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});
+
+// TRE-08 (decimotercera auditoría, §7.2; «sigue con TRE-08» del hogar, 25/11/2026): «Herramientas avanzadas» se abre sola al entrar en
+// una pantalla suya y se cierra al volver a una principal (abierta, el menú pasaba de ~1.660 a ~3.600 px y el escritorio arrastraba
+// ~2.000 px de vacío bajo cada pantalla); si la abre el hogar, se queda abierta. Las pantallas con entrada principal fuera del grupo no lo
+// abren. El escritorio mantiene el scroll único de página (E7, 1/8/2026): el menú no tiene desplazamiento propio (D-N48, se consulta).
+test.describe("TRE-08 · El menú lateral no estira el escritorio", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  test("abierta sola, se cierra al volver; abierta a mano, se queda; una hermana de Plan no la abre, a 1280 px", async ({ page }) => {
+    test.setTimeout(120000);
+    await arrancarEnCaliente(page);
+    const avanzadas = page.locator("#advancedNav");
+    const medir = () => page.evaluate(() => ({
+      menu: document.getElementById("primarySidebar").getBoundingClientRect().height,
+      doc: document.documentElement.scrollHeight,
+      main: document.querySelector("main").getBoundingClientRect().height,
+    }));
+    // Desde una pantalla que solo está en el grupo, y vuelta a Hoy.
+    const soloAvanzada = await page.evaluate(() => {
+      const nav = document.getElementById("advancedNav");
+      const fuera = new Set([...document.querySelectorAll(".side-nav a[href^='#']")].filter((a) => !nav.contains(a)).map((a) => a.getAttribute("href")));
+      // Una que no declare familia (las hermanas resaltan su entrada principal y no abren el grupo, Ola 1).
+      return [...nav.querySelectorAll("a[href^='#']")].map((a) => a.getAttribute("href"))
+        .find((href) => !fuera.has(href) && !document.querySelector(`${href}[data-nav-family]`)).slice(1);
+    });
+    await page.evaluate((h) => { location.hash = h; }, soloAvanzada);
+    await expect(avanzadas).toHaveJSProperty("open", true);
+    await page.evaluate(() => { location.hash = "home"; });
+    await expect(page.locator("#hoyV2")).toBeVisible();
+    await expect(avanzadas).toHaveJSProperty("open", false);
+    const hoy = await medir();
+    expect(hoy.menu, "el menú con el grupo cerrado").toBeLessThan(2000);
+    expect(hoy.doc, "el documento lo mide la pantalla o el menú cerrado, no el grupo abierto").toBeLessThanOrEqual(Math.max(hoy.main, hoy.menu) + 40);
+    // Una pantalla hermana de Plan (Presupuesto del mes) resalta «Plan» y no abre el grupo (Ola 1).
+    await page.evaluate(() => { location.hash = "presupuesto-mes"; });
+    await expect(page.locator('.side-nav a.nav-primary-link[href="#plan"]')).toHaveAttribute("aria-current", "page");
+    await expect(avanzadas).toHaveJSProperty("open", false);
+    // Abierta a mano, se queda al cambiar de pantalla.
+    await avanzadas.locator("summary").click();
+    await expect(avanzadas).toHaveJSProperty("open", true);
+    await page.evaluate(() => { location.hash = "home"; });
+    await expect(page.locator("#hoyV2")).toBeVisible();
+    await expect(avanzadas).toHaveJSProperty("open", true);
+  });
+});
+
+// TRE-10 (decimotercera auditoría, §7.2; «sigue con TRE-10» del hogar, 25/11/2026): sin texto de ingeniero en pantalla. Ya hubo una
+// limpieza de códigos («(T11)») y volvieron porque nada lo impedía. Con el arranque en caliente, en cada ruta del menú, en lo visible de la
+// pantalla, la tira y el recuadro «Estado»: ningún código interno entre paréntesis («(I1)», «(WP-25)»), ninguna fecha ISO, ningún decimal
+// con punto delante de «meses», «años» o «%» (el separador decimal es la coma; «1.000» de miles no cuenta) y ningún NaN, undefined o
+// Infinity. Mismo patrón que la prueba de privacidad, aplicado al lenguaje.
+test.describe("TRE-10 · Sin texto de ingeniero en pantalla", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  const FUGAS = [
+    ["código interno", /\((?:[A-Z]{1,4}-?\d{1,3}[a-z]?)(?:[/,] ?[A-Z]{1,4}-?\d{1,3}[a-z]?)*\)/],
+    ["fecha ISO", /\b20\d\d-\d\d-\d\d\b/],
+    ["decimal con punto", /\b\d+\.\d{1,2} (?:meses|años|%)/],
+    ["valor roto", /\b(?:NaN|undefined|Infinity)\b/],
+  ];
+  test("en las rutas del menú, a 1280 px", async ({ page }) => {
+    test.setTimeout(240000);
+    await arrancarEnCaliente(page);
+    const rutas = await page.evaluate(() => [...new Set([...document.querySelectorAll('#primarySidebar a[href^="#"]')].map((a) => a.getAttribute("href").slice(1)).filter(Boolean))]);
+    expect(rutas.length).toBeGreaterThan(30);
+    const hallado = [];
+    for (const ruta of rutas) {
+      await page.evaluate((h) => { location.hash = h; }, ruta);
+      await page.waitForTimeout(500);
+      const texto = await page.evaluate(() => {
+        const visible = (el) => Boolean(el && el.offsetParent !== null && el.getClientRects().length);
+        const zonas = [...document.querySelectorAll("main section.view-section:not([hidden]), main .view.active, #topbarStatusStrip, .e17-guide-details")].filter(visible);
+        return zonas.map((z) => z.innerText).join("\n");
+      });
+      for (const [nombre, patron] of FUGAS) {
+        const m = texto.match(patron);
+        if (m) hallado.push(`${ruta}: ${nombre} «${m[0]}» en «${texto.slice(Math.max(0, m.index - 50), m.index + 40).replace(/\s+/g, " ")}»`);
+      }
+    }
+    expect(hallado, hallado.join("\n")).toEqual([]);
+  });
+});
+
+// TRE-D1 (decimotercera auditoría §2.2; auditoría de diseño del 25/11 §5.2, PR 1; «sigue con TRE-D1» del hogar): Deuda › Plan con el
+// diseño nuevo. La fecha única arriba (la misma que Hoy y el plan, D-N40), «Este mes» con su acción, «Cómo vais» con el plan guardado,
+// el orden por contrato y los accesos; todo lo de siempre detrás de «Ver todo el detalle», que se recuerda y se deshace. Sin la tira de
+// cinco cifras (D-N49). Con el arranque en caliente (contratos y movimientos FICTICIOS).
+test.describe("TRE-D1 · Deuda › Plan nuevo", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+    const etiqueta = viewport.width === 390 ? " @safari" : "";
+    test(`la respuesta arriba, el mes con su acción, el orden y el detalle a un toque, a ${viewport.width} px${etiqueta}`, async ({ page }) => {
+      test.setTimeout(150000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await arrancarEnCaliente(page, { viewport });
+      await page.evaluate(() => { location.hash = "deuda-ruta"; });
+      await deudaPlanNueva(page);
+      const vista = page.locator("#deudaPlanV2");
+      await expect(vista.locator("#dpv2Fecha")).toBeVisible({ timeout: 20000 });
+      // La fecha es la única de la app (D-N40) y lo de siempre está oculto, con la tira de cinco cifras (D-N49).
+      const { mes, anio } = await page.evaluate(() => {
+        const key = String(homeDebtOutlook().libreDeDeuda).slice(0, 7);
+        return { mes: ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"][Number(key.slice(5, 7)) - 1], anio: key.slice(0, 4) };
+      });
+      await expect(vista.locator("#dpv2Fecha")).toHaveText(new RegExp(`^${mes} de ${anio}$`, "i"));
+      await expect(vista.locator("#dpv2Fecha")).toHaveAttribute("data-fecha-libre", "unica");
+      await expect(page.locator("#planOptimoCard")).toBeHidden();
+      await expect(page.locator("#topbarStatusStrip")).toBeHidden();
+      await expect(vista.locator(".dpv2-fila")).toHaveCount(2);
+      await expect(vista.locator(".dpv2-mes")).toContainText("Banco FICTICIO");
+      // Alto de la vista por defecto (decimotercera §2.8): ≤ 1.300 px a 1280 y ≤ 2.600 px a 390, y sin desbordar.
+      const medida = await page.evaluate(() => ({ alto: document.getElementById("deudaPlanV2").getBoundingClientRect().height, desborda: document.documentElement.scrollWidth > window.innerWidth + 1 }));
+      expect(medida.alto).toBeLessThanOrEqual(viewport.width === 390 ? 2600 : 1300);
+      expect(medida.desborda).toBe(false);
+      // «Este es nuestro plan» guarda el plan (el de siempre) y aparecen «Cómo vais» y los botones del mes.
+      await vista.locator('[data-dpv2="guardar"]').click();
+      await expect(vista.locator(".dpv2-vais")).toBeVisible({ timeout: 10000 });
+      expect(await page.evaluate(() => homeDebtOutlook().fuente)).toBe("plan-guardado");
+      await expect(vista.locator(".dpv2-kicker").first()).toHaveText(/con vuestro plan/i);
+      // «Ya lo he pagado» da el mes por hecho, como «Sí» en la pregunta del seguimiento (DUO-D1).
+      await vista.locator('[data-dpv2="pagado"]').click();
+      await expect(vista.locator(".dpv2-estado.is-ok")).toContainText("Hecho este mes");
+      await expect(vista.locator('.dpv2-meses li[data-estado="hecho"]')).toHaveCount(1);
+      // «Ajustar el plan» lleva al plan óptimo de siempre; «Volver a la vista nueva» deshace, y la elección se recuerda al recargar.
+      await vista.locator('[data-dpv2="ajustar"]').click();
+      await expect(page.locator("#planOptimoCard")).toBeVisible();
+      await expect(vista.locator('[data-dpv2="volver"]')).toBeVisible();
+      await page.reload();
+      await page.evaluate(() => { location.hash = "deuda-ruta"; });
+      await expect(page.locator("#planOptimoCard")).toBeVisible({ timeout: 20000 });
+      await vista.locator('[data-dpv2="volver"]').click();
+      await expect(vista.locator("#dpv2Fecha")).toBeVisible();
+      await expect(page.locator("#planOptimoCard")).toBeHidden();
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }

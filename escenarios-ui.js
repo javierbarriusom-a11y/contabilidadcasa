@@ -300,15 +300,34 @@ function runEscenarioMotor(baseInput, decisions, guardrailValue) {
 // nunca de una cifra inventada: si la deuda sigue activa se proyecta cuota fija durante
 // remainingInstallments meses desde su último cambio real (o desde el inicio del horizonte si
 // nadie la ha tocado); si el resultado cae fuera del horizonte modelado se dice explícitamente.
+//
+// TRE-D0 (D-N40, 25/11/2026): un plazo sin declarar (0 o vacío) con capital vivo NO es «saldada este mes». Antes lo era, y la tira de
+// cifras y Hoy decían «Libre de deuda» en el mes en curso con miles de euros vivos (los contratos dados de alta con «Pegar varios» no
+// traen plazo). Sin plazo, el que sale de capital, cuota y TAE con cuota francesa (como el plan óptimo, DUO-D3); sin TAE, capital
+// entre cuota (se queda corto: sin intereses); si la cuota no cubre los intereses, no acaba (null: «fuera de horizonte»).
+function escenarioMotorPlazoDeducido(contract) {
+  const principal = Number(contract.currentPrincipal);
+  const payment = Number(contract.currentPayment);
+  if (!(principal > 0) || !(payment > 0)) return null;
+  const apr = contract.apr === null || contract.apr === undefined || contract.apr === "" ? 0 : Number(contract.apr);
+  const rate = Number.isFinite(apr) && apr > 0 ? apr / 100 / 12 : 0;
+  if (rate === 0) return Math.ceil(principal / payment);
+  if (payment <= principal * rate) return null;
+  return Math.ceil(-Math.log(1 - (rate * principal) / payment) / Math.log(1 + rate));
+}
+
 function escenarioMotorContractPayoffMonth(contract, months) {
   if (!months.length) return null;
-  if (!(Number(contract.currentPrincipal) > 0) || Number(contract.remainingInstallments) <= 0) {
+  if (!(Number(contract.currentPrincipal) > 0)) {
     return contract.scheduleEffectiveFrom || months[0].monthKey;
   }
+  const declarado = Math.floor(Number(contract.remainingInstallments) || 0);
+  const plazo = declarado > 0 ? declarado : escenarioMotorPlazoDeducido(contract);
+  if (!(plazo > 0)) return null;
   const startIndex = contract.scheduleEffectiveFrom
     ? Math.max(0, months.findIndex((month) => month.monthKey === contract.scheduleEffectiveFrom))
     : 0;
-  const payoffIndex = startIndex + Math.max(0, Math.floor(contract.remainingInstallments) - 1);
+  const payoffIndex = startIndex + Math.max(0, plazo - 1);
   return payoffIndex < months.length ? months[payoffIndex].monthKey : null;
 }
 

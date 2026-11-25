@@ -139,7 +139,9 @@ function renderSeguimientoPlan(planVivo, contratos) {
 }
 
 function segRepintar(foco) {
-  if (segUltimo) renderSeguimientoPlan(segUltimo.plan, segUltimo.contratos);
+  // D-N40: guardar o dejar el plan cambia la fecha única; el plan óptimo (que repinta este seguimiento) y el titular la siguen.
+  if (typeof planOptimoRepintar === "function" && typeof planOptimoLast !== "undefined" && planOptimoLast) planOptimoRepintar();
+  else if (segUltimo) renderSeguimientoPlan(segUltimo.plan, segUltimo.contratos);
   if (foco) qs("planSeguimiento")?.querySelector(foco)?.focus();
 }
 

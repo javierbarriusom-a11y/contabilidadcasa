@@ -76,7 +76,7 @@
     <link rel="stylesheet" href="patrimonio.css?v=20261014wp46b2" />
     <link rel="stylesheet" href="cierre-a11y.css?v=20261015d1" />
     <!-- Rediseño fase A: tema v2 detrás de bandera (?tema=v2). Va el último para poder redefinir tokens. -->
-    <link rel="stylesheet" href="tema-v2.css?v=20261122und08" />
+    <link rel="stylesheet" href="tema-v2.css?v=20261125tred1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -2205,6 +2205,8 @@
           <section class="e19-deuda-decidir view-section" id="deuda-ruta" hidden>
             <nav class="e19-registrar-tabs" id="deudaRutaScreenTabs" aria-label="Pestañas de Deuda"></nav>
             <nav class="deuda-flow-nav" id="deudaRutaFlowNav" aria-label="Paso anterior o siguiente en Deuda"></nav>
+            <!-- TRE-D1 (25/11/2026): Deuda › Plan con el diseño nuevo (views/deuda-plan-v2.js), solo con el tema v2; lo de siempre sigue debajo y vuelve con «Ver todo el detalle». -->
+            <div class="dpv2" id="deudaPlanV2" hidden></div>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow">Deuda · Plan</p>
@@ -2246,6 +2248,13 @@
                 <div id="planOptimoComisionesLista"></div>
               </details>
               <!-- D-N27 (21/11/2026): el orden lo elige el hogar y se puede cambiar cuando se quiera; el plan pregunta antes de empezar por la más pequeña. -->
+              <!-- TRE-D3 · D-N42 (25/11/2026): colchón primero bajo la reserva protegida, salvo (a medias) deudas por encima del umbral de TAE. -->
+              <fieldset class="plan-optimo-orden plan-optimo-colchon" id="planOptimoColchonGrupo">
+                <legend>Bajo la reserva protegida</legend>
+                <label><input type="checkbox" id="planOptimoColchon" checked /> Primero el colchón: lo de más se queda en la cuenta hasta llegar a la reserva</label>
+                <label class="plan-optimo-colchon-umbral">Salvo, a medias, deudas por encima de <input type="text" inputmode="decimal" id="planOptimoColchonUmbral" value="15" aria-describedby="planOptimoColchonNota" /> % de TAE</label>
+                <p class="e19-kpi-note" id="planOptimoColchonNota" aria-live="polite"></p>
+              </fieldset>
               <fieldset class="plan-optimo-orden" id="planOptimoOrden">
                 <legend>Orden</legend>
                 <label><input type="radio" name="planOptimoOrden" value="avalancha" checked /> Primero la más cara (avalancha: menos intereses)</label>
@@ -2305,13 +2314,13 @@
 
                 <article class="e19-card deuda-ruta-chart-card">
                   <h3 class="escenario-motor-panel-title">Cómo se apaga la deuda</h3>
-                  <p class="e19-kpi-note">«Deuda viva» es el principal pendiente de las deudas que esta ruta todavía no ha saldado — cae de golpe el mes en que se salda; no es un calendario de amortización mes a mes.</p>
+                  <p class="e19-kpi-note">Si aplicáis la ruta de «Orden de ataque»: «Deuda viva» es el principal pendiente de las deudas que esa ruta todavía no ha saldado — cae de golpe el mes en que se salda; no es un calendario de amortización mes a mes.</p>
                   <svg id="deudaRutaChart" class="deuda-ruta-chart"></svg>
                 </article>
 
                 <article class="e19-card deuda-ruta-calendar-card">
                   <h3 class="escenario-motor-panel-title">Calendario de amortización</h3>
-                  <p class="e19-kpi-note">Capital vivo mes a mes con la estrategia activa: el calendario declarado de cada contrato (TAE y cuota), adelantado en el mes en que esta ruta lo liquida de golpe.</p>
+                  <p class="e19-kpi-note">Si aplicáis la ruta de «Orden de ataque»: capital vivo mes a mes con esa estrategia, el calendario declarado de cada contrato (TAE y cuota), adelantado en el mes en que esta ruta lo liquida de golpe.</p>
                   <div id="deudaRutaAmortChart"></div>
                   <div class="deuda-ruta-amort-stats" id="deudaRutaAmortStats"></div>
                   <p class="e19-kpi-note">Detalle por contrato, en el orden de ataque de la pestaña activa: cuota, interés, capital amortizado y saldo restante.</p>
@@ -2630,7 +2639,7 @@
               <div>
                 <p class="panel-kicker e19-eyebrow">Inversión · Cartera</p>
                 <h2 class="e19-heading">Cartera de inversión</h2>
-                <p class="e19-subtitle">Registro de posiciones y su análisis — antes repartidos entre Ajustes y Herramientas avanzadas (I1).</p>
+                <p class="e19-subtitle">Registro de posiciones y su análisis.</p>
               </div>
             </div>
 
@@ -3805,7 +3814,7 @@
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="lev9CompareRun">Comparar</button>
               <div class="e19-kpi-note" id="lev9ComparisonNote"></div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="t6MemoApalancar">Generar memo de decisión (T6)</button>
+              <button type="button" class="e19-btn e19-btn-secondary" id="t6MemoApalancar">Generar memo de decisión</button>
               <p class="e19-kpi-note" id="t6MemoApalancarNote"></p>
             </article>
 
@@ -4084,7 +4093,7 @@
               <h3 class="escenario-motor-panel-title">Hipoteca variable → fija bajo escenarios de tipos</h3>
               <p class="e19-kpi-note">Compara tu hipoteca variable con una oferta de tipo fijo bajo tres escenarios de tipos — base, favorable y tensión (mismo marco que el Laboratorio de escenarios). Sin tipos de mercado reales: pones los tuyos.</p>
               <div class="e19-kpi-note" id="deb4RadarAlert"></div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="t6MemoRefinanciar">Generar memo de decisión (T6)</button>
+              <button type="button" class="e19-btn e19-btn-secondary" id="t6MemoRefinanciar">Generar memo de decisión</button>
               <p class="e19-kpi-note" id="t6MemoRefinanciarNote"></p>
               <div class="cuadro-mandos-controls">
                 <label class="month-picker">
@@ -4104,7 +4113,7 @@
                      revisar por el hogar cada trimestre — cualquiera de los dos deja fecha para
                      poder avisar si queda desactualizado. -->
                 <label class="month-picker">
-                  <span>Fuente del tipo fijo de referencia (D6)</span>
+                  <span>Fuente del tipo fijo de referencia</span>
                   <select id="deb4BenchmarkMode">
                     <option value="manual">Lo reviso yo a mano (trimestral)</option>
                     <option value="euribor">Euribor + diferencial habitual</option>
@@ -5039,7 +5048,7 @@
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="gob15Simulate">Simular</button>
               <div class="e19-kpi-note" id="gob15SimulationNote"></div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="t6MemoVenderVivienda">Generar memo de decisión (T6)</button>
+              <button type="button" class="e19-btn e19-btn-secondary" id="t6MemoVenderVivienda">Generar memo de decisión</button>
               <p class="e19-kpi-note" id="t6MemoVenderViviendaNote"></p>
             </article>
 
@@ -5098,7 +5107,7 @@
 
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Diario de recalibración de la previsión</h3>
-              <p class="e19-kpi-note">Por qué cambió cada cifra: cada cierre de mes recalcula el aprendizaje de desviaciones (E12b) y registra aquí lo que cambió, con la cifra anterior y la nueva — nunca aplica un ajuste solo.</p>
+              <p class="e19-kpi-note">Por qué cambió cada cifra: cada cierre de mes recalcula el aprendizaje de desviaciones y registra aquí lo que cambió, con la cifra anterior y la nueva — nunca aplica un ajuste solo.</p>
               <ul class="pv5-diary-list" id="pv5DiaryList"></ul>
               <p class="e19-kpi-note" id="pv5DiaryEmpty" hidden>Todavía no ha cambiado ninguna cifra tras un cierre de mes.</p>
             </article>
@@ -6502,7 +6511,7 @@
               <div>
                 <p class="panel-kicker e19-eyebrow">Estado</p>
                 <h2 class="e19-heading">Estado de la semana</h2>
-                <p class="e19-subtitle">Tres lecturas que hoy viven en pantallas separadas, juntas y de solo lectura: alertas de caja anticipadas (E16), ritmo de presupuesto de esta semana y este mes, y los próximos vencimientos de tus objetivos (E15). Nada se cambia aquí — cada tarjeta enlaza a la pantalla donde sí se actúa.</p>
+                <p class="e19-subtitle">Tres lecturas que hoy viven en pantallas separadas, juntas y de solo lectura: alertas de caja anticipadas, ritmo de presupuesto de esta semana y este mes, y los próximos vencimientos de tus objetivos. Nada se cambia aquí — cada tarjeta enlaza a la pantalla donde sí se actúa.</p>
               </div>
             </div>
             <nav class="e19-registrar-tabs" aria-label="Pantallas de Plan">
@@ -8149,10 +8158,10 @@
 
     <script defer src="tema-v2.js?v=20261019v2defecto"></script>
     <script defer src="household-members.js?v=20261119priv4"></script>
-    <script defer src="medidor-utilidad.js?v=20261124dn38"></script>
+    <script defer src="medidor-utilidad.js?v=20261125tred1"></script>
     <script defer src="ocultar-cifras.js?v=20261122und17"></script>
     <script defer src="views/plegados-medidor.js?v=20261118dec40"></script>
-    <script defer src="funciones-en-prueba.js?v=20261122und04"></script>
+    <script defer src="funciones-en-prueba.js?v=20261125tred1"></script>
     <script defer src="vendor/supabase-js-2.117.2.umd.js"></script>
     <script defer src="xlsx-loader.js?v=20260929p2a1"></script>
     <script defer src="supabase-config.js?v=20260602a"></script>
@@ -8440,11 +8449,11 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20261119priv4"></script>
-    <script defer src="novedades.js?v=20261122undn33"></script>
+    <script defer src="novedades.js?v=20261125dn40"></script>
     <script defer src="ux-shell.js?v=20261121dec45"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
-    <script defer src="usage-panel.js?v=20261004wp26a1"></script>
+    <script defer src="usage-panel.js?v=20261125tre10"></script>
     <script defer src="canonical-charge-day-viability.js?v=20261004wp08a1"></script>
     <script defer src="canonical-timing.js?v=20261119priv3"></script>
     <script defer src="canonical-month-close-balances.js?v=20261104firma1"></script>
@@ -8476,13 +8485,13 @@
     <script defer src="canonical-rate-review.js?v=20261007wp20a1"></script>
     <script defer src="revision-tipo-ui.js?v=20261007wp20a1"></script>
     <script defer src="canonical-debt-payoff-path.js?v=20261124duod8"></script>
-    <script defer src="canonical-debt-optimal-plan.js?v=20261124duod8"></script>
-    <script defer src="camino-deuda-ui.js?v=20261124dn39"></script>
+    <script defer src="canonical-debt-optimal-plan.js?v=20261125tred3"></script>
+    <script defer src="camino-deuda-ui.js?v=20261125dn40"></script>
     <script defer src="kit-entidad-ui.js?v=20261124duod6"></script>
     <script defer src="salud-motor.js?v=20261123duo04"></script>
     <script defer src="salud-motor-ui.js?v=20261123duo04"></script>
     <script defer src="seguimiento-plan-deuda.js?v=20261124duod1"></script>
-    <script defer src="seguimiento-plan-ui.js?v=20261124dn39"></script>
+    <script defer src="seguimiento-plan-ui.js?v=20261125dn40"></script>
     <script defer src="hitos-deuda.js?v=20261124duod2"></script>
     <script defer src="hitos-deuda-ui.js?v=20261124dn39"></script>
     <script defer src="revision-trimestral.js?v=20261124dn38"></script>
@@ -8544,8 +8553,8 @@
     <script defer src="fiscal-datos-ui.js?v=20261016wp23c1"></script>
     <script defer src="fiscal-campana-ui.js?v=20261016wp23c1"></script>
     <script defer src="canonical-balance-pulse.js?v=20261004wp26b1"></script>
-    <script defer src="registrar-ui.js?v=20261119priv3"></script>
-    <script defer src="escenarios-ui.js?v=20261121dn23"></script>
+    <script defer src="registrar-ui.js?v=20261125tre10"></script>
+    <script defer src="escenarios-ui.js?v=20261125dn40"></script>
     <script defer src="canonical-liquidity-backtest.js?v=20261005wp12a1"></script>
     <script defer src="liquidity-backtest-ui.js?v=20261005wp12a1"></script>
     <script defer src="p2-domain.js?v=20261119priv4"></script>
@@ -8554,6 +8563,7 @@
     <script defer src="views/cobertura-ajuste.js?v=20261019cobro"></script>
     <script defer src="views/hoy-v2.js?v=20261124dn39"></script>
     <script defer src="views/deuda-simulador-v2.js?v=20261123duo01"></script>
+    <script defer src="views/deuda-plan-v2.js?v=20261125tred1"></script>
     <script defer src="views/movimientos-v2.js?v=20261119dat07"></script>
     <script defer src="views/importar-v2.js?v=20261116xda04b"></script>
     <script defer src="views/clasificar-v2.js?v=20261120dec14"></script>
@@ -8566,7 +8576,7 @@
     <script defer src="buzon-extractos.js?v=20261025xda02"></script>
     <script defer src="cobertura-ui.js?v=20261116xda04b"></script>
     <script defer src="extracto-pdf-ui.js?v=20261031web1"></script>
-    <script defer src="lo-que-pide-ui.js?v=20261026xda01"></script>
+    <script defer src="lo-que-pide-ui.js?v=20261125tre10"></script>
     <script defer src="ejemplos-ui.js?v=20261027xux02"></script>
     <script defer src="descubierto-ui.js?v=20261107xpr07c2"></script>
     <script defer src="aportado-ui.js?v=20261028pct1"></script>
@@ -8579,7 +8589,7 @@
     <script defer src="siguiente-paso-ui.js?v=20261028wp17"></script>
     <script defer src="cierre-guia-ui.js?v=20261104cierreC3"></script>
     <script defer src="antes-de-decidir-ui.js?v=20261113xda10pr3"></script>
-    <script defer src="app.js?v=20261124duod6"></script>
+    <script defer src="app.js?v=20261125dn40"></script>
     <script defer src="p2-ui.js?v=20261119priv4"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

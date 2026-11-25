@@ -247,7 +247,7 @@
       const share = pulseSummary.coincideShare === null ? "" : ` «Coincide» en el ${pulseSummary.coincideShare} % de las respuestas (si roza el 100 % con saldos que se mueven, puede que se confirme sin mirar).`;
       rows.push(metricRow("Segundos para actualizar saldos", pulseSummary.medianSeconds === null ? "—" : `${formatNumber(pulseSummary.medianSeconds)} s`, "≤ 20 s", pulseSummary.medianSeconds === null ? null : pulseSummary.medianSeconds <= 20, pulseSummary.count ? `Mediana de las últimas ${pulseSummary.count} veces con el Pulso de saldos de Registrar.${share}` : "Aún sin medir: se mide al usar el Pulso de saldos de Registrar.", "Sin medir"));
     }
-    rows.push(metricRow("Gasto registrado en menos de 48 h", "—", "—", null, "Sin medir: la app no guarda cuándo registras cada gasto. Los enlaces (WP-25) registran al pagar; la medida real cruza lo registrado con el extracto (WP-53).", "Sin medir"));
+    rows.push(metricRow("Gasto registrado en menos de 48 h", "—", "—", null, "Sin medir: la app no guarda cuándo registras cada gasto. Los enlaces de registro apuntan al pagar; la medida real cruza lo registrado con el extracto.", "Sin medir"));
     rows.push(metricRow("Decisiones registradas", "—", "—", null, "Sin medir: falta acordar qué cuenta como decisión.", "Sin medir"));
     return rows.join("");
   }

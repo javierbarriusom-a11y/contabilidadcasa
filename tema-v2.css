@@ -5743,3 +5743,380 @@
 :root[data-tema="v2"] .hoy-v2-fallo .secondary-button {
   min-height: 44px;
 }
+
+/* ---------- TRE-D1 · Deuda › Plan con el diseño nuevo (25/11/2026; views/deuda-plan-v2.js) ----------
+   De DeudaDesktop.png y la maqueta html/DeudaTRE.html: la fecha única arriba (D-N40), «Este mes» y «Cómo vais» lado a lado, el orden
+   por contrato con lo adelantado rayado, y los accesos. Con la vista nueva pintada (y no en «Ver todo el detalle»), lo de siempre se
+   oculta; si el script falla, se sigue viendo lo de siempre. D-N49: en esta pantalla, sin la tira de cinco cifras. */
+:root[data-tema="v2"] #deuda-ruta:has(> #deudaPlanV2:not([hidden]):not([data-modo="anterior"])) > :not(#deudaPlanV2):not(#deudaRutaScreenTabs) {
+  display: none;
+}
+
+:root[data-tema="v2"] body:has(#deuda-ruta:not([hidden]) > #deudaPlanV2:not([hidden]):not([data-modo="anterior"])) #topbarStatusStrip {
+  display: none;
+}
+
+:root[data-tema="v2"] .dpv2 {
+  display: grid;
+  gap: 16px;
+  margin: 8px 0 24px;
+}
+
+:root[data-tema="v2"] .dpv2-card {
+  background: var(--e19-surface);
+  border: 1px solid var(--e19-border);
+  border-radius: 16px;
+  padding: 22px 24px;
+}
+
+:root[data-tema="v2"] .dpv2-kicker {
+  margin: 0 0 6px;
+  font: 600 12px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--e19-eyebrow);
+}
+
+:root[data-tema="v2"] .dpv2-titulo {
+  margin: 0 0 4px;
+  font-size: 18px;
+  color: var(--e19-heading);
+}
+
+:root[data-tema="v2"] .dpv2-nota {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .dpv2-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 0 28px;
+  padding: 0;
+}
+
+:root[data-tema="v2"] .dpv2-hero-fecha,
+:root[data-tema="v2"] .dpv2-hero-ahorro {
+  padding: 26px 24px 20px;
+}
+
+:root[data-tema="v2"] .dpv2-hero-ahorro {
+  border-left: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .dpv2-cifra {
+  margin: 0;
+  font-size: clamp(32px, 4.2vw, 48px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--e19-heading);
+}
+
+:root[data-tema="v2"] .dpv2-cifra-2 {
+  margin: 0;
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--e19-heading);
+}
+
+:root[data-tema="v2"] .dpv2-hero-pie {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 14px 24px;
+  border-top: 1px solid var(--e19-border);
+  font-size: 14px;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .dpv2-hero-pie strong {
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .dpv2-dos {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+:root[data-tema="v2"] .dpv2-mes-cifra {
+  margin: 4px 0 10px;
+  font-size: 15px;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .dpv2-mes-cifra > strong {
+  margin-right: 8px;
+  font-size: 28px;
+  color: var(--e19-heading);
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-tema="v2"] .dpv2-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+:root[data-tema="v2"] .dpv2-estado {
+  margin: 10px 0 0;
+  font-weight: 600;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .dpv2-estado.is-ok {
+  color: var(--e19-success);
+}
+
+:root[data-tema="v2"] .dpv2-despues {
+  margin: 14px 0 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--e19-border-strong);
+  font-size: 13px;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .dpv2-meses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .dpv2-meses li {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  font: 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .dpv2-meses li > span {
+  font: 700 22px/1 -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  color: var(--e19-accent);
+}
+
+:root[data-tema="v2"] .dpv2-meses li[data-estado="preguntar"] > span,
+:root[data-tema="v2"] .dpv2-meses li[data-estado="no"] > span {
+  color: var(--e19-warning);
+}
+
+:root[data-tema="v2"] .dpv2-eje {
+  position: relative;
+  height: 18px;
+  margin: 14px 0 0 calc(30% + 16px);
+  font: 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .dpv2-eje span {
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+:root[data-tema="v2"] .dpv2-filas {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .dpv2-fila {
+  display: grid;
+  grid-template-columns: 30% minmax(0, 1fr);
+  gap: 6px 16px;
+  align-items: center;
+  padding: 14px 0;
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .dpv2-fila-nombre {
+  display: grid;
+  gap: 2px;
+  font-size: 14px;
+}
+
+:root[data-tema="v2"] .dpv2-fila-nombre span {
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .dpv2-barra {
+  position: relative;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--e19-surface-sunken);
+  border-left: 2px solid var(--e19-accent);
+}
+
+:root[data-tema="v2"] .dpv2-barra-plan {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: var(--e19-accent);
+}
+
+:root[data-tema="v2"] .dpv2-barra-adelanto,
+:root[data-tema="v2"] .dpv2-l-adelanto {
+  background: repeating-linear-gradient(135deg, var(--e19-accent-soft-border) 0 4px, transparent 4px 8px);
+}
+
+:root[data-tema="v2"] .dpv2-barra-adelanto {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 0 999px 999px 0;
+}
+
+:root[data-tema="v2"] .dpv2-fila-frase {
+  grid-column: 2;
+  margin: 0;
+  font-size: 13px;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .dpv2-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .dpv2-l-plan,
+:root[data-tema="v2"] .dpv2-l-adelanto {
+  display: inline-block;
+  width: 22px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+:root[data-tema="v2"] .dpv2-l-plan {
+  background: var(--e19-accent);
+}
+
+:root[data-tema="v2"] .dpv2-accesos {
+  display: grid;
+  padding: 0;
+}
+
+:root[data-tema="v2"] .dpv2-acceso {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 14px 20px;
+  border: 0;
+  border-top: 1px solid var(--e19-border);
+  background: transparent;
+  color: var(--e19-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+:root[data-tema="v2"] .dpv2-acceso:first-child {
+  border-top: 0;
+}
+
+:root[data-tema="v2"] .dpv2-acceso:hover {
+  background: var(--e19-surface-soft);
+}
+
+:root[data-tema="v2"] .dpv2-acceso > span:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+:root[data-tema="v2"] .dpv2-acceso small {
+  font-size: 13px;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .dpv2-acceso > span:last-child {
+  font-size: 22px;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .dpv2-detalle,
+:root[data-tema="v2"] .dpv2-volver {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .dpv2-volver {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--e19-accent-soft);
+}
+
+/* Encabezado de la sección para lectores de pantalla: lo de siempre (con su H2) queda oculto con la vista nueva. */
+:root[data-tema="v2"] .dpv2-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+:root[data-tema="v2"] .dpv2-dos.is-solo {
+  grid-template-columns: 1fr;
+}
+
+@media (max-width: 860px) {
+  :root[data-tema="v2"] .dpv2-hero,
+  :root[data-tema="v2"] .dpv2-dos {
+    grid-template-columns: 1fr;
+  }
+
+  :root[data-tema="v2"] .dpv2-hero-ahorro {
+    border-left: 0;
+    border-top: 1px solid var(--e19-border);
+  }
+
+  :root[data-tema="v2"] .dpv2-card:not(.dpv2-hero):not(.dpv2-accesos) {
+    padding: 18px 16px;
+  }
+
+  :root[data-tema="v2"] .dpv2-hero-fecha,
+  :root[data-tema="v2"] .dpv2-hero-ahorro {
+    padding: 20px 16px 16px;
+  }
+
+  :root[data-tema="v2"] .dpv2-fila {
+    grid-template-columns: 1fr;
+  }
+
+  :root[data-tema="v2"] .dpv2-fila-frase {
+    grid-column: 1;
+  }
+
+  :root[data-tema="v2"] .dpv2-eje {
+    margin-left: 0;
+  }
+}
+
+/* TRE-D3 · D-N42: la línea de «colchón primero» en la respuesta de Deuda › Plan nuevo (conclusión, no acción: tinte, no verde sólido). */
+:root[data-tema="v2"] .dpv2-colchon {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--e19-warning-soft);
+  border: 1px solid var(--e19-warning-soft-border);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--e19-ink);
+}

@@ -45,7 +45,7 @@ function loQuePideHtml(engine, result) {
       <span>${escapeHtml(engine.minutesText(result.totalMinutes))} de ${result.budgetMinutes} min</span></p>
     ${medido}
     <ul class="panel-uso-lista lqp-lista" aria-label="Lo que pide cada función">${result.functions.map((fn) => loQuePideFunctionHtml(engine, fn)).join("")}</ul>
-    <p class="e19-kpi-note">Primero las que tienen hambre y después por lo que cuestan. Cada minuto es el medido cuando hay al menos 3 veces (WP-45) y si no, un supuesto, y se dice. Un dato que piden dos funciones se da una vez: el total lo cuenta una sola vez.</p>`;
+    <p class="e19-kpi-note">Primero las que tienen hambre y después por lo que cuestan. Cada minuto es el medido cuando hay al menos 3 veces y si no, un supuesto, y se dice. Un dato que piden dos funciones se da una vez: el total lo cuenta una sola vez.</p>`;
 }
 
 function renderLoQuePide(engine) {

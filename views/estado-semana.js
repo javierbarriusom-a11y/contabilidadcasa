@@ -19,7 +19,7 @@ function estadoSemanaCashAlertsHtml() {
   const alerts = estadoSemanaCashAlerts();
   const body =
     alerts === null
-      ? `<p class="e19-subtitle">El seguimiento predictivo de caja (E16) no está disponible todavía.</p>`
+      ? `<p class="e19-subtitle">El seguimiento predictivo de caja no está disponible todavía.</p>`
       : alerts.length
         ? `<ul class="commit-barrier-list">${alerts
             .slice(0, 3)
@@ -33,7 +33,7 @@ function estadoSemanaCashAlertsHtml() {
     <div class="registrar-mes-card-head plan-mes-budget-head">
       <div>
         <h3 class="escenario-motor-panel-title">Alertas de caja anticipadas</h3>
-        <p class="e19-subtitle">Mismo seguimiento predictivo (E16) que en Hoy: riesgos de liquidez, variación mensual y ratio de deuda.</p>
+        <p class="e19-subtitle">Mismo seguimiento predictivo que en Hoy: riesgos de liquidez, variación mensual y ratio de deuda.</p>
       </div>
       <div class="cuadro-mandos-controls">
         <button type="button" class="e19-btn e19-btn-secondary" data-home-nav="home">Ver detalle en Hoy</button>
@@ -93,7 +93,7 @@ function estadoSemanaGoalDeadlinesHtml() {
   const deadlines = estadoSemanaGoalDeadlines();
   const body =
     deadlines === null
-      ? `<p class="e19-subtitle">El calendario de objetivos (E15) no está disponible todavía.</p>`
+      ? `<p class="e19-subtitle">El calendario de objetivos no está disponible todavía.</p>`
       : deadlines.length
         ? `<ul class="commit-barrier-list">${deadlines
             .map(({ label, event }) => `<li><strong>${escapeHtml(label)}</strong> · ${escapeHtml(event.label)} — ${money(event.amount, true)} pendiente</li>`)
@@ -103,7 +103,7 @@ function estadoSemanaGoalDeadlinesHtml() {
     <div class="registrar-mes-card-head plan-mes-budget-head">
       <div>
         <h3 class="escenario-motor-panel-title">Objetivos: próximos vencimientos</h3>
-        <p class="e19-subtitle">Mismo calendario financiero (E15) que en Huchas — próximos 6 meses.</p>
+        <p class="e19-subtitle">Mismo calendario financiero que en Huchas — próximos 6 meses.</p>
       </div>
       <div class="cuadro-mandos-controls">
         <button type="button" class="e19-btn e19-btn-secondary" data-home-nav="savings-agent">Ver Huchas</button>
@@ -145,7 +145,7 @@ function cpx1WeeklyPriorityAction(alerts) {
 }
 
 function cpx1WeeklyPriorityHtml(alerts) {
-  if (alerts === null) return `<p class="e19-subtitle">El seguimiento predictivo de caja (E16) no está disponible todavía.</p>`;
+  if (alerts === null) return `<p class="e19-subtitle">El seguimiento predictivo de caja no está disponible todavía.</p>`;
   const action = cpx1WeeklyPriorityAction(alerts);
   if (!action) return `<p class="e19-subtitle">Sin ninguna alerta que priorizar esta semana.</p>`;
   const evidenceItems = (action.evidence || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
