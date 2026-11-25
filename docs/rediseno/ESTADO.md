@@ -260,3 +260,8 @@ Registrado en `BACKLOG_DEFINITIVO.md` §5.0 (P13, 19/10). **El proyecto WebKit (
 (fila D3-TRE de `referencias/INDICE.md`). Es la referencia de TRE-D1 a D4: una sola fecha protagonista, «Este mes», «Cómo vais», el orden
 como diagrama por contrato, «Ajustar el plan» en panel y «Comparar con otras formas» que recoge lo heredado sin perderlo. Sustituye como
 referencia de Deuda a `Deuda`/`DeudaDesktop` en lo que difieran, y no es de Claude Design.
+
+**Auditoría de diseño (25/11/2026, propuesta):** el hogar subió el PDF «Finanzas Casa · Rediseño» (32 páginas: el mismo diseño de
+`referencias/`) y pidió ajustar al diseño las pantallas que no lo están y priorizar Deuda. `docs/rediseno/AUDITORIA_DISENO_2026-11-25.md`:
+9 de 16 pantallas hechas; faltan Patrimonio, Inversión, Deuda, Decidir y Ajustes, y la navegación de 5 destinos; el cromo superior
+(~250 px) y la cabecera de pantalla son la diferencia transversal; orden de Deuda en cinco PR (§5). Pide D-N49 y D-N50.

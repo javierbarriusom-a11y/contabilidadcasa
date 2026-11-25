@@ -544,8 +544,9 @@ el documento. Además, `advancedNav` se abre al visitar una pantalla suya y no s
 - Criterio de hecho: a 1280 × 900, alto del documento de Hoy igual al de `#home` ± 40 px. Una e2e lo mide también en Movimientos y
   Plan, y el axe sigue en verde (el menú con desplazamiento propio necesita `tabindex` y nombre si es una región desplazable).
 - **Lo hecho el 25/11 («sigue con TRE-08»):** «Herramientas avanzadas» se cierra al volver a una pantalla principal si se abrió
-  sola, y Plan › Previsión declara su familia (resalta «Plan» y ya no abre el grupo). Medido a 1280 px con el arranque en caliente:
-  el vacío bajo Hoy pasa de ~2.100 a ~150 px; bajo Deuda › Plan, Previsión y Ajustes desaparece. **Lo que no se ha hecho, y por qué:**
+  sola, y no se abre en las pantallas que tienen entrada principal fuera de él (Deuda › Plan o Ajustes también tienen un enlace
+  dentro). Medido a 1280 px con el arranque en caliente: el vacío bajo Hoy pasa de ~2.100 a ~150 px; bajo Deuda › Plan y Ajustes
+  desaparece. **Lo que no se ha hecho, y por qué:**
   el desplazamiento propio del menú. Contradice una regla escrita en una prueba del 1/8/2026 (E7, `tests/e7-interface.test.cjs`:
   «escritorio usa el scroll único de página»), sin motivo anotado. Sin él, una pantalla más baja que el menú cerrado (1.663 px)
   sigue dejando vacío debajo: ~150 px en Hoy y ~500 px en Plan › Mes. **D-N48 (se consulta):** ¿el menú del escritorio pasa a tener

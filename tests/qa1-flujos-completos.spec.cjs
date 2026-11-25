@@ -13337,11 +13337,11 @@ test.describe("TRE-07 · Una sola fecha de libre de deuda en toda la app (D-N40)
 
 // TRE-08 (decimotercera auditoría, §7.2; «sigue con TRE-08» del hogar, 25/11/2026): «Herramientas avanzadas» se abre sola al entrar en
 // una pantalla suya y se cierra al volver a una principal (abierta, el menú pasaba de ~1.660 a ~3.600 px y el escritorio arrastraba
-// ~2.000 px de vacío bajo cada pantalla); si la abre el hogar, se queda abierta. Plan › Previsión resalta «Plan» (como sus hermanas) y no
-// abre el grupo. El escritorio mantiene el scroll único de página (E7, 1/8/2026): el menú no tiene desplazamiento propio.
+// ~2.000 px de vacío bajo cada pantalla); si la abre el hogar, se queda abierta. Las pantallas con entrada principal fuera del grupo no lo
+// abren. El escritorio mantiene el scroll único de página (E7, 1/8/2026): el menú no tiene desplazamiento propio (D-N48, se consulta).
 test.describe("TRE-08 · El menú lateral no estira el escritorio", () => {
   const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
-  test("abierta sola, se cierra al volver; abierta a mano, se queda; Previsión no la abre, a 1280 px", async ({ page }) => {
+  test("abierta sola, se cierra al volver; abierta a mano, se queda; una hermana de Plan no la abre, a 1280 px", async ({ page }) => {
     test.setTimeout(120000);
     await arrancarEnCaliente(page);
     const avanzadas = page.locator("#advancedNav");
@@ -13366,8 +13366,8 @@ test.describe("TRE-08 · El menú lateral no estira el escritorio", () => {
     const hoy = await medir();
     expect(hoy.menu, "el menú con el grupo cerrado").toBeLessThan(2000);
     expect(hoy.doc, "el documento lo mide la pantalla o el menú cerrado, no el grupo abierto").toBeLessThanOrEqual(Math.max(hoy.main, hoy.menu) + 40);
-    // Previsión, pestaña de Plan: resalta «Plan» y no abre el grupo.
-    await page.evaluate(() => { location.hash = "prevision"; });
+    // Una pantalla hermana de Plan (Presupuesto del mes) resalta «Plan» y no abre el grupo (Ola 1).
+    await page.evaluate(() => { location.hash = "presupuesto-mes"; });
     await expect(page.locator('.side-nav a.nav-primary-link[href="#plan"]')).toHaveAttribute("aria-current", "page");
     await expect(avanzadas).toHaveJSProperty("open", false);
     // Abierta a mano, se queda al cambiar de pantalla.

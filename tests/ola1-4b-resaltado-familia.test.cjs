@@ -31,8 +31,6 @@ const FAMILIES = {
   "presupuesto-mes": "plan",
   "estado-semana": "plan",
   "planificacion-partidas": "plan",
-  // TRE-08 (25/11/2026): Plan › Previsión (C2) es pestaña de Plan y solo tenía enlace en el menú avanzado, que se abría solo.
-  prevision: "plan",
   "escenario-guardados": "escenario-simular",
   "asesor-decision": "escenario-simular",
   "segunda-opinion": "escenario-simular",
