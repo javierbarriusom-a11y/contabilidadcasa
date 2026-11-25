@@ -113,6 +113,18 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 25 de noviembre de 2026 (541): el despliegue 1562 en rojo por una carrera de WebKit; arreglo de la prueba y traspaso
+
+- «Published availability» **414 en verde** (main 85aee9df, #681 en el sitio).
+- #682 (solo PROJECT_STATE 540) fusionado: **main b7cba35d**. Su «Verify and deploy Pages» **1562 en rojo**: en Safari, «Rediseño A4 · Importar v2» a
+  390 px falló dos veces en `qa1-flujos-completos.spec.cjs:7518` con Registrar aún en «Saldo de cuentas» (se perdió el toque en la pestaña). Código
+  idéntico al de #681, que pasó: es la carrera de WebKit de #672, del 1518 y de `abrirAltaVarios`. **Sin relanzar.** El sitio sigue en 1560.
+- Arreglo: `tests/helpers/abrir-importar-registrar.cjs` repite el toque hasta ver la revisión de Importar v2 (`setRegistrarTab` es idempotente);
+  lo usan las dos e2e de Safari que empiezan así (Importar v2 y el ensayo del cierre de octubre). No se relaja ninguna comprobación.
+- Traspaso del hilo en `docs/traspasos/2026-11-24_traspaso.md`.
+- **Validación:** `npm test` **6.964/6.964**; lint en verde; las dos e2e tocadas, en Chromium, **4/4** (390 y 1440 px). Safari, en el CI.
+- **Siguiente número de decisión libre: D-N40.**
+
 ## Cierre de sesión — 24 de noviembre de 2026 (540): todo lo de la duodécima hecho hasta hoy, en el sitio
 
 - **#680 (DUO-D3 y D-N38):** «Verify and deploy Pages» **1558 en verde** (main 0533def2) y «Published availability» **413 en verde**.

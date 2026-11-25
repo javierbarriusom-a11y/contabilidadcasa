@@ -49,6 +49,7 @@ async function empezarApagada(page, id) {
 // UND-04 (D-N29, 22/11/2026): en el móvil, Ajustes se ve por áreas; ir a una tarjeta es tocar antes la pestaña de su área (lo que haría
 // el hogar). En el escritorio no hay pestañas y no hace nada.
 const { abrirAltaVarios } = require("./helpers/abrir-alta-varios.cjs");
+const { abrirImportarRegistrar } = require("./helpers/abrir-importar-registrar.cjs");
 
 async function abrirAreaDeAjustes(page, selector) {
   await page.waitForFunction((sel) => document.querySelector(sel), selector, { timeout: 15000 });
@@ -7513,7 +7514,7 @@ test.describe("Rediseño A4 · Importar v2", () => {
       page.on("pageerror", (error) => pageErrors.push(String(error)));
       await page.setViewportSize(viewport);
       await page.goto("/index.html#registrar");
-      await page.click('[data-registrar-tab="import"]');
+      await abrirImportarRegistrar(page); // Safari: el toque en la pestaña puede perderse (despliegue 1562)
       const v2 = page.locator("#importarV2");
       await expect(v2.locator(".imp-v2-fuente")).toBeVisible({ timeout: 15000 });
       await expect(page.locator("#registrarImportSteps")).toBeHidden();
@@ -8398,7 +8399,7 @@ test.describe("Ensayo del cierre de octubre · importar, clasificar y llegar a f
       await page.setViewportSize(viewport);
       await page.clock.install({ time: new Date(2026, 10, 2, 9, 0, 0) });
       await page.goto("/index.html#registrar");
-      await page.click('[data-registrar-tab="import"]');
+      await abrirImportarRegistrar(page); // Safari: el toque en la pestaña puede perderse (despliegue 1562)
       const v2 = page.locator("#importarV2");
       await expect(v2.locator(".imp-v2-fuente")).toBeVisible({ timeout: 15000 });
       expect(await page.evaluate(() => (baseData.transactions || []).length), "se parte sin movimientos, como los datos reales del 19/10").toBe(0);
