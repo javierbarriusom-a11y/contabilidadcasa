@@ -129,6 +129,7 @@ function fechaUnica({ compromiso = null, r, contratos } = {}) {
     PLAN_OPTIMO_MARGEN_KEY: "m",
     PLAN_OPTIMO_QUITAS_KEY: "q",
     PLAN_OPTIMO_COMISIONES_KEY: "c",
+    PLAN_OPTIMO_COLCHON_KEY: "k",
     simulationSignature: "firma",
     storageKey: (k) => `k:${k}`,
     storageGet: (k, d) => (k in store ? store[k] : d),

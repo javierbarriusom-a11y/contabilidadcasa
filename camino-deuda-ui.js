@@ -415,7 +415,35 @@ function planOptimoReferencias() {
   // UND-12: la previsión mensual (la línea que se pinta, con las cuotas de hoy ya restadas) y el suelo de Hoy.
   const rows = planOptimoGuard(() => (typeof canonicalEngineRuns !== "undefined" ? canonicalEngineRuns.active?.rows || canonicalEngineRuns.base?.rows || [] : []), []);
   const floor = planOptimoGuard(() => globalThis.FinanceCanonicalHomeMargin?.normalizeFloor?.(state?.liquidityFloor) ?? null, null);
-  return { capacity: Number.isFinite(capacity) ? capacity : null, available: Number.isFinite(idle) ? idle : null, rows: Array.isArray(rows) ? rows : [], floor: Number.isFinite(floor) ? floor : null };
+  // TRE-D3 (D-N42): la reserva protegida de Hoy (la que dice «por debajo» o «de margen»), para «colchón primero».
+  const reserve = planOptimoGuard(() => {
+    const ctx = unifiedActionCenterModel()?.context || {};
+    return Number(ctx.today?.requiredReserve || ctx.immediateTransfer?.reserve) || null;
+  }, null);
+  return { capacity: Number.isFinite(capacity) ? capacity : null, available: Number.isFinite(idle) ? idle : null, rows: Array.isArray(rows) ? rows : [], floor: Number.isFinite(floor) ? floor : null, reserve: Number.isFinite(reserve) && reserve > 0 ? reserve : null };
+}
+
+// TRE-D3 · D-N42: «colchón primero», activo de entrada con un umbral del 15 % (en el navegador y en la copia: `plan-optimo-colchon`).
+const PLAN_OPTIMO_COLCHON_KEY = "plan-optimo-colchon";
+function planOptimoColchonAjuste() {
+  const g = planOptimoGuard(() => JSON.parse(storageGet(storageKey(PLAN_OPTIMO_COLCHON_KEY), "null")), null) || {};
+  const umbral = Number(g.umbral);
+  return { activo: g.activo !== false, umbral: Number.isFinite(umbral) && umbral > 0 && umbral < 100 ? umbral : 15 };
+}
+
+let planOptimoColchonUltimo = null;
+
+function planOptimoColchonFrase(c) {
+  if (!c) return "";
+  const mes = (key) => (typeof caminoMonthText === "function" ? caminoMonthText(key) : key);
+  if (c.razon === "apagado") return "Apagado: el plan pone lo de más a la deuda aunque estéis por debajo de la reserva.";
+  if (c.razon === "sin-reserva") return "Sin reserva protegida configurada, no hay colchón que reconstruir primero (Ajustes › Reserva y colchón).";
+  if (c.razon === "sin-prevision") return "Sin previsión mensual todavía, no se puede saber cuándo llegaríais a la reserva: el plan no lo aplica.";
+  if (c.razon === "por-encima") return `Estáis por encima de la reserva protegida (${money(c.liquidez, true)} frente a ${money(c.reserva, true)}): no cambia nada.`;
+  if (!c.activo) return "";
+  const cuando = c.hastaMonthKey ? `hasta ${mes(c.hastaMonthKey)}` : "durante todo el horizonte de la previsión";
+  const reparto = c.reparte ? `; la otra mitad va a ${c.caras[0].label} (${String(c.caras[0].apr).replace(".", ",")} %, por encima del ${String(c.umbral).replace(".", ",")} %)` : "";
+  return `Os faltan ${money(Math.round(c.falta), true)} para la reserva protegida: ${c.reparte ? "la mitad de lo de más" : "lo de más"} se queda en el colchón ${cuando}${reparto}.`;
 }
 
 function planOptimoModoEfectivo(liquidez) {
@@ -674,10 +702,20 @@ function planOptimoCalcular(engine, contracts, todayKey, refs, Plan) {
     strategy: planOptimoOrdenGuardado(), tolerance: planOptimoMargenGuardado(), settlements: ofertas, commissions: planOptimoComisiones(contracts),
     promotions: planOptimoPromociones(contracts),
   };
+  // TRE-D3 · D-N42: bajo la reserva protegida, lo de más se queda en el colchón hasta llegar (a medias con las deudas caras).
+  const ajusteColchon = planOptimoColchonAjuste();
+  const colchon = ajusteColchon.activo && typeof Plan.colchonPrimero === "function"
+    ? Plan.colchonPrimero(refs.rows, {
+        startMonthKey: todayKey, reserve: refs.reserve, lump: planOptimoPago, threshold: ajusteColchon.umbral,
+        contracts: contracts.map((c) => ({ id: c.id, currentPrincipal: c.currentPrincipal, apr: c.apr, label: typeof escenarioMotorDebtLabel === "function" ? escenarioMotorDebtLabel(c) : c.entity })),
+        ...(modo === "prevision" ? { byMonth: liquidez.byMonth } : { monthly: fijoMensual }),
+      })
+    : { activo: false, razon: "apagado", umbral: ajusteColchon.umbral };
+  const porMes = colchon.activo ? { monthlyByMonth: colchon.byMonth } : modo === "prevision" ? { monthlyByMonth: liquidez.byMonth } : {};
   const r = modo === "prevision"
-    ? Plan.plan(engine, contracts, { ...comunes, monthly: liquidez.after, monthlyByMonth: liquidez.byMonth })
-    : Plan.plan(engine, contracts, { ...comunes, monthly: fijoMensual, capacity: refs.capacity });
-  return { r, liquidez, modo, ofertas, comunes, fijoMensual };
+    ? Plan.plan(engine, contracts, { ...comunes, monthly: liquidez.after, ...porMes })
+    : Plan.plan(engine, contracts, { ...comunes, monthly: fijoMensual, capacity: refs.capacity, ...porMes });
+  return { r, liquidez, modo, ofertas, comunes, fijoMensual, colchon };
 }
 
 // D-N40 (25/11/2026, «sí» del hogar) · TRE-D0: una sola fecha de «libre de deuda» en toda la app. La del plan guardado con «Este es
@@ -704,7 +742,7 @@ function deudaFechaUnicaClave(contracts, todayKey, compromiso, refs = {}) {
     guardado(PLAN_OPTIMO_ORDEN_KEY), guardado(PLAN_OPTIMO_MARGEN_KEY), guardado(PLAN_OPTIMO_QUITAS_KEY), guardado(PLAN_OPTIMO_COMISIONES_KEY),
     // La previsión, la capacidad y el suelo cambian el plan sin cambiar la firma del modelo (al arrancar, la previsión llega después):
     // sin ellos en la clave, Hoy se quedaba con la fecha de antes de tener previsión.
-    refs.capacity ?? null, refs.available ?? null, refs.floor ?? null,
+    refs.capacity ?? null, refs.available ?? null, refs.floor ?? null, refs.reserve ?? null, guardado(PLAN_OPTIMO_COLCHON_KEY),
     (Array.isArray(refs.rows) ? refs.rows : []).map((row) => [row?.monthKey, Math.round(Number(row?.totalLiquidity) || 0), Math.round(Number(row?.startLiquidity) || 0)]),
   ]);
 }
@@ -753,8 +791,11 @@ function deudaFechaUnica() {
 
 function planOptimoHtml(engine, contracts, todayKey, refs, Plan) {
   if (!Plan) return "";
-  const { r, liquidez, modo, ofertas, comunes, fijoMensual } = planOptimoCalcular(engine, contracts, todayKey, refs, Plan);
+  const { r, liquidez, modo, ofertas, comunes, fijoMensual, colchon } = planOptimoCalcular(engine, contracts, todayKey, refs, Plan);
   planOptimoResultadoUltimo = r; // DUO-D1: el seguimiento del plan guarda y compara este resultado
+  planOptimoColchonUltimo = colchon; // TRE-D3: lo lee la vista nueva (views/deuda-plan-v2.js)
+  const notaColchon = qs("planOptimoColchonNota");
+  if (notaColchon) notaColchon.textContent = planOptimoColchonFrase(colchon);
   const fijo = modo === "prevision" && r.ok ? Plan.plan(engine, contracts, { ...comunes, monthly: liquidez.fixedSafe, strategy: r.recommended.strategy }) : null;
   if (!r.ok) return `<p class="e19-kpi-note">${escapeHtml(r.error)}</p>`;
   if (r.nothing) return `<p class="e19-kpi-note">No hay deudas con capital pendiente: no hay plan que hacer.</p>`;
@@ -820,6 +861,11 @@ function renderPlanOptimo(engine, contracts, Plan) {
 
 // Los controles de orden y margen dicen lo guardado (sin pisar lo que se está escribiendo).
 function planOptimoSincronizarControles() {
+  const colchon = planOptimoColchonAjuste(); // TRE-D3
+  const casilla = qs("planOptimoColchon");
+  if (casilla) casilla.checked = colchon.activo;
+  const umbral = qs("planOptimoColchonUmbral");
+  if (umbral && document.activeElement !== umbral && !umbral.hasAttribute("aria-invalid")) umbral.value = String(colchon.umbral).replace(".", ",");
   const modo = planOptimoModo || "prevision";
   document.querySelectorAll('input[name="planOptimoModo"]').forEach((radio) => { radio.checked = radio.value === modo; });
   const orden = planOptimoOrdenGuardado() || "avalancha";
@@ -865,6 +911,11 @@ function planOptimoOnMargen(target) {
 
 function planOptimoOnChange(event) {
   const target = event.target;
+  if (target?.id === "planOptimoColchon") {
+    planOptimoGuardar(PLAN_OPTIMO_COLCHON_KEY, JSON.stringify({ ...planOptimoColchonAjuste(), activo: target.checked }));
+    planOptimoRepintar();
+    return;
+  }
   if (target?.name === "planOptimoOrden") planOptimoElegirOrden(target.value, false);
   if (target?.name === "planOptimoModo" && (target.value === "prevision" || target.value === "fijo")) {
     planOptimoModo = target.value;
@@ -900,6 +951,14 @@ function planOptimoOnInput(event) {
   if (target && (target.id === "planOptimoMargenPct" || target.id === "planOptimoMargenAbs")) { planOptimoOnMargen(target); return; }
   if (target?.dataset?.planOptimoQuita !== undefined) { planOptimoOnQuita(target); return; }
   if (target?.dataset?.planOptimoComision !== undefined) { planOptimoOnComision(target); return; }
+  if (target?.id === "planOptimoColchonUmbral") {
+    const valor = Number(String(target.value).replace(",", "."));
+    if (!(valor > 0 && valor < 100)) { target.setAttribute("aria-invalid", "true"); return; }
+    target.removeAttribute("aria-invalid");
+    planOptimoGuardar(PLAN_OPTIMO_COLCHON_KEY, JSON.stringify({ ...planOptimoColchonAjuste(), umbral: valor }));
+    planOptimoRepintar();
+    return;
+  }
   if (!target || (target.id !== "planOptimoMensual" && target.id !== "planOptimoPago")) return;
   const parsed = caminoParseExtra(target.value);
   const note = qs("planOptimoNota");

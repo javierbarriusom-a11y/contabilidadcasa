@@ -188,6 +188,52 @@
     };
   }
 
+  // TRE-D3 · D-N42 (25/11/2026, «sí» del hogar): colchón primero. Si la liquidez prevista está por debajo de la reserva protegida, lo de
+  // más de cada mes se queda en el colchón hasta llegar a ella; si alguna deuda pasa del umbral de TAE (de entrada 15 %, editable), se
+  // reparte a medias entre el colchón y la deuda (el orden manda la mitad a la más cara). Después, lo de siempre. Solo rebaja el extra del
+  // plan de partida (`base`, el de cada mes), así que nunca baja del suelo que ya respeta. Sin previsión no se puede saber cuándo se
+  // llega a la reserva: no se aplica y se dice (`razon`).
+  //   rows: la previsión mensual (totalLiquidity, startLiquidity); base: el extra de cada mes del plan de partida (o un importe fijo).
+  function colchonPrimero(rows, options = {}) {
+    const start = String(options.startMonthKey || "");
+    const reserva = Number(options.reserve);
+    const lump = amount(options.lump);
+    const umbral = Number.isFinite(Number(options.threshold)) && Number(options.threshold) > 0 ? Number(options.threshold) : 15;
+    const caras = (Array.isArray(options.contracts) ? options.contracts : [])
+      .filter((c) => Number(c?.currentPrincipal) > 0 && Number(c?.apr) > umbral)
+      .map((c) => ({ id: String(c.id), label: String(c.label || c.entity || c.id), apr: Number(c.apr) }))
+      .sort((x, y) => y.apr - x.apr);
+    if (!(reserva > 0)) return { activo: false, razon: "sin-reserva", umbral };
+    const list = (Array.isArray(rows) ? rows : [])
+      .map((row) => ({ monthKey: String(row?.monthKey || row?.detailMonthKey || ""), end: Number(row?.totalLiquidity), begin: Number(row?.startLiquidity) }))
+      .filter((row) => /^\d{4}-\d{2}$/.test(row.monthKey) && row.monthKey >= start && Number.isFinite(row.end))
+      .sort((x, y) => x.monthKey.localeCompare(y.monthKey));
+    if (!list.length || list[0].monthKey !== start) return { activo: false, razon: "sin-prevision", umbral };
+    const hoy = Number.isFinite(list[0].begin) ? list[0].begin : list[0].end;
+    if (hoy - lump >= reserva) return { activo: false, razon: "por-encima", umbral, reserva: round2(reserva), liquidez: round2(hoy - lump) };
+    const base = Array.isArray(options.byMonth) ? options.byMonth : list.map(() => amount(options.monthly));
+    const byMonth = [];
+    let pagado = 0;
+    let hasta = null;
+    let alColchon = 0;
+    const alColchonPorMes = [];
+    list.forEach((row, index) => {
+      const extra = amount(base[index] ?? 0);
+      const llega = row.end - lump - pagado >= reserva;
+      if (llega && hasta === null) hasta = index;
+      const puesto = hasta !== null ? extra : caras.length ? Math.floor(extra / 2) : 0;
+      if (hasta === null) alColchon += extra - puesto;
+      alColchonPorMes.push(hasta === null ? extra - puesto : 0);
+      byMonth.push(puesto);
+      pagado += puesto;
+    });
+    return {
+      activo: true, umbral, reserva: round2(reserva), liquidez: round2(hoy - lump), falta: round2(reserva - (hoy - lump)),
+      hastaIndex: hasta, hastaMonthKey: hasta === null ? null : list[hasta].monthKey, alColchon: round2(alColchon),
+      caras, reparte: caras.length > 0, byMonth, alColchonPorMes,
+    };
+  }
+
   function summary(result, baseline) {
     const finishes = result.ok && !result.beyondHorizon && result.debtFreeMonthKey;
     const baseFinishes = baseline.ok && !baseline.beyondHorizon && baseline.debtFreeMonthKey;
@@ -392,5 +438,5 @@
     };
   }
 
-  return { SCHEMA_ID, SNOWBALL_TOLERANCE, plan, applyLump, periods, tolerance, liquidityPlan, comisiones };
+  return { SCHEMA_ID, SNOWBALL_TOLERANCE, plan, applyLump, periods, tolerance, liquidityPlan, comisiones, colchonPrimero };
 });

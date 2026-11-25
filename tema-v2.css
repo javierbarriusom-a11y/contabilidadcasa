@@ -6108,3 +6108,15 @@
     margin-left: 0;
   }
 }
+
+/* TRE-D3 · D-N42: la línea de «colchón primero» en la respuesta de Deuda › Plan nuevo (conclusión, no acción: tinte, no verde sólido). */
+:root[data-tema="v2"] .dpv2-colchon {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--e19-warning-soft);
+  border: 1px solid var(--e19-warning-soft-border);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--e19-ink);
+}

@@ -2248,6 +2248,13 @@
                 <div id="planOptimoComisionesLista"></div>
               </details>
               <!-- D-N27 (21/11/2026): el orden lo elige el hogar y se puede cambiar cuando se quiera; el plan pregunta antes de empezar por la más pequeña. -->
+              <!-- TRE-D3 · D-N42 (25/11/2026): colchón primero bajo la reserva protegida, salvo (a medias) deudas por encima del umbral de TAE. -->
+              <fieldset class="plan-optimo-orden plan-optimo-colchon" id="planOptimoColchonGrupo">
+                <legend>Bajo la reserva protegida</legend>
+                <label><input type="checkbox" id="planOptimoColchon" checked /> Primero el colchón: lo de más se queda en la cuenta hasta llegar a la reserva</label>
+                <label class="plan-optimo-colchon-umbral">Salvo, a medias, deudas por encima de <input type="text" inputmode="decimal" id="planOptimoColchonUmbral" value="15" aria-describedby="planOptimoColchonNota" /> % de TAE</label>
+                <p class="e19-kpi-note" id="planOptimoColchonNota" aria-live="polite"></p>
+              </fieldset>
               <fieldset class="plan-optimo-orden" id="planOptimoOrden">
                 <legend>Orden</legend>
                 <label><input type="radio" name="planOptimoOrden" value="avalancha" checked /> Primero la más cara (avalancha: menos intereses)</label>
@@ -8478,7 +8485,7 @@
     <script defer src="canonical-rate-review.js?v=20261007wp20a1"></script>
     <script defer src="revision-tipo-ui.js?v=20261007wp20a1"></script>
     <script defer src="canonical-debt-payoff-path.js?v=20261124duod8"></script>
-    <script defer src="canonical-debt-optimal-plan.js?v=20261124duod8"></script>
+    <script defer src="canonical-debt-optimal-plan.js?v=20261125tred3"></script>
     <script defer src="camino-deuda-ui.js?v=20261125dn40"></script>
     <script defer src="kit-entidad-ui.js?v=20261124duod6"></script>
     <script defer src="salud-motor.js?v=20261123duo04"></script>

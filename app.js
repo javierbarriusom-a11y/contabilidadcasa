@@ -1349,6 +1349,7 @@ const BACKUP_LOCAL_STORES = [
   "plan-optimo-margen", // D-N27: el margen con el que el plan óptimo pregunta si empezar por la deuda más pequeña
   "plan-optimo-quitas", // UND-11: las ofertas de quita que el hogar escribe en el plan óptimo, por contrato
   "plan-optimo-comisiones", // DUO-D3: la comisión por amortizar antes de cada contrato (y, si baja, a cuánto y desde qué mes)
+  "plan-optimo-colchon", // TRE-D3 · D-N42: «colchón primero» bajo la reserva protegida (activo y umbral de TAE)
   "plan-deuda-compromiso", // DUO-D1: la foto del plan de deuda que el hogar decidió seguir («Este es nuestro plan»)
   "plan-deuda-respuestas", // DUO-D1: lo que el hogar contestó de cada mes (sí, otra cantidad, este mes no, no era esto)
   "deuda-hitos", // DUO-D2: el primer día en que la app vio cada deuda saldada (y cuáles ya lo estaban al empezar)

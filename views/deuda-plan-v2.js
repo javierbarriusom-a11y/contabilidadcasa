@@ -55,7 +55,7 @@
    * @param {object|null} e.seguimiento el de DUO-D1 (filas, racha, hecho, previsto) o null sin plan guardado
    * @param {string} e.hoy AAAA-MM-DD
    */
-  function modelo({ outlook, plan, contratos = [], finBase = new Map(), seguimiento = null, hoy }) {
+  function modelo({ outlook, plan, contratos = [], finBase = new Map(), seguimiento = null, hoy, colchon = null }) {
     const vivas = contratos.filter((c) => Number(c?.currentPrincipal) > 0);
     if (!outlook || outlook.settled || !vivas.length) return { vacio: true };
     const mesHoy = String(hoy || "").slice(0, 7);
@@ -71,6 +71,10 @@
         outlook.fuente === "plan-guardado" && mesValido(s.debtFreeMonthKey) && s.debtFreeMonthKey !== fecha ? `con los saldos de hoy, ${mesLargo(s.debtFreeMonthKey)}` : "",
         fuera ? "sin contar las deudas que no entran en el plan" : "",
       ].filter(Boolean).join(" · "),
+      // TRE-D3 · D-N42: bajo la reserva protegida, el plan reconstruye antes el colchón (y lo dice aquí, en la respuesta).
+      colchon: colchon?.activo
+        ? `Primero, el colchón: os faltan ${euros(colchon.falta)} para la reserva protegida; ${colchon.reparte ? `hasta ${colchon.hastaMonthKey ? mesLargo(colchon.hastaMonthKey) : "llegar"}, la mitad de lo de más va al colchón y la otra mitad a ${colchon.caras[0].label}` : `hasta ${colchon.hastaMonthKey ? mesLargo(colchon.hastaMonthKey) : "llegar"}, lo de más se queda en la cuenta`}.`
+        : "",
       ahorro: Number.isFinite(s.totalSaved) ? s.totalSaved : Number.isFinite(s.interestSaved) ? s.interestSaved : null,
       ahorroNota: Number.isFinite(s.totalInterest) && Number.isFinite(base.totalInterest)
         ? `pagaréis ${euros(s.totalInterest)} de intereses en lugar de ${euros(base.totalInterest)}${s.commissionCost > 0 ? ` (y ${euros(s.commissionCost)} de comisiones)` : ""}`
@@ -85,7 +89,9 @@
     const extra = tramo ? Number(Array.isArray(tramo.pools) ? tramo.pools[0] ?? tramo.extra : tramo.extra) || 0 : 0;
     const fila = seguimiento?.ok ? seguimiento.filas.find((f) => f.mes === mesHoy) || null : null;
     const siguiente = (plan?.ok ? plan.recommended?.periods || [] : []).find((t) => t.fromIndex > 0 && t.targetId !== tramo?.targetId) || null;
+    const alColchonHoy = colchon?.activo ? Number(colchon.alColchonPorMes?.[0]) || 0 : 0;
     const esteMes = {
+      alColchon: alColchonHoy,
       mes: mesHoy,
       mesNombre: MESES[Number(mesHoy.slice(5, 7)) - 1] || "",
       total: cuotas + extra,
@@ -139,6 +145,7 @@
         <p class="dpv2-kicker">${esc(h.etiqueta)}</p>
         <p class="dpv2-cifra" id="dpv2Fecha" data-fecha-libre="unica">${esc(h.fecha.charAt(0).toUpperCase() + h.fecha.slice(1))}</p>
         ${h.nota ? `<p class="dpv2-nota">${esc(h.nota)}</p>` : ""}
+        ${h.colchon ? `<p class="dpv2-colchon">${esc(h.colchon)}</p>` : ""}
       </div>${ahorro}
       <p class="dpv2-hero-pie">Quedan <strong>${esc(euros(h.quedan))}</strong> en ${h.contratos} ${h.contratos === 1 ? "contrato" : "contratos"}.</p>
     </section>`;
@@ -147,6 +154,7 @@
   function esteMesHtml(m) {
     if (!m.destino && !(m.cuotas > 0)) return "";
     const destino = m.destino && m.extra > 0 ? ` + de más ${esc(euros(m.extra))} → <strong>${esc(m.destino.label)}</strong>` : "";
+    const colchon = m.alColchon > 0 ? `<p class="dpv2-nota">Y <strong>${esc(euros(m.alColchon))}</strong> se quedan en la cuenta, para el colchón.</p>` : "";
     let acciones;
     if (!m.conPlan) {
       acciones = `<p class="dpv2-nota">Guardadlo como vuestro plan y la app irá diciendo cómo vais, mes a mes.</p>
@@ -161,7 +169,7 @@
     return `<section class="dpv2-card dpv2-mes" aria-labelledby="dpv2MesTitulo">
       <h3 class="dpv2-kicker" id="dpv2MesTitulo">Este mes · ${esc(m.mesNombre)}</h3>
       <p class="dpv2-mes-cifra"><strong>${esc(euros(m.total))}</strong> <span>cuotas ${esc(euros(m.cuotas))}${destino}</span></p>
-      ${acciones}
+      ${colchon}${acciones}
       ${m.despues ? `<p class="dpv2-despues">${esc(m.despues)}</p>` : ""}
     </section>`;
   }
@@ -273,6 +281,7 @@
     return {
       outlook: guard(() => homeDebtOutlook(), null),
       plan: typeof planOptimoResultadoUltimo !== "undefined" ? planOptimoResultadoUltimo : null,
+      colchon: typeof planOptimoColchonUltimo !== "undefined" ? planOptimoColchonUltimo : null,
       contratos,
       finBase,
       seguimiento,

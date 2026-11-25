@@ -158,6 +158,10 @@ const EFECTOS = [
   { pantalla: "Deuda › Plan", nombre: "Oferta de quita", clave: "input[data-plan-optimo-quita]", control: "input[data-plan-optimo-quita]", accion: { tipo: "rellenar", valor: 1500 }, observa: PLAN },
   // DUO-D3: la comisión de un contrato resta del ahorro (y puede cambiar el orden). Los tres campos del contrato son una familia.
   { pantalla: "Deuda › Plan", nombre: "Comisión por amortizar antes", clave: "input[data-plan-optimo-comision]", control: 'input[data-plan-optimo-comision][data-comision-campo="pct"]', accion: { tipo: "rellenar", valor: 2 }, observa: PLAN, oExplica: /no cuenta: el plan la cancela con la quita/ },
+  // TRE-D3 · D-N42: con el arranque en caliente la liquidez está por encima de la reserva protegida, así que «colchón primero» no cambia
+  // ninguna cifra del plan: lo dice su nota («no cambia nada»); apagado, dice que el plan pone lo de más a la deuda. Lo prueba a fondo la e2e.
+  { pantalla: "Deuda › Plan", nombre: "Umbral de TAE de colchón primero", clave: "#planOptimoColchonUmbral", control: "#planOptimoColchonUmbral", accion: { tipo: "rellenar", valor: 20 }, observa: "#planOptimoColchonGrupo", oExplica: /no cambia nada|Apagado/ },
+  { pantalla: "Deuda › Plan", nombre: "Colchón primero", clave: "#planOptimoColchon", control: "#planOptimoColchon", accion: { tipo: "alternar" }, observa: "#planOptimoColchonGrupo", oExplica: /no cambia nada|Apagado/ },
   { pantalla: "Deuda › Plan", nombre: "Orden: bola de nieve", clave: "radio:planOptimoOrden=bola-nieve", control: 'input[name="planOptimoOrden"][value="bola-nieve"]', accion: { tipo: "marcar" }, observa: PLAN, oExplica: COINCIDEN },
   { pantalla: "Deuda › Plan", nombre: "Orden: avalancha", clave: "radio:planOptimoOrden=avalancha", control: 'input[name="planOptimoOrden"][value="avalancha"]', accion: { tipo: "marcar" }, observa: PLAN, oExplica: COINCIDEN },
   { pantalla: "Deuda › Plan", nombre: "Margen en %", clave: "#planOptimoMargenPct", control: "#planOptimoMargenPct", accion: { tipo: "rellenar", valor: 40 }, observa: PLAN, oExplica: COINCIDEN },
