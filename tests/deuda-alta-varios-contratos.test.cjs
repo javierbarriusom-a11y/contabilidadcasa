@@ -68,5 +68,5 @@ test("integración · la tarjeta está en Contratos, valida con las reglas del a
   const html = read("index.html");
   // SVD-3, SVD-R1, SVD-4 y SVD-5 (17/11/2026) volvieron a subir la versión de los dos ficheros: lo que se vigila es que ambos se pidan de nuevo.
   assert.match(html, /canonical-debt-contracts\.js\?v=20261117svd4/);
-  assert.match(read("app.js"), /"deuda-contratos": \{ src: "views\/deuda\.js\?v=(?:20261119refi1|20261121plan|20261121dn28|20261122dec29|20261122und13|20261125dn40)"/);
+  assert.match(read("app.js"), /"deuda-contratos": \{ src: "views\/deuda\.js\?v=(?:20261119refi1|20261121plan|20261121dn28|20261122dec29|20261122und13|20261125dn40|20261125tred4)"/);
 });

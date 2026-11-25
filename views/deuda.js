@@ -1442,6 +1442,7 @@ function renderDeudaContratos() {
   renderD5DebtAssetCrossing(contracts);
   renderGob16ClauseWatch(contracts);
   renderDeb6DebtChecklist(contracts);
+  globalThis.renderDeudaContratosV2?.(); // TRE-D4 (views/deuda-contratos-v2.js): la vista nueva, con lo que se acaba de pintar
 }
 
 // DEB5 (Oleada 3, Bloque 4): prioridad multideuda ajustada por fiscalidad — orden de "mayor coste

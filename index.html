@@ -76,7 +76,7 @@
     <link rel="stylesheet" href="patrimonio.css?v=20261014wp46b2" />
     <link rel="stylesheet" href="cierre-a11y.css?v=20261015d1" />
     <!-- Rediseño fase A: tema v2 detrás de bandera (?tema=v2). Va el último para poder redefinir tokens. -->
-    <link rel="stylesheet" href="tema-v2.css?v=20261125tre3c" />
+    <link rel="stylesheet" href="tema-v2.css?v=20261125tred4b" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -2402,6 +2402,9 @@
           <section class="e19-deuda-decidir e19-deuda-contratos view-section" id="deuda-contratos" hidden>
             <nav class="e19-registrar-tabs" id="deudaContratosScreenTabs" aria-label="Pestañas de Deuda"></nav>
             <nav class="deuda-flow-nav" id="deudaContratosFlowNav" aria-label="Paso anterior o siguiente en Deuda"></nav>
+            <!-- TRE-D4 (25/11/2026, auditoría de diseño §5.2, PR 4): Deuda › Contratos con el diseño nuevo (views/deuda-contratos-v2.js), solo con el tema v2;
+                 lo de siempre sigue debajo y vuelve con «Ver todo el detalle». Nada se retira (D-N41 sigue pendiente). -->
+            <div class="dcv2" id="deudaContratosV2" hidden></div>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow">Deuda · Contratos</p>
@@ -8138,6 +8141,9 @@
           <dialog class="dpv2-ajustar" id="deudaPlanV2Ajustar" aria-labelledby="dpv2AjustarTitulo"></dialog>
           <!-- TRE-D3c (views/deuda-plan-v2.js), solo con el tema v2: «Comparar con otras formas»; cada forma de saldar con su fecha y su coste, y «Ver…» a lo de siempre. Comparar no cambia nada. -->
           <dialog class="dpv2-ajustar dpv2-comparar" id="deudaPlanV2Comparar" aria-labelledby="dpv2CompararTitulo"></dialog>
+          <!-- TRE-D4 (views/deuda-contratos-v2.js), solo con el tema v2: la ficha de un contrato (lo básico, plazo y progreso, costes y estado), con vista previa
+               y «Guardar» explícito con deshacer. Escribe por handleDeudaContratosFieldChange, como la tabla de siempre. -->
+          <dialog class="dpv2-ajustar dcv2-ficha" id="deudaContratoFicha" aria-labelledby="dcv2FichaTitulo"></dialog>
           <!-- UND-08 (me-lo-puedo-permitir.js): «¿Me lo puedo permitir?» desde Hoy. Importe y fecha → una frase y el gráfico de Hoy con el gasto. No guarda nada. -->
           <dialog class="action-review-dialog permitir-dialog" id="permitirDialog" aria-labelledby="permitirTitulo">
             <button class="action-review-close" type="button" data-permitir-cerrar aria-label="Cerrar">×</button>
@@ -8163,10 +8169,10 @@
 
     <script defer src="tema-v2.js?v=20261019v2defecto"></script>
     <script defer src="household-members.js?v=20261119priv4"></script>
-    <script defer src="medidor-utilidad.js?v=20261125tre3c"></script>
+    <script defer src="medidor-utilidad.js?v=20261125tred4"></script>
     <script defer src="ocultar-cifras.js?v=20261122und17"></script>
     <script defer src="views/plegados-medidor.js?v=20261118dec40"></script>
-    <script defer src="funciones-en-prueba.js?v=20261125tre3c"></script>
+    <script defer src="funciones-en-prueba.js?v=20261125tred4"></script>
     <script defer src="vendor/supabase-js-2.117.2.umd.js"></script>
     <script defer src="xlsx-loader.js?v=20260929p2a1"></script>
     <script defer src="supabase-config.js?v=20260602a"></script>
@@ -8454,7 +8460,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20261119priv4"></script>
-    <script defer src="novedades.js?v=20261125tre3c"></script>
+    <script defer src="novedades.js?v=20261125tred4"></script>
     <script defer src="ux-shell.js?v=20261121dec45"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -8569,6 +8575,8 @@
     <script defer src="views/hoy-v2.js?v=20261124dn39"></script>
     <script defer src="views/deuda-simulador-v2.js?v=20261123duo01"></script>
     <script defer src="views/deuda-plan-v2.js?v=20261125tre3c"></script>
+    <script defer src="views/componentes-v2.js?v=20261125tred4"></script>
+    <script defer src="views/deuda-contratos-v2.js?v=20261125tred4"></script>
     <script defer src="views/movimientos-v2.js?v=20261119dat07"></script>
     <script defer src="views/importar-v2.js?v=20261116xda04b"></script>
     <script defer src="views/clasificar-v2.js?v=20261120dec14"></script>

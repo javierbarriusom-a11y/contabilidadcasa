@@ -231,18 +231,18 @@ const HEAVY_RENDER_VIEWS = new Set([
 const VIEW_CHUNKS = {
   "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20261105pulido1", rootId: "presupuestoMesRoot" },
   "estado-semana": { src: "views/estado-semana.js?v=20261125tre10", rootId: "estadoSemanaRoot" },
-  "deuda-comparar": { src: "views/deuda.js?v=20261125dn40", rootId: "deuda-comparar" },
-  "deuda-ruta": { src: "views/deuda.js?v=20261125dn40", rootId: "deuda-ruta" },
-  "deuda-prestamo": { src: "views/deuda.js?v=20261125dn40", rootId: "deuda-prestamo" },
-  "deuda-contratos": { src: "views/deuda.js?v=20261125dn40", rootId: "deuda-contratos" },
-  "deuda-simulador": { src: "views/deuda.js?v=20261125dn40", rootId: "deuda-simulador" },
+  "deuda-comparar": { src: "views/deuda.js?v=20261125tred4", rootId: "deuda-comparar" },
+  "deuda-ruta": { src: "views/deuda.js?v=20261125tred4", rootId: "deuda-ruta" },
+  "deuda-prestamo": { src: "views/deuda.js?v=20261125tred4", rootId: "deuda-prestamo" },
+  "deuda-contratos": { src: "views/deuda.js?v=20261125tred4", rootId: "deuda-contratos" },
+  "deuda-simulador": { src: "views/deuda.js?v=20261125tred4", rootId: "deuda-simulador" },
   "inversion-cartera": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-cartera" },
   "inversion-rebalanceo": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-rebalanceo" },
   "inversion-fiscal": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-fiscal" },
   "inversion-jubilacion": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-jubilacion" },
   "inversion-apalancamiento": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-apalancamiento" },
-  cierre: { src: "views/cierre.js?v=20261116dat05", rootId: "cierre" },
-  conciliar: { src: "views/cierre.js?v=20261116dat05", rootId: "conciliar" },
+  cierre: { src: "views/cierre.js?v=20261125firma", rootId: "cierre" },
+  conciliar: { src: "views/cierre.js?v=20261125firma", rootId: "conciliar" },
   analisis: { src: "views/analisis.js?v=20260922per4a1", rootId: "analisis" },
   "escenario-simular": { src: "views/escenarios.js?v=20261116xda10", rootId: "escenario-simular" },
   "escenario-aplicar": { src: "views/escenarios.js?v=20261116xda10", rootId: "escenario-aplicar" },
@@ -31409,7 +31409,7 @@ async function init() {
     const porClasificar = event.target.closest("[data-cierre-por-clasificar]");
     if (porClasificar) { handleCierrePorClasificar(porClasificar.dataset.cierrePorClasificar); return; }
     if (event.target.closest("[data-cierre-por-clasificar-deshacer]")) { handleCierrePorClasificarDeshacer(); return; }
-    if (event.target.id === "cierreSignButton") handleCierreSign();
+    if (event.target.id === "cierreSignButton") handleCierreSign(event.target); // el pulsado: hay dos (el de siempre y el nuevo)
     if (event.target.id === "cierreTargetSwitch") handleCierreTargetSwitch(event.target.dataset.month);
     if (event.target.id === "cierreDownloadCsv") handleCierreDownload("csv");
     if (event.target.id === "cierreDownloadPdf") handleCierreDownload("pdf");

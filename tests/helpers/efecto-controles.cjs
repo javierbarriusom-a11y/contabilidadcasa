@@ -60,6 +60,8 @@ async function actuar(page, efecto) {
     await control.check();
   } else if (tipo === "alternar") {
     await control.click();
+  } else if (tipo === "elegir") {
+    await control.selectOption(String(valor));
   } else {
     throw new Error(`acción desconocida: ${tipo}`);
   }
@@ -141,6 +143,16 @@ const PANTALLAS = [
     },
   },
   {
+    // TRE-D4: la ficha de un contrato (Deuda › Contratos nuevo). Sus diez campos no guardan al teclear (se guarda con «Guardar», con
+    // deshacer); lo que mueven es la vista previa de arriba, en vivo.
+    nombre: "Deuda › Ficha de contrato", hash: "#deuda-contratos", raiz: "#deudaContratoFicha",
+    entrar: async (page) => {
+      await require("./deuda-plan-nueva.cjs").deudaContratosNueva(page);
+      await page.locator("#deudaContratosV2 [data-dcv2-editar]").first().click();
+      await expect(page.locator("#deudaContratoFicha #dcv2Previa")).not.toBeEmpty({ timeout: 15000 });
+    },
+  },
+  {
     nombre: "Deuda › Ofertas › Simulador visual", hash: "#deuda-simulador", raiz: "#deudaSimuladorV2",
     entrar: async (page) => expect(page.locator("#deudaSimuladorV2")).toContainText("Banco FICTICIO", { timeout: 20000 }),
   },
@@ -170,6 +182,7 @@ const PANTALLAS = [
 const PLAN = "#planOptimoResultado";
 const CAMINO = "#caminoDeudaResultado";
 const COINCIDEN = /los dos órdenes coinciden/;
+const FICHA = "#deudaContratoFicha #dcv2Previa"; // TRE-D4: la vista previa de la ficha de un contrato
 // TRE-D2: lo que el hogar ve en el panel al tocar (la vista previa y las notas del orden y del coste). La nota de «Cuánto al mes» no
 // cuenta: repite el importe escrito, y eso no es un efecto.
 const AJUSTAR = '#dpv2AjustarVista, #deudaPlanV2Ajustar [data-dpv2-aj-nota="orden"], #deudaPlanV2Ajustar [data-dpv2-aj-nota="coste"]';
@@ -213,6 +226,17 @@ const EFECTOS = [
   { pantalla: "Deuda › Ofertas › Simulador visual", nombre: "Las cuotas de hoy ya están en el plan", clave: "input[data-sim-v2-cuotas-en-plan]", control: "[data-sim-v2-cuotas-en-plan]", accion: { tipo: "alternar" }, observa: "#deudaSimuladorV2 [data-sim-v2-cifras]" },
   // La estrategia de cada contrato: su efecto es enseñar los campos de esa estrategia (las cifras cambian al rellenarlos; eso lo prueba SVD).
   { pantalla: "Deuda › Ofertas › Simulador visual", nombre: "Estrategia de un contrato", clave: /^radio:\[data-sim-v2-campo\]=/, control: '[data-sim-v2-campo$="_strategy"][value="refi"]', accion: { tipo: "marcar" }, observa: "#deudaSimuladorV2 .sim-v2-cuentas", modo: "texto" },
+  // TRE-D4 · la ficha de un contrato: cada campo mueve la vista previa (los de texto, su nombre; el estado, al final, su frase).
+  { pantalla: "Deuda › Ficha de contrato", nombre: "Ficha: entidad", clave: "#dcv2-entity", control: "#dcv2-entity", accion: { tipo: "rellenar", valor: "Banco FICTICIO Dos" }, observa: FICHA, modo: "texto" },
+  { pantalla: "Deuda › Ficha de contrato", nombre: "Ficha: tipo", clave: "#dcv2-type", control: "#dcv2-type", accion: { tipo: "rellenar", valor: "Tarjeta de crédito" }, observa: FICHA, modo: "texto" },
+  { pantalla: "Deuda › Ficha de contrato", nombre: "Ficha: número de contrato", clave: "#dcv2-number", control: "#dcv2-number", accion: { tipo: "rellenar", valor: "4321" }, observa: FICHA, modo: "texto" },
+  { pantalla: "Deuda › Ficha de contrato", nombre: "Ficha: capital pendiente", clave: "#dcv2-currentPrincipal", control: "#dcv2-currentPrincipal", accion: { tipo: "rellenar", valor: 2000 }, observa: FICHA },
+  { pantalla: "Deuda › Ficha de contrato", nombre: "Ficha: TAE", clave: "#dcv2-apr", control: "#dcv2-apr", accion: { tipo: "rellenar", valor: 18 }, observa: FICHA },
+  { pantalla: "Deuda › Ficha de contrato", nombre: "Ficha: cuota", clave: "#dcv2-currentPayment", control: "#dcv2-currentPayment", accion: { tipo: "rellenar", valor: 120 }, observa: FICHA },
+  { pantalla: "Deuda › Ficha de contrato", nombre: "Ficha: capital inicial", clave: "#dcv2-initialPrincipal", control: "#dcv2-initialPrincipal", accion: { tipo: "rellenar", valor: 3000 }, observa: FICHA },
+  { pantalla: "Deuda › Ficha de contrato", nombre: "Ficha: plazos que quedan", clave: "#dcv2-remainingInstallments", control: "#dcv2-remainingInstallments", accion: { tipo: "rellenar", valor: 30 }, observa: FICHA },
+  { pantalla: "Deuda › Ficha de contrato", nombre: "Ficha: deducción fiscal", clave: "#dcv2-fiscalDeductionPct", control: "#dcv2-fiscalDeductionPct", accion: { tipo: "rellenar", valor: 15 }, observa: FICHA },
+  { pantalla: "Deuda › Ficha de contrato", nombre: "Ficha: estado", clave: "#dcv2-paymentStatus", control: "#dcv2-paymentStatus", accion: { tipo: "elegir", valor: "suspended" }, observa: FICHA, modo: "texto" },
   { pantalla: "Ajustes › Escenario de supuestos", nombre: "Escenario Prudente", clave: "button[data-escenario-elegir]", control: '[data-escenario-elegir="prudente"]', accion: { tipo: "alternar" }, observa: "#escenarioAjustesCard .escenario-cifras" },
   { pantalla: "Ajustes › Escenario de supuestos", nombre: "Escenario Ahorro alto", clave: "button[data-escenario-elegir]", control: '[data-escenario-elegir="ahorro"]', accion: { tipo: "alternar" }, observa: "#escenarioAjustesCard .escenario-cifras" },
   { pantalla: "Ajustes › Escenario de supuestos", nombre: "Volver a Base", clave: "button[data-escenario-elegir]", control: '[data-escenario-elegir="base"]', accion: { tipo: "alternar" }, observa: "#escenarioAjustesCard .escenario-cifras" },

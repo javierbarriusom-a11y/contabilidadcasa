@@ -1,7 +1,7 @@
 const { test, expect } = require("./helpers/navegador-resiliente.cjs"); // relanza el navegador si se cayó solo entre pruebas
 const { AxeBuilder } = require("@axe-core/playwright");
 // TRE-D1: lo de siempre de Deuda › Plan, en «todo el detalle»; la vista nueva tiene su propia prueba (deudaPlanNueva).
-const { deudaDeSiempre, deudaPlanNueva } = require("./helpers/deuda-plan-nueva.cjs");
+const { deudaDeSiempre, deudaPlanNueva, deudaContratosNueva } = require("./helpers/deuda-plan-nueva.cjs");
 test.beforeEach(async ({ page }) => { await deudaDeSiempre(page); });
 
 // Rediseño A4 (PR-2): con el tema v2, Registrar › Importar extracto enseña Importar v2 y el asistente de cuatro pasos
@@ -2618,6 +2618,31 @@ for (const scheme of ["light", "dark"]) {
         const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
         const r = await new AxeBuilder({ page }).include("#deudaPlanV2Comparar").analyze();
         expect(fmt(r), fmt(r).slice(0, 5).join("\n")).toEqual([]);
+      });
+    }
+  });
+}
+
+// TRE-D4 (25/11/2026): Deuda › Contratos nuevo y la ficha de un contrato, en claro y en oscuro, a 1280 y a 390 px.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`TRE-D4 · Deuda › Contratos nuevo en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      test(`#deudaContratosV2 y la ficha a ${viewport.width} px: sin fallos de contraste ni de accesibilidad`, async ({ page }) => {
+        test.setTimeout(120000);
+        const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+        await arrancarEnCaliente(page, { viewport });
+        await page.evaluate(() => { location.hash = "deuda-contratos"; });
+        await deudaContratosNueva(page);
+        await expect(page.locator("#deudaContratosV2 .cv2-tarjeta")).toHaveCount(2, { timeout: 20000 });
+        await page.locator("#deudaContratosV2 [data-dcv2-herramientas] > summary").click();
+        const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+        const vista = await new AxeBuilder({ page }).include("#deudaContratosV2").analyze();
+        expect(fmt(vista), fmt(vista).slice(0, 5).join("\n")).toEqual([]);
+        await page.locator("#deudaContratosV2 [data-dcv2-editar]").first().click();
+        await expect(page.locator("#deudaContratoFicha #dcv2Previa")).not.toBeEmpty();
+        const ficha = await new AxeBuilder({ page }).include("#deudaContratoFicha").analyze();
+        expect(fmt(ficha), fmt(ficha).slice(0, 5).join("\n")).toEqual([]);
       });
     }
   });
