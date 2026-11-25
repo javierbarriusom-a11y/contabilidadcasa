@@ -113,6 +113,15 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 25 de noviembre de 2026 (542): decimotercera auditoría, Deuda con una sola verdad
+
+- **Operativo:** el despliegue de main b7cba35d (solo PROJECT_STATE 540) es el **1562, en rojo**; lo arregla otra conversación en #683 (Safari al abrir Registrar › Importar), que ocupa la entrada **541**. El sitio sigue con el contenido del 1560 (verde). «Published availability» **415** (programada, sobre b7cba35d) **en verde**. No se lanza otra ni se duplica el arreglo; esta entrada se numera 542 por eso y no se fusiona antes que #683.
+- **El hogar** (25/11): análisis crítico, nuevas funciones, lo que queda del backlog con énfasis en el plan de saldo de deuda y un plan para que Deuda sea más intuitiva sin perder información.
+- **Nueva propuesta** `docs/PROPUESTA_DECIMOTERCERA_AUDITORIA_2026-11-25.md` (TRE-nn). Hallazgo principal, medido con el arranque en caliente (contratos ficticios): Deuda › Plan enseña **cuatro fechas de «libre de deuda»** (tira, plan óptimo, camino/simulador y titular) y el titular dice **«Sin deuda pendiente» con deuda viva**, porque sale del estado final de la estrategia heredada *ejecutada* (`deudaRutaTitulo` ← `escenarioMotorLibreDeDeuda`), no del plan que la pantalla propone; el calendario de amortización hereda el mismo motor («intereses totales 0 €»). Deuda › Plan mide 3.863 px a 1280 y 6.304 a 390 con dos contratos; Contratos, 4.235 px y 70 campos visibles. Propuesta: TRE-D0 (P0: titular y fecha única) y TRE-07 (coherencia de cifras protagonistas en el CI); rediseño en fases TRE-D1 a D5 (hero, «Este mes», «Cómo vais», Gantt, panel «Ajustar el plan», «Comparar con otras formas», Contratos en tarjetas con ficha) con inventario de dónde va cada pieza; plan de saldo v5 (TRE-D3 colchón primero bajo el suelo, día del pago, ingresos extraordinarios, progreso estimado, desviaciones explicadas, estrés); y TRE-01 a 07 fuera de Deuda.
+- **Decisiones que pide:** D-N40 (una sola fecha), D-N41 (retiradas en Contratos), D-N42 (colchón primero), D-N43 (reparto por titular). Siguen pendientes DUO-05 rehecha, DUO-02 y UND-21.
+- **Validación:** solo documentación; `npm test` **6.964/6.964** sin cambios de código.
+- **Siguiente número de decisión libre: D-N44** si se aceptan D-N40 a D-N43.
+
 ## Cierre de sesión — 24 de noviembre de 2026 (540): todo lo de la duodécima hecho hasta hoy, en el sitio
 
 - **#680 (DUO-D3 y D-N38):** «Verify and deploy Pages» **1558 en verde** (main 0533def2) y «Published availability» **413 en verde**.
