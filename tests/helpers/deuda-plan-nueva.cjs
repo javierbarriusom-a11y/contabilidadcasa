@@ -1,0 +1,28 @@
+// TRE-D1 (25/11/2026): Deuda › Plan abre la vista nueva (views/deuda-plan-v2.js) y lo de siempre queda detrás de «Ver todo el detalle».
+// Las pruebas de los controles de siempre (plan óptimo, camino, orden de ataque, seguimiento…) siguen probando lo de siempre, que no se
+// ha retirado: un `beforeEach` de cada fichero deja `localStorage["deuda-plan-v2-modo"] = "anterior"` en cada carga (el mismo
+// mecanismo que `cierre-v2-modo` para el asistente del cierre). Las pruebas de la vista nueva lo desactivan con `deudaPlanNueva`.
+const MODO = "deuda-plan-v2-modo";
+const MARCA = "dpv2-prueba-nueva";
+
+/** En cada carga de la página, «todo el detalle» salvo que la prueba haya pedido la vista nueva (marca en sessionStorage). */
+function deudaDeSiempre(page) {
+  return page.addInitScript(({ modo, marca }) => {
+    try {
+      if (sessionStorage.getItem(marca) !== "1") localStorage.setItem(modo, "anterior");
+    } catch {
+      /* sin almacenamiento */
+    }
+  }, { modo: MODO, marca: MARCA });
+}
+
+/** La vista nueva de Deuda › Plan para esta prueba (sobrevive a recargas) y la repinta si ya se está en ella. */
+async function deudaPlanNueva(page) {
+  await page.evaluate(({ modo, marca }) => {
+    sessionStorage.setItem(marca, "1");
+    localStorage.removeItem(modo);
+    globalThis.renderDeudaPlanV2?.();
+  }, { modo: MODO, marca: MARCA });
+}
+
+module.exports = { deudaDeSiempre, deudaPlanNueva, MODO };

@@ -109,6 +109,15 @@ const PANTALLAS = [
     },
   },
   {
+    // TRE-D1: la vista nueva de Deuda › Plan. Hoy solo tiene botones de acción (el censo no los cuenta); lo que se le añada en TRE-D2
+    // (el panel «Ajustar el plan») tendrá que registrarse aquí.
+    nombre: "Deuda › Plan nuevo", hash: "#deuda-ruta", raiz: "#deudaPlanV2",
+    entrar: async (page) => {
+      await require("./deuda-plan-nueva.cjs").deudaPlanNueva(page);
+      await expect(page.locator("#deudaPlanV2 #dpv2Fecha")).toBeVisible({ timeout: 20000 });
+    },
+  },
+  {
     nombre: "Deuda › Ofertas › Simulador visual", hash: "#deuda-simulador", raiz: "#deudaSimuladorV2",
     entrar: async (page) => expect(page.locator("#deudaSimuladorV2")).toContainText("Banco FICTICIO", { timeout: 20000 }),
   },

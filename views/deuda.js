@@ -877,6 +877,7 @@ function deudaRutaPintarFechaUnica(contracts = escenarioMotorDebtOptions()) {
   const subtitleEl = qs("deudaRutaSubtitle");
   if (subtitleEl) subtitleEl.textContent = deudaRutaSubtituloFuente(outlook);
   if (typeof renderTopbarStatusStrip === "function") renderTopbarStatusStrip((location.hash || "#home").slice(1) || "home");
+  globalThis.renderDeudaPlanV2?.(); // TRE-D1: la vista nueva lee la misma fecha y el mismo plan (views/deuda-plan-v2.js)
 }
 
 // D-N40 · TRE-D0: de dónde sale la fecha del titular (la única de la app); las demás fechas de la pantalla son comparaciones con nombre.

@@ -28,6 +28,9 @@ const cierreDeSiempre = (page) => page.addInitScript(() => { try { localStorage.
 // Pulsar y, si no se puede, decir qué pasaba en la página (dos pruebas que fallan de vez en cuando en el CI).
 const { pulsar, registrarEventos } = require("./helpers/pulsar-o-explicar.cjs");
 const { cronometro, informarSiFalla } = require("./helpers/cronometro-pasos.cjs");
+// TRE-D1: las pruebas de los controles de siempre de Deuda › Plan entran en «todo el detalle»; las de la vista nueva lo desactivan.
+const { deudaDeSiempre, deudaPlanNueva } = require("./helpers/deuda-plan-nueva.cjs");
+test.beforeEach(async ({ page }) => { await deudaDeSiempre(page); });
 
 // Funciones en prueba con interruptor propio: desde el 29/10/2026 nacen encendidas. Las pruebas que recorren «apagada» y «encendida»
 // empiezan con ella apagada, como haría el hogar al apagarla; después la encienden con su interruptor. Solo si aún no hay elección,
@@ -13413,4 +13416,60 @@ test.describe("TRE-10 · Sin texto de ingeniero en pantalla", () => {
     }
     expect(hallado, hallado.join("\n")).toEqual([]);
   });
+});
+
+// TRE-D1 (decimotercera auditoría §2.2; auditoría de diseño del 25/11 §5.2, PR 1; «sigue con TRE-D1» del hogar): Deuda › Plan con el
+// diseño nuevo. La fecha única arriba (la misma que Hoy y el plan, D-N40), «Este mes» con su acción, «Cómo vais» con el plan guardado,
+// el orden por contrato y los accesos; todo lo de siempre detrás de «Ver todo el detalle», que se recuerda y se deshace. Sin la tira de
+// cinco cifras (D-N49). Con el arranque en caliente (contratos y movimientos FICTICIOS).
+test.describe("TRE-D1 · Deuda › Plan nuevo", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+    const etiqueta = viewport.width === 390 ? " @safari" : "";
+    test(`la respuesta arriba, el mes con su acción, el orden y el detalle a un toque, a ${viewport.width} px${etiqueta}`, async ({ page }) => {
+      test.setTimeout(150000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await arrancarEnCaliente(page, { viewport });
+      await page.evaluate(() => { location.hash = "deuda-ruta"; });
+      await deudaPlanNueva(page);
+      const vista = page.locator("#deudaPlanV2");
+      await expect(vista.locator("#dpv2Fecha")).toBeVisible({ timeout: 20000 });
+      // La fecha es la única de la app (D-N40) y lo de siempre está oculto, con la tira de cinco cifras (D-N49).
+      const { mes, anio } = await page.evaluate(() => {
+        const key = String(homeDebtOutlook().libreDeDeuda).slice(0, 7);
+        return { mes: ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"][Number(key.slice(5, 7)) - 1], anio: key.slice(0, 4) };
+      });
+      await expect(vista.locator("#dpv2Fecha")).toHaveText(new RegExp(`^${mes} de ${anio}$`, "i"));
+      await expect(vista.locator("#dpv2Fecha")).toHaveAttribute("data-fecha-libre", "unica");
+      await expect(page.locator("#planOptimoCard")).toBeHidden();
+      await expect(page.locator("#topbarStatusStrip")).toBeHidden();
+      await expect(vista.locator(".dpv2-fila")).toHaveCount(2);
+      await expect(vista.locator(".dpv2-mes")).toContainText("Banco FICTICIO");
+      // Alto de la vista por defecto (decimotercera §2.8): ≤ 1.300 px a 1280 y ≤ 2.600 px a 390, y sin desbordar.
+      const medida = await page.evaluate(() => ({ alto: document.getElementById("deudaPlanV2").getBoundingClientRect().height, desborda: document.documentElement.scrollWidth > window.innerWidth + 1 }));
+      expect(medida.alto).toBeLessThanOrEqual(viewport.width === 390 ? 2600 : 1300);
+      expect(medida.desborda).toBe(false);
+      // «Este es nuestro plan» guarda el plan (el de siempre) y aparecen «Cómo vais» y los botones del mes.
+      await vista.locator('[data-dpv2="guardar"]').click();
+      await expect(vista.locator(".dpv2-vais")).toBeVisible({ timeout: 10000 });
+      expect(await page.evaluate(() => homeDebtOutlook().fuente)).toBe("plan-guardado");
+      await expect(vista.locator(".dpv2-kicker").first()).toHaveText(/con vuestro plan/i);
+      // «Ya lo he pagado» da el mes por hecho, como «Sí» en la pregunta del seguimiento (DUO-D1).
+      await vista.locator('[data-dpv2="pagado"]').click();
+      await expect(vista.locator(".dpv2-estado.is-ok")).toContainText("Hecho este mes");
+      await expect(vista.locator('.dpv2-meses li[data-estado="hecho"]')).toHaveCount(1);
+      // «Ajustar el plan» lleva al plan óptimo de siempre; «Volver a la vista nueva» deshace, y la elección se recuerda al recargar.
+      await vista.locator('[data-dpv2="ajustar"]').click();
+      await expect(page.locator("#planOptimoCard")).toBeVisible();
+      await expect(vista.locator('[data-dpv2="volver"]')).toBeVisible();
+      await page.reload();
+      await page.evaluate(() => { location.hash = "deuda-ruta"; });
+      await expect(page.locator("#planOptimoCard")).toBeVisible({ timeout: 20000 });
+      await vista.locator('[data-dpv2="volver"]').click();
+      await expect(vista.locator("#dpv2Fecha")).toBeVisible();
+      await expect(page.locator("#planOptimoCard")).toBeHidden();
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
 });

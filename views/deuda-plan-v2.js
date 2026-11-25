@@ -1,0 +1,369 @@
+/**
+ * views/deuda-plan-v2.js · TRE-D1 (decimotercera auditoría §2.2; auditoría de diseño del 25/11/2026 §5.2, PR 1; «sigue con TRE-D1» del hogar).
+ *
+ * Deuda › Plan con el diseño nuevo (referencias `DeudaDesktop.png` y la maqueta `html/DeudaTRE.html`), de arriba abajo:
+ *   A · la respuesta: la fecha única de «libres de deuda» (D-N40, `homeDebtOutlook`), lo que os ahorráis y lo que queda;
+ *   B · «Este mes»: cuánto y a qué contrato, con «Ya lo he pagado» y «Este mes no puedo» (las mismas respuestas que la pregunta de DUO-D1);
+ *   C · «Cómo vais»: los meses del plan guardado, con su forma y la racha; sin plan, «Este es nuestro plan»;
+ *   D · el orden: una barra por contrato hasta que se salda con el plan, y rayado lo que se adelanta frente a pagar solo las cuotas;
+ *   E · accesos: «Ajustar el plan», «Comparar con otras formas» y «Cerrar las deudas saldadas», que hoy llevan a su sitio en el detalle.
+ * Lee los motores de siempre (el plan óptimo ya calculado, `planOptimoResultadoUltimo`; el camino sin extra; el seguimiento): no calcula
+ * nada propio. Todo lo de siempre sigue debajo y vuelve con «Ver todo el detalle» (decisión 5 de ESTADO: no se retira nada en uso).
+ * `localStorage["deuda-plan-v2-modo"] = "anterior"` abre siempre lo de siempre (lo usan las pruebas de sus controles). D-N49: con la vista
+ * nueva, la tira de cinco cifras no se enseña en esta pantalla (la respuesta ya está en el héroe).
+ *
+ * Script de pantalla: comparte el ámbito global de app.js (qs, escapeHtml, money, storageGet/Set/Key, isoLocalDate…).
+ */
+(function attachDeudaPlanV2(root) {
+  "use strict";
+
+  const MODO_KEY = "deuda-plan-v2-modo";
+  const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  const FORMA = { hecho: "●", parcial: "◐", no: "○", preguntar: "?", "en-curso": "…", futuro: "·" };
+  const esc = (v) => (typeof escapeHtml === "function" ? escapeHtml(v) : String(v ?? ""));
+  // A meses o años vista, euros redondos (FX-04: «1.398 €», no «1.398,06 €»).
+  const euros = (v) => (typeof money === "function" ? money(Math.round(Number(v) || 0), true) : `${Math.round(v)} €`);
+
+  function mesValido(key) {
+    return /^\d{4}-\d{2}$/.test(String(key || ""));
+  }
+
+  function mesLargo(key, conDe = true) {
+    if (!mesValido(key)) return "";
+    const [y, m] = key.split("-").map(Number);
+    return `${MESES[m - 1]}${conDe ? " de" : ""} ${y}`;
+  }
+
+  function indiceMes(key) {
+    const [y, m] = String(key).split("-").map(Number);
+    return y * 12 + (m - 1);
+  }
+
+  function sumarMeses(key, n) {
+    const i = indiceMes(key) + n;
+    return `${Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, "0")}`;
+  }
+
+  // --- Lo puro: de lo que ya calculan los motores a lo que se enseña ------------------------------------------------------------------
+
+  /**
+   * @param {object} e
+   * @param {object} e.outlook homeDebtOutlook(): la fecha única (libreDeDeuda, fuente, fuenteNombre, pendingPrincipal, settled)
+   * @param {object|null} e.plan el plan óptimo (canonical-debt-optimal-plan): recommended.summary, recommended.periods, recommended.result, baseline
+   * @param {Array} e.contratos los contratos del motor (escenarioMotorDebtOptions)
+   * @param {Map<string,string>} e.finBase mes en que acaba cada contrato pagando solo las cuotas (el camino sin extra)
+   * @param {object|null} e.seguimiento el de DUO-D1 (filas, racha, hecho, previsto) o null sin plan guardado
+   * @param {string} e.hoy AAAA-MM-DD
+   */
+  function modelo({ outlook, plan, contratos = [], finBase = new Map(), seguimiento = null, hoy }) {
+    const vivas = contratos.filter((c) => Number(c?.currentPrincipal) > 0);
+    if (!outlook || outlook.settled || !vivas.length) return { vacio: true };
+    const mesHoy = String(hoy || "").slice(0, 7);
+    const fecha = String(outlook.libreDeDeuda || "").slice(0, 7);
+    const s = plan?.ok ? plan.recommended?.summary || {} : {};
+    const base = plan?.ok ? plan.baseline || {} : {};
+    const fuera = /· /.test(String(outlook.libreDeDeuda || ""));
+    const hero = {
+      etiqueta: outlook.fuente === "plan-guardado" ? "Con vuestro plan, libres de deuda en" : outlook.fuente === "plan-optimo" ? "Con el plan, libres de deuda en" : "Según los plazos firmados, libres de deuda en",
+      fecha: mesValido(fecha) ? mesLargo(fecha) : String(outlook.libreDeDeuda || "sin fecha"),
+      nota: [
+        s.monthsSaved > 0 && mesValido(base.debtFreeMonthKey) ? `${s.monthsSaved} ${s.monthsSaved === 1 ? "mes" : "meses"} antes que pagando solo las cuotas (${mesLargo(base.debtFreeMonthKey)})` : "",
+        outlook.fuente === "plan-guardado" && mesValido(s.debtFreeMonthKey) && s.debtFreeMonthKey !== fecha ? `con los saldos de hoy, ${mesLargo(s.debtFreeMonthKey)}` : "",
+        fuera ? "sin contar las deudas que no entran en el plan" : "",
+      ].filter(Boolean).join(" · "),
+      ahorro: Number.isFinite(s.totalSaved) ? s.totalSaved : Number.isFinite(s.interestSaved) ? s.interestSaved : null,
+      ahorroNota: Number.isFinite(s.totalInterest) && Number.isFinite(base.totalInterest)
+        ? `pagaréis ${euros(s.totalInterest)} de intereses en lugar de ${euros(base.totalInterest)}${s.commissionCost > 0 ? ` (y ${euros(s.commissionCost)} de comisiones)` : ""}`
+        : "",
+      quedan: vivas.reduce((sum, c) => sum + (Number(c.currentPrincipal) || 0), 0),
+      contratos: vivas.length,
+    };
+
+    // B · Este mes: el primer tramo del plan (lo de más de este mes y a quién), más las cuotas de hoy.
+    const cuotas = vivas.filter((c) => c.paymentStatus === "active").reduce((sum, c) => sum + (Number(c.currentPayment) || 0), 0);
+    const tramo = (plan?.ok ? plan.recommended?.periods || [] : []).find((t) => t.fromIndex === 0) || null;
+    const extra = tramo ? Number(Array.isArray(tramo.pools) ? tramo.pools[0] ?? tramo.extra : tramo.extra) || 0 : 0;
+    const fila = seguimiento?.ok ? seguimiento.filas.find((f) => f.mes === mesHoy) || null : null;
+    const siguiente = (plan?.ok ? plan.recommended?.periods || [] : []).find((t) => t.fromIndex > 0 && t.targetId !== tramo?.targetId) || null;
+    const esteMes = {
+      mes: mesHoy,
+      mesNombre: MESES[Number(mesHoy.slice(5, 7)) - 1] || "",
+      total: cuotas + extra,
+      cuotas,
+      extra,
+      destino: tramo ? { id: String(tramo.targetId), label: tramo.targetLabel } : null,
+      estado: fila ? fila.estado : null,
+      real: fila ? fila.real : null,
+      conPlan: Boolean(seguimiento?.ok),
+      despues: siguiente && mesValido(plan.startMonthKey) ? `Desde ${mesLargo(sumarMeses(plan.startMonthKey, siguiente.fromIndex))}, lo de más va a ${siguiente.targetLabel}.` : "",
+    };
+
+    // C · Cómo vais: los meses ya evaluados y el en curso, con la racha.
+    const comoVais = seguimiento?.ok
+      ? {
+          meses: seguimiento.filas.filter((f) => f.estado !== "futuro").slice(-6).map((f) => ({ mes: f.mes, estado: f.estado })),
+          racha: seguimiento.racha,
+          hecho: seguimiento.hecho,
+          previsto: seguimiento.previsto,
+        }
+      : null;
+
+    // D · El orden: cada contrato, del de antes al de después según el plan; su fin con el plan y pagando solo las cuotas.
+    const filas = (plan?.ok ? plan.recommended?.result?.included || [] : [])
+      .map((row) => {
+        const c = vivas.find((x) => String(x.id) === String(row.id)) || {};
+        return {
+          id: String(row.id),
+          label: row.label,
+          detalle: [euros(Number(c.currentPrincipal) || row.principal || 0), Number.isFinite(row.aprPct) ? `${String(row.aprPct).replace(".", ",")} %` : "", Number(c.currentPayment) > 0 ? `${euros(c.currentPayment)}/mes` : ""].filter(Boolean).join(" · "),
+          finPlan: row.payoffMonthKey || null,
+          finBase: finBase.get(String(row.id)) || null,
+          quita: Boolean(row.settlement),
+        };
+      })
+      .sort((a, b) => String(a.finPlan || "9999").localeCompare(String(b.finPlan || "9999")));
+    const fines = filas.flatMap((f) => [f.finPlan, f.finBase]).filter(mesValido);
+    const hasta = fines.length ? fines.sort().at(-1) : null;
+    const orden = { filas, desde: mesHoy, hasta, estrategia: plan?.ok ? plan.recommended?.strategy : null };
+
+    return { vacio: false, hero, esteMes, comoVais, orden, fuente: outlook.fuente };
+  }
+
+  // --- El pintado ------------------------------------------------------------------------------------------------------------------
+
+  function heroHtml(h) {
+    const ahorro = h.ahorro === null ? "" : `<div class="dpv2-hero-ahorro"><p class="dpv2-kicker">Os ahorráis en intereses</p><p class="dpv2-cifra-2">${esc(euros(h.ahorro))}</p>${h.ahorroNota ? `<p class="dpv2-nota">${esc(h.ahorroNota)}</p>` : ""}</div>`;
+    return `<section class="dpv2-card dpv2-hero" aria-labelledby="dpv2Titulo">
+      <h2 class="dpv2-oculto" id="dpv2Titulo">Plan de deuda</h2>
+      <div class="dpv2-hero-fecha">
+        <p class="dpv2-kicker">${esc(h.etiqueta)}</p>
+        <p class="dpv2-cifra" id="dpv2Fecha" data-fecha-libre="unica">${esc(h.fecha.charAt(0).toUpperCase() + h.fecha.slice(1))}</p>
+        ${h.nota ? `<p class="dpv2-nota">${esc(h.nota)}</p>` : ""}
+      </div>${ahorro}
+      <p class="dpv2-hero-pie">Quedan <strong>${esc(euros(h.quedan))}</strong> en ${h.contratos} ${h.contratos === 1 ? "contrato" : "contratos"}.</p>
+    </section>`;
+  }
+
+  function esteMesHtml(m) {
+    if (!m.destino && !(m.cuotas > 0)) return "";
+    const destino = m.destino && m.extra > 0 ? ` + de más ${esc(euros(m.extra))} → <strong>${esc(m.destino.label)}</strong>` : "";
+    let acciones;
+    if (!m.conPlan) {
+      acciones = `<p class="dpv2-nota">Guardadlo como vuestro plan y la app irá diciendo cómo vais, mes a mes.</p>
+        <div class="dpv2-acciones"><button type="button" class="e19-btn e19-btn-primary" data-dpv2="guardar">Este es nuestro plan</button></div>`;
+    } else if (m.estado === "hecho") {
+      acciones = `<p class="dpv2-estado is-ok">Hecho este mes${m.real > 0 ? `: ${esc(euros(m.real))} de más` : ""}.</p>`;
+    } else if (m.estado === "no") {
+      acciones = `<p class="dpv2-estado">Este mes, no. El plan sigue el mes que viene.</p>`;
+    } else {
+      acciones = `<div class="dpv2-acciones"><button type="button" class="e19-btn e19-btn-primary" data-dpv2="pagado">Ya lo he pagado</button><button type="button" class="e19-btn e19-btn-secondary" data-dpv2="no-puedo">Este mes no puedo</button></div>`;
+    }
+    return `<section class="dpv2-card dpv2-mes" aria-labelledby="dpv2MesTitulo">
+      <h3 class="dpv2-kicker" id="dpv2MesTitulo">Este mes · ${esc(m.mesNombre)}</h3>
+      <p class="dpv2-mes-cifra"><strong>${esc(euros(m.total))}</strong> <span>cuotas ${esc(euros(m.cuotas))}${destino}</span></p>
+      ${acciones}
+      ${m.despues ? `<p class="dpv2-despues">${esc(m.despues)}</p>` : ""}
+    </section>`;
+  }
+
+  function comoVaisHtml(c) {
+    if (!c) return "";
+    const nombres = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+    const meses = c.meses.map((f) => `<li data-estado="${esc(f.estado)}"><span aria-hidden="true">${FORMA[f.estado] || "·"}</span>${esc(nombres[Number(f.mes.slice(5, 7)) - 1])}</li>`).join("");
+    const racha = c.racha > 1 ? `Racha de ${c.racha} meses.` : c.racha === 1 ? "El último mes, cumplido." : "";
+    const cuanto = c.previsto > 0 ? ` ${euros(c.hecho)} de más de ${euros(c.previsto)} previstos.` : "";
+    return `<section class="dpv2-card dpv2-vais" aria-labelledby="dpv2VaisTitulo">
+      <h3 class="dpv2-kicker" id="dpv2VaisTitulo">Cómo vais</h3>
+      <ol class="dpv2-meses" aria-label="Lo de más de cada mes: ● hecho, ◐ parcial, ○ no, ? sin encontrar, … en curso">${meses}</ol>
+      ${racha || cuanto ? `<p class="dpv2-nota"><strong>${esc(racha)}</strong>${esc(cuanto)}</p>` : ""}
+    </section>`;
+  }
+
+  function ordenHtml(o) {
+    if (!o.filas.length || !o.hasta) return "";
+    const ini = indiceMes(o.desde);
+    const total = Math.max(1, indiceMes(o.hasta) - ini + 1);
+    const pct = (key) => Math.max(1.5, Math.min(100, ((indiceMes(key) - ini + 1) / total) * 100));
+    const anos = [];
+    for (let y = Number(o.desde.slice(0, 4)) + 1; y <= Number(o.hasta.slice(0, 4)); y += 1) anos.push(`<span style="left:${((indiceMes(`${y}-01`) - ini) / total) * 100}%">${y}</span>`);
+    const filas = o.filas.map((f) => {
+      const plan = mesValido(f.finPlan) ? pct(f.finPlan) : 100;
+      const baseFin = mesValido(f.finBase) ? pct(f.finBase) : plan;
+      const adelanta = mesValido(f.finPlan) && mesValido(f.finBase) ? indiceMes(f.finBase) - indiceMes(f.finPlan) : 0;
+      const frase = mesValido(f.finPlan)
+        ? `${f.quita ? "Se cancela con la quita" : "Saldada"} en ${mesLargo(f.finPlan)}${adelanta > 0 ? ` (${adelanta} ${adelanta === 1 ? "mes" : "meses"} antes que pagando solo las cuotas)` : ""}.`
+        : "No acaba dentro del horizonte del plan.";
+      return `<li class="dpv2-fila">
+        <div class="dpv2-fila-nombre"><strong>${esc(f.label)}</strong><span>${esc(f.detalle)}</span></div>
+        <div class="dpv2-barra" role="img" aria-label="${esc(frase)}"><span class="dpv2-barra-plan" style="width:${plan}%"></span>${baseFin > plan ? `<span class="dpv2-barra-adelanto" style="left:${plan}%;width:${baseFin - plan}%"></span>` : ""}</div>
+        <p class="dpv2-fila-frase">${esc(frase)}</p>
+      </li>`;
+    }).join("");
+    const como = o.estrategia === "bola-nieve" ? "La más pequeña primero" : "La más cara primero";
+    return `<section class="dpv2-card dpv2-orden" aria-labelledby="dpv2OrdenTitulo">
+      <h3 class="dpv2-titulo" id="dpv2OrdenTitulo">El orden</h3>
+      <p class="dpv2-nota">${como}; cada cuota que se libera pasa a la siguiente.</p>
+      <div class="dpv2-eje" aria-hidden="true">${anos.join("")}</div>
+      <ol class="dpv2-filas">${filas}</ol>
+      <p class="dpv2-leyenda" aria-hidden="true"><span class="dpv2-l-plan"></span>con el plan <span class="dpv2-l-adelanto"></span>lo que adelantáis frente a pagar solo las cuotas</p>
+    </section>`;
+  }
+
+  function accesosHtml(m, resumenAjustes) {
+    const filas = [
+      ["ajustar", "Ajustar el plan", resumenAjustes || "Cuánto al mes, el orden, pago inicial, comisiones y quitas"],
+      ["comparar", "Comparar con otras formas", "Solo las cuotas · bola de nieve · consolidar · liquidar con caja · no tocar nada"],
+      ["cerrar", "Cerrar las deudas saldadas", "Carta de saldo cero, ficheros y CIRBE de cada deuda que acabéis"],
+    ];
+    return `<nav class="dpv2-card dpv2-accesos" aria-label="Más del plan">${filas
+      .map(([id, titulo, sub]) => `<button type="button" class="dpv2-acceso" data-dpv2="${id}"><span><strong>${esc(titulo)}</strong><small>${esc(sub)}</small></span><span aria-hidden="true">›</span></button>`)
+      .join("")}</nav>`;
+  }
+
+  function html(m, resumenAjustes = "") {
+    if (m.vacio) return "";
+    return `${heroHtml(m.hero)}
+      <div class="dpv2-dos${m.comoVais ? "" : " is-solo"}">${esteMesHtml(m.esteMes)}${comoVaisHtml(m.comoVais)}</div>
+      ${ordenHtml(m.orden)}
+      ${accesosHtml(m, resumenAjustes)}
+      <p class="dpv2-detalle"><button type="button" class="e19-btn e19-btn-secondary" data-dpv2="detalle">Ver todo el detalle</button></p>`;
+  }
+
+  // --- Con la app ------------------------------------------------------------------------------------------------------------------
+
+  function guard(fn, fallback = null) {
+    try {
+      return fn();
+    } catch {
+      return fallback;
+    }
+  }
+
+  function modoAnterior() {
+    return guard(() => root.localStorage.getItem(MODO_KEY) === "anterior", false);
+  }
+
+  function leerJSON(key, fallback) {
+    return guard(() => {
+      const raw = storageGet(storageKey(key), "");
+      return raw ? JSON.parse(raw) : fallback;
+    }, fallback);
+  }
+
+  function entrada() {
+    const contratos = guard(() => escenarioMotorDebtOptions(), []) || [];
+    const hoy = isoLocalDate(new Date());
+    const engine = root.FinanceCanonicalDebtPayoffPath;
+    const finBase = new Map();
+    guard(() => {
+      const r = engine.project(contratos, { startMonthKey: hoy.slice(0, 7), order: typeof caminoOrder === "function" ? caminoOrder(contratos) : undefined });
+      (r.included || []).forEach((row) => { if (row.payoffMonthKey) finBase.set(String(row.id), row.payoffMonthKey); });
+    });
+    const compromiso = leerJSON("plan-deuda-compromiso", null);
+    const S = root.FinanceSeguimientoPlanDeuda;
+    const seguimiento = compromiso && S
+      ? guard(() => S.seguimiento(compromiso, {
+          hoy,
+          movimientos: typeof baseData === "object" ? baseData?.transactions || [] : [],
+          contratos,
+          respuestas: leerJSON("plan-deuda-respuestas", {}),
+          lenderOf: root.FinanceCanonicalDebtReceipts?.lenderOf,
+        }), null)
+      : null;
+    return {
+      outlook: guard(() => homeDebtOutlook(), null),
+      plan: typeof planOptimoResultadoUltimo !== "undefined" ? planOptimoResultadoUltimo : null,
+      contratos,
+      finBase,
+      seguimiento,
+      hoy,
+    };
+  }
+
+  function resumenAjustes() {
+    return guard(() => {
+      const partes = [];
+      const modo = typeof planOptimoModo !== "undefined" && planOptimoModo === "fijo" ? `${euros(planOptimoMensual || 0)} al mes` : "lo que permita la previsión";
+      partes.push(modo);
+      partes.push(typeof planOptimoOrdenGuardado === "function" && planOptimoOrdenGuardado() === "bola-nieve" ? "la más pequeña primero" : "la más cara primero");
+      if (typeof planOptimoPago !== "undefined" && planOptimoPago > 0) partes.push(`pago inicial ${euros(planOptimoPago)}`);
+      return partes.join(" · ");
+    }, "");
+  }
+
+  function irAlDetalle(selector) {
+    guard(() => root.localStorage.setItem(MODO_KEY, "anterior"));
+    root.FinanceMedidor?.anotar("deuda-plan-v2", "descarte");
+    render();
+    const destino = selector ? root.document.querySelector(selector) : null;
+    (destino || qs("deudaRutaTitle"))?.scrollIntoView?.({ block: "start" });
+    (destino?.querySelector?.("h3, summary, button, input") || destino)?.focus?.({ preventScroll: true });
+  }
+
+  function onClick(event) {
+    const boton = event.target.closest?.("[data-dpv2]");
+    if (!boton) return;
+    const accion = boton.dataset.dpv2;
+    const mes = isoLocalDate(new Date()).slice(0, 7);
+    if (accion === "pagado" || accion === "no-puedo") {
+      if (typeof segResponder === "function") segResponder(mes, { tipo: accion === "pagado" ? "si" : "no" });
+      root.FinanceMedidor?.anotar("deuda-plan-v2", "accion");
+      render();
+      qs("deudaPlanV2")?.querySelector(".dpv2-mes")?.focus?.();
+    } else if (accion === "guardar") {
+      const legado = qs("planSeguimiento")?.querySelector("[data-seg-guardar]");
+      if (legado) legado.click();
+      root.FinanceMedidor?.anotar("deuda-plan-v2", "accion");
+      render();
+    } else if (accion === "detalle") irAlDetalle(null);
+    else if (accion === "ajustar") irAlDetalle("#planOptimoCard");
+    else if (accion === "comparar") irAlDetalle(".deuda-ruta-layout");
+    else if (accion === "cerrar") irAlDetalle("#planCierres");
+    else if (accion === "volver") {
+      guard(() => root.localStorage.removeItem(MODO_KEY));
+      render();
+      qs("deudaPlanV2")?.querySelector("#dpv2Fecha")?.scrollIntoView?.({ block: "center" });
+    }
+  }
+
+  function render() {
+    const box = typeof qs === "function" ? qs("deudaPlanV2") : null;
+    if (!box) return;
+    const v2 = root.document.documentElement.dataset.tema === "v2";
+    if (!v2) {
+      box.hidden = true;
+      return;
+    }
+    if (!box.dataset.enganchado) {
+      box.dataset.enganchado = "1";
+      box.addEventListener("click", onClick);
+    }
+    const m = modelo(entrada());
+    if (m.vacio) {
+      box.hidden = true;
+      box.innerHTML = "";
+      return;
+    }
+    if (modoAnterior()) {
+      box.dataset.modo = "anterior";
+      box.innerHTML = `<p class="dpv2-volver">Estáis viendo todo el detalle del plan. <button type="button" class="e19-btn e19-btn-secondary" data-dpv2="volver">Volver a la vista nueva</button></p>`;
+    } else {
+      delete box.dataset.modo;
+      const nuevo = html(m, resumenAjustes());
+      if (box.__html !== nuevo) {
+        box.innerHTML = nuevo;
+        box.__html = nuevo;
+      }
+      if (!box.__vista) {
+        box.__vista = true;
+        root.FinanceMedidor?.anotar("deuda-plan-v2", "vista");
+      }
+    }
+    box.hidden = false;
+  }
+
+  const api = { modelo, html, mesLargo, MODO_KEY };
+  root.renderDeudaPlanV2 = render;
+  root.FinanceDeudaPlanV2 = api;
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+})(typeof window !== "undefined" ? window : globalThis);

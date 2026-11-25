@@ -76,7 +76,7 @@
     <link rel="stylesheet" href="patrimonio.css?v=20261014wp46b2" />
     <link rel="stylesheet" href="cierre-a11y.css?v=20261015d1" />
     <!-- Rediseño fase A: tema v2 detrás de bandera (?tema=v2). Va el último para poder redefinir tokens. -->
-    <link rel="stylesheet" href="tema-v2.css?v=20261122und08" />
+    <link rel="stylesheet" href="tema-v2.css?v=20261125tred1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -2205,6 +2205,8 @@
           <section class="e19-deuda-decidir view-section" id="deuda-ruta" hidden>
             <nav class="e19-registrar-tabs" id="deudaRutaScreenTabs" aria-label="Pestañas de Deuda"></nav>
             <nav class="deuda-flow-nav" id="deudaRutaFlowNav" aria-label="Paso anterior o siguiente en Deuda"></nav>
+            <!-- TRE-D1 (25/11/2026): Deuda › Plan con el diseño nuevo (views/deuda-plan-v2.js), solo con el tema v2; lo de siempre sigue debajo y vuelve con «Ver todo el detalle». -->
+            <div class="dpv2" id="deudaPlanV2" hidden></div>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow">Deuda · Plan</p>
@@ -8149,10 +8151,10 @@
 
     <script defer src="tema-v2.js?v=20261019v2defecto"></script>
     <script defer src="household-members.js?v=20261119priv4"></script>
-    <script defer src="medidor-utilidad.js?v=20261124dn38"></script>
+    <script defer src="medidor-utilidad.js?v=20261125tred1"></script>
     <script defer src="ocultar-cifras.js?v=20261122und17"></script>
     <script defer src="views/plegados-medidor.js?v=20261118dec40"></script>
-    <script defer src="funciones-en-prueba.js?v=20261122und04"></script>
+    <script defer src="funciones-en-prueba.js?v=20261125tred1"></script>
     <script defer src="vendor/supabase-js-2.117.2.umd.js"></script>
     <script defer src="xlsx-loader.js?v=20260929p2a1"></script>
     <script defer src="supabase-config.js?v=20260602a"></script>
@@ -8554,6 +8556,7 @@
     <script defer src="views/cobertura-ajuste.js?v=20261019cobro"></script>
     <script defer src="views/hoy-v2.js?v=20261124dn39"></script>
     <script defer src="views/deuda-simulador-v2.js?v=20261123duo01"></script>
+    <script defer src="views/deuda-plan-v2.js?v=20261125tred1"></script>
     <script defer src="views/movimientos-v2.js?v=20261119dat07"></script>
     <script defer src="views/importar-v2.js?v=20261116xda04b"></script>
     <script defer src="views/clasificar-v2.js?v=20261120dec14"></script>

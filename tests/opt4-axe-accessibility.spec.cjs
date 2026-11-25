@@ -1,5 +1,8 @@
 const { test, expect } = require("./helpers/navegador-resiliente.cjs"); // relanza el navegador si se cayó solo entre pruebas
 const { AxeBuilder } = require("@axe-core/playwright");
+// TRE-D1: lo de siempre de Deuda › Plan, en «todo el detalle»; la vista nueva tiene su propia prueba (deudaPlanNueva).
+const { deudaDeSiempre, deudaPlanNueva } = require("./helpers/deuda-plan-nueva.cjs");
+test.beforeEach(async ({ page }) => { await deudaDeSiempre(page); });
 
 // Rediseño A4 (PR-2): con el tema v2, Registrar › Importar extracto enseña Importar v2 y el asistente de cuatro pasos
 // queda tras «Ver el asistente de siempre». Las pruebas que recorren ese asistente lo abren antes, como haría el hogar.
@@ -2544,6 +2547,30 @@ for (const scheme of ["light", "dark"]) {
       const enRepaso = await new AxeBuilder({ page }).include("#repasoV2").analyze();
       const fallos = [...enAjustes.violations, ...enRepaso.violations].flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
       expect(fallos, fallos.slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
+// TRE-D1 (25/11/2026): la vista nueva de Deuda › Plan, en claro y en oscuro, con contratos dados de alta (arranque en caliente), sin plan
+// guardado y con él (con «Cómo vais» y los botones del mes).
+for (const scheme of ["light", "dark"]) {
+  test.describe(`TRE-D1 · Deuda › Plan nuevo en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("#deudaPlanV2: sin fallos de contraste ni de accesibilidad, sin plan guardado y con él", async ({ page }) => {
+      test.setTimeout(120000);
+      const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+      await arrancarEnCaliente(page);
+      await page.evaluate(() => { location.hash = "deuda-ruta"; });
+      await deudaPlanNueva(page);
+      const vista = page.locator("#deudaPlanV2");
+      await expect(vista.locator("#dpv2Fecha")).toBeVisible({ timeout: 20000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const sinPlan = await new AxeBuilder({ page }).include("#deudaPlanV2").analyze();
+      expect(fmt(sinPlan), fmt(sinPlan).slice(0, 5).join("\n")).toEqual([]);
+      await vista.locator('[data-dpv2="guardar"]').click();
+      await expect(vista.locator(".dpv2-vais")).toBeVisible({ timeout: 10000 });
+      const conPlan = await new AxeBuilder({ page }).include("#deudaPlanV2").analyze();
+      expect(fmt(conPlan), fmt(conPlan).slice(0, 5).join("\n")).toEqual([]);
     });
   });
 }
