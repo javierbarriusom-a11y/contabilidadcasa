@@ -2600,3 +2600,25 @@ for (const scheme of ["light", "dark"]) {
     }
   });
 }
+
+// TRE-D3c (25/11/2026): «Comparar con otras formas», abierto, en claro y en oscuro, a 1280 y a 390 px.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`TRE-D3c · Deuda › Comparar con otras formas en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      test(`#deudaPlanV2Comparar a ${viewport.width} px: sin fallos de contraste ni de accesibilidad`, async ({ page }) => {
+        test.setTimeout(120000);
+        const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+        await arrancarEnCaliente(page, { viewport });
+        await page.evaluate(() => { location.hash = "deuda-ruta"; });
+        await deudaPlanNueva(page);
+        await expect(page.locator("#deudaPlanV2 #dpv2Fecha")).toBeVisible({ timeout: 20000 });
+        await page.locator('#deudaPlanV2 [data-dpv2="comparar"]').click();
+        await expect(page.locator('#deudaPlanV2Comparar [data-dpv2-cmp-fila="plan"]')).toBeVisible({ timeout: 15000 });
+        const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+        const r = await new AxeBuilder({ page }).include("#deudaPlanV2Comparar").analyze();
+        expect(fmt(r), fmt(r).slice(0, 5).join("\n")).toEqual([]);
+      });
+    }
+  });
+}

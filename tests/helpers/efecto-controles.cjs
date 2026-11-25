@@ -130,6 +130,17 @@ const PANTALLAS = [
     },
   },
   {
+    // TRE-D3c: «Comparar con otras formas». Solo tiene botones que llevan a otro sitio (el censo no los cuenta): comparar no cambia nada.
+    // Está en el censo para que un control que se le añada tenga que registrarse.
+    nombre: "Deuda › Comparar con otras formas", hash: "#deuda-ruta", raiz: "#deudaPlanV2Comparar",
+    entrar: async (page) => {
+      if (await page.locator("#deudaPlanV2Ajustar").isVisible()) await page.keyboard.press("Escape");
+      await expect(page.locator("#deudaPlanV2Ajustar")).toBeHidden();
+      await page.locator('#deudaPlanV2 [data-dpv2="comparar"]').click();
+      await expect(page.locator('#deudaPlanV2Comparar [data-dpv2-cmp-fila="plan"]')).toBeVisible({ timeout: 15000 });
+    },
+  },
+  {
     nombre: "Deuda › Ofertas › Simulador visual", hash: "#deuda-simulador", raiz: "#deudaSimuladorV2",
     entrar: async (page) => expect(page.locator("#deudaSimuladorV2")).toContainText("Banco FICTICIO", { timeout: 20000 }),
   },

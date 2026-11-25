@@ -6362,3 +6362,103 @@
     padding: 12px 24px 24px;
   }
 }
+
+/* ---------- TRE-D3c · «Comparar con otras formas» (25/11/2026; views/deuda-plan-v2.js) ----------
+   El mismo panel que «Ajustar el plan» (hoja en el móvil, lateral en el escritorio, algo más ancho para las dos cifras de cada fila).
+   Una fila por forma de saldar: nombre y qué es, «Libres en», la cifra con lo que mide y sus «Ver…». La del plan, marcada. */
+:root[data-tema="v2"] .dpv2-cmp-lista {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .dpv2-cmp-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--e19-border);
+  border-radius: 12px;
+  background: var(--e19-surface);
+}
+
+:root[data-tema="v2"] .dpv2-cmp-fila.is-plan {
+  border-color: var(--e19-accent);
+  background: var(--e19-accent-soft);
+}
+
+:root[data-tema="v2"] .dpv2-cmp-fila.is-aviso {
+  border-color: var(--e19-warning-soft-border);
+}
+
+:root[data-tema="v2"] .dpv2-cmp-nombre {
+  grid-column: 1 / -1;
+}
+
+:root[data-tema="v2"] .dpv2-cmp-nombre h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--e19-heading);
+}
+
+:root[data-tema="v2"] .dpv2-cmp-nombre p {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .dpv2-cmp-nombre .dpv2-cmp-caja {
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .dpv2-cmp-dato {
+  display: grid;
+  gap: 2px;
+  align-content: start;
+}
+
+:root[data-tema="v2"] .dpv2-cmp-dato span,
+:root[data-tema="v2"] .dpv2-cmp-dato small {
+  font-size: 12.5px;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .dpv2-cmp-dato strong {
+  font-size: 16px;
+  color: var(--e19-heading);
+}
+
+/* La cifra (intereses o lo que se paga de golpe) va primero en su celda; su rótulo, debajo. */
+:root[data-tema="v2"] .dpv2-cmp-dato.is-cifra {
+  text-align: right;
+}
+
+:root[data-tema="v2"] .dpv2-cmp-acciones {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+:root[data-tema="v2"] .dpv2-cmp-acciones .e19-btn {
+  min-height: 44px;
+}
+
+:root[data-tema="v2"] .dpv2-cmp-estado {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--e19-accent-soft);
+  font-size: 14px;
+  color: var(--e19-ink);
+}
+
+@media (min-width: 1024px) {
+  :root[data-tema="v2"] dialog.dpv2-ajustar.dpv2-comparar {
+    width: 560px;
+  }
+}

@@ -105,3 +105,9 @@ test("TRE-D1 · cableado: contenedor, script antes de app.js, publicación, serv
   assert.match(fs.readFileSync(path.join(raiz, "views", "deuda.js"), "utf8"), /globalThis\.renderDeudaPlanV2\?\.\(\);/);
   assert.equal(V.MODO_KEY, "deuda-plan-v2-modo");
 });
+
+test("TRE-D1 · al pasar a «todo el detalle» se olvida el pintado de la vista nueva, para que «Volver» la repinte sin recargar", () => {
+  const js = require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "views/deuda-plan-v2.js"), "utf8");
+  const anterior = js.slice(js.indexOf('box.dataset.modo = "anterior";'), js.indexOf('data-dpv2="volver"'));
+  assert.match(anterior, /box\.__html = "";/);
+});

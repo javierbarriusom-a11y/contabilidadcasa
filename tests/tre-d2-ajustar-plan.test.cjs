@@ -83,7 +83,7 @@ test("TRE-D2 · el panel presta los controles de siempre (mismos ids) y un solo 
   assert.match(js, /hueco\.replaceWith\(nodo\)/, "al cerrar, cada control vuelve a su sitio");
   assert.match(js, /dialog\.addEventListener\("close", alCerrarAjustar\)/);
   // Desde el repintado (lo de siempre, otro tema, sin deudas) se devuelven ya, sin esperar al «close».
-  assert.equal((js.match(/cerrarAjustarSiAbierto\(\);/g) || []).length, 3);
+  assert.equal((js.match(/cerrarPanelesSiAbiertos\(\);/g) || []).length, 3);
   // «Este es nuestro plan» va junto a la vista previa (lo que guarda), y el pie cabe en una fila: restablecer y «Listo».
   assert.ok(chrome.indexOf('data-dpv2-aj="guardar"') < chrome.indexOf('data-dpv2-hueco="nota"'));
   assert.match(chrome, /<div class="dpv2-aj-pie">\s*<button[^>]*data-dpv2-aj="restablecer"[^>]*>[^<]*<\/button>\s*<button[^>]*data-dpv2-aj="cerrar"[^>]*>Listo<\/button>\s*<\/div>/);
@@ -101,7 +101,7 @@ test("TRE-D2 · estilos del tema v2, el patrón de Clasificar y lo medido", () =
   assert.match(bloque, /\[data-modo="prevision"\] label:has\(#planOptimoMensual\)/, "el importe solo con «Un importe fijo»");
   assert.match(leer("medidor-utilidad.js"), /id: "deuda-ajustar", nombre: "Ajustar el plan"/);
   assert.match(leer("funciones-en-prueba.js"), /id: "deuda-ajustar", nombre: "Ajustar el plan"/);
-  assert.match(leer("index.html"), /views\/deuda-plan-v2\.js\?v=20261125tred2/);
+  assert.match(leer("index.html"), /views\/deuda-plan-v2\.js\?v=20261125tre(?:d2|3c)/);
 });
 
 test("TRE-D2 · DUO-01: el panel es una pantalla del censo, con sus efectos y sin excepciones nuevas", () => {
