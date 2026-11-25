@@ -712,10 +712,12 @@ function planOptimoCalcular(engine, contracts, todayKey, refs, Plan) {
       })
     : { activo: false, razon: "apagado", umbral: ajusteColchon.umbral };
   const porMes = colchon.activo ? { monthlyByMonth: colchon.byMonth } : modo === "prevision" ? { monthlyByMonth: liquidez.byMonth } : {};
-  const r = modo === "prevision"
-    ? Plan.plan(engine, contracts, { ...comunes, monthly: liquidez.after, ...porMes })
-    : Plan.plan(engine, contracts, { ...comunes, monthly: fijoMensual, capacity: refs.capacity, ...porMes });
-  return { r, liquidez, modo, ofertas, comunes, fijoMensual, colchon };
+  // TRE-D5 (Ofertas): las opciones con que se calcula el plan, también para fuera, para que el veredicto de una oferta use las mismas.
+  const opciones = modo === "prevision"
+    ? { ...comunes, monthly: liquidez.after, ...porMes }
+    : { ...comunes, monthly: fijoMensual, capacity: refs.capacity, ...porMes };
+  const r = Plan.plan(engine, contracts, opciones);
+  return { r, liquidez, modo, ofertas, comunes, fijoMensual, colchon, opciones };
 }
 
 // D-N40 (25/11/2026, «sí» del hogar) · TRE-D0: una sola fecha de «libre de deuda» en toda la app. La del plan guardado con «Este es
