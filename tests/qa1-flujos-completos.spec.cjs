@@ -13464,12 +13464,87 @@ test.describe("TRE-D1 · Deuda › Plan nuevo", () => {
       await vista.locator('[data-dpv2="detalle"]').click();
       await expect(page.locator("#planOptimoCard")).toBeVisible();
       await expect(vista.locator('[data-dpv2="volver"]')).toBeVisible();
+      // Sin recargar, «Volver a la vista nueva» la repinta (se quedaba en el aviso hasta recargar).
+      await vista.locator('[data-dpv2="volver"]').click();
+      await expect(vista.locator("#dpv2Fecha")).toBeVisible();
+      await expect(page.locator("#planOptimoCard")).toBeHidden();
+      await vista.locator('[data-dpv2="detalle"]').click();
+      await expect(vista.locator('[data-dpv2="volver"]')).toBeVisible();
       await page.reload();
       await page.evaluate(() => { location.hash = "deuda-ruta"; });
       await expect(page.locator("#planOptimoCard")).toBeVisible({ timeout: 20000 });
       await vista.locator('[data-dpv2="volver"]').click();
       await expect(vista.locator("#dpv2Fecha")).toBeVisible();
       await expect(page.locator("#planOptimoCard")).toBeHidden();
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
+// TRE-D3c · «Comparar con otras formas» (decimotercera §2.4; auditoría de diseño §5.2, PR 3): cada forma de saldar con su fecha y su coste
+// en una lista y cada «Ver…» a lo de siempre (todas las piezas del inventario a dos toques como mucho). Arranque en caliente, contratos FICTICIOS.
+test.describe("TRE-D3c · Deuda › Comparar con otras formas", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+    const etiqueta = viewport.width === 390 ? " @safari" : "";
+    test(`las formas con su fecha y su coste, y cada «Ver…» a su sitio de siempre, a ${viewport.width} px${etiqueta}`, async ({ page }) => {
+      test.setTimeout(150000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await arrancarEnCaliente(page, { viewport });
+      await page.evaluate(() => { location.hash = "deuda-ruta"; });
+      await deudaPlanNueva(page);
+      const vista = page.locator("#deudaPlanV2");
+      await expect(vista.locator("#dpv2Fecha")).toBeVisible({ timeout: 20000 });
+      const panel = page.locator("#deudaPlanV2Comparar");
+      const abrir = async () => {
+        await vista.locator('[data-dpv2="comparar"]').click();
+        await expect(panel.locator('[data-dpv2-cmp-fila="plan"]')).toBeVisible({ timeout: 15000 });
+      };
+      await abrir();
+      // La fila del plan da la misma fecha que el héroe (sin plan guardado, la fecha única es la del plan).
+      const heroe = (await vista.locator("#dpv2Fecha").textContent()).trim().toLowerCase();
+      await expect(panel.locator('[data-dpv2-cmp-fila="plan"] .dpv2-cmp-dato strong').first()).toHaveText(new RegExp(`^${heroe}$`, "i"));
+      // Las formas que hay con los contratos FICTICIOS: el plan, pagar con la caja, el préstamo (sin oferta: a probar uno) y solo las cuotas.
+      for (const id of ["plan", "caja-avalancha", "consolidar", "solo-cuotas"]) await expect(panel.locator(`[data-dpv2-cmp-fila="${id}"]`)).toHaveCount(1);
+      await expect(panel.locator('[data-dpv2-cmp-fila="caja-avalancha"]')).toContainText("de golpe");
+      // Con deuda viva, ninguna forma dice «sin deuda pendiente» (lo que daba la ruta ejecutada: TRE-D0); cada una, un mes.
+      await expect(panel).not.toContainText(/sin deuda pendiente/i);
+      for (const id of ["plan", "caja-avalancha", "solo-cuotas"]) await expect(panel.locator(`[data-dpv2-cmp-fila="${id}"] .dpv2-cmp-dato strong`).first()).toHaveText(/^\S+ de 20\d\d$/);
+      await expect(panel.locator('[data-dpv2-cmp-fila="caja-avalancha"]')).toContainText("sin intereses comparables");
+      await expect(panel.locator('[data-dpv2-cmp-fila="solo-cuotas"]')).toContainText("de intereses");
+      expect(await panel.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+      // Comparar no cambia nada: ni un campo.
+      await expect(panel.locator("input, select, textarea")).toHaveCount(0);
+      // «Guardar como escenario» guarda (sin aplicar) y lo dice, sin salir.
+      const antes = await page.evaluate(() => loadEscenarioMotorSaved().length);
+      await panel.locator('[data-dpv2-cmp-fila="caja-avalancha"] [data-dpv2-cmp="escenario"]').click();
+      await expect(panel.locator(".dpv2-cmp-estado")).toContainText("No se ha aplicado nada");
+      expect(await page.evaluate(() => loadEscenarioMotorSaved().length)).toBe(antes + 1);
+      // «Ver el camino»: lo de siempre, en su sitio (un toque desde aquí).
+      await panel.locator('[data-dpv2-cmp="camino"]').click();
+      await expect(panel).toBeHidden();
+      await expect(page.locator("#caminoDeudaCard")).toBeVisible();
+      await vista.locator('[data-dpv2="volver"]').click();
+      await expect(vista.locator("#dpv2Fecha")).toBeVisible();
+      // «Ver la ruta» de pagar con la caja, la más pequeña primero, abre «Orden de ataque» con esa pestaña.
+      await abrir();
+      const fila = panel.locator('[data-dpv2-cmp-fila="caja-bola-nieve"]');
+      if (await fila.count()) {
+        await fila.locator('[data-dpv2-cmp="ruta"]').click();
+        await expect(page.locator(".deuda-ruta-layout")).toBeVisible();
+        await expect(page.locator('#deudaRutaTabs [data-deuda-ruta-tab="bola-nieve"]')).toHaveClass(/is-active/);
+        await vista.locator('[data-dpv2="volver"]').click();
+        await expect(vista.locator("#dpv2Fecha")).toBeVisible();
+        await abrir();
+      }
+      // «Probar un préstamo» lleva a Ofertas › Préstamo; Escape cierra y devuelve el foco al acceso.
+      await page.keyboard.press("Escape");
+      await expect(panel).toBeHidden();
+      await expect(vista.locator('[data-dpv2="comparar"]')).toBeFocused();
+      await abrir();
+      await panel.locator('[data-dpv2-cmp-fila="consolidar"] [data-dpv2-cmp="prestamo"]').click();
+      await expect(page.locator("#deuda-prestamo")).toBeVisible();
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }

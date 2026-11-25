@@ -7,7 +7,8 @@
  *   C · «Cómo vais»: los meses del plan guardado, con su forma y la racha; sin plan, «Este es nuestro plan»;
  *   D · el orden: una barra por contrato hasta que se salda con el plan, y rayado lo que se adelanta frente a pagar solo las cuotas;
  *   E · accesos: «Ajustar el plan» abre su panel (TRE-D2: los controles del plan óptimo de siempre, agrupados, con la vista previa
- *       arriba); «Comparar con otras formas» y «Cerrar las deudas saldadas» llevan a su sitio en el detalle.
+ *       arriba); «Comparar con otras formas» abre la suya (TRE-D3c: cada forma de saldar con su fecha y su coste, y «Ver…» a lo de
+ *       siempre); «Cerrar las deudas saldadas» lleva a su sitio en el detalle.
  * Lee los motores de siempre (el plan óptimo ya calculado, `planOptimoResultadoUltimo`; el camino sin extra; el seguimiento): no calcula
  * nada propio. Todo lo de siempre sigue debajo y vuelve con «Ver todo el detalle» (decisión 5 de ESTADO: no se retira nada en uso).
  * `localStorage["deuda-plan-v2-modo"] = "anterior"` abre siempre lo de siempre (lo usan las pruebas de sus controles). D-N49: con la vista
@@ -221,7 +222,7 @@
   function accesosHtml(m, resumenAjustes) {
     const filas = [
       ["ajustar", "Ajustar el plan", resumenAjustes || "Cuánto al mes, el orden, pago inicial, comisiones y quitas"],
-      ["comparar", "Comparar con otras formas", "Solo las cuotas · bola de nieve · consolidar · liquidar con caja · no tocar nada"],
+      ["comparar", "Comparar con otras formas", "El otro orden · pagar de golpe con la caja · un préstamo · solo las cuotas"],
       ["cerrar", "Cerrar las deudas saldadas", "Carta de saldo cero, ficheros y CIRBE de cada deuda que acabéis"],
     ];
     return `<nav class="dpv2-card dpv2-accesos" aria-label="Más del plan">${filas
@@ -337,6 +338,158 @@
         <button type="button" class="e19-btn e19-btn-secondary" data-dpv2-aj="restablecer">Restablecer lo recomendado</button>
         <button type="button" class="e19-btn e19-btn-primary" data-dpv2-aj="cerrar">Listo</button>
       </div>
+    </div>`;
+  }
+
+  // --- TRE-D3c · «Comparar con otras formas» (decimotercera §2.4; auditoría de diseño §5.2, PR 3) ------------------------------------
+  // Una lista con el mismo formato para cada forma de saldar la deuda: cuándo acabáis, cuánto cuesta y, si toca la caja, cómo la deja.
+  // Dos correcciones a la propuesta: «Según los plazos firmados» y «No tocar nada» son el mismo cálculo (homeDebtOutlook().segunPlazos
+  // sale de la estrategia «no-tocar»), así que van en una fila con «Solo las cuotas»; y las rutas de «Orden de ataque» pagan cada deuda
+  // de golpe con la caja: su cifra es lo que se paga de golpe, no intereses, y se dice así (nunca en la columna de intereses).
+
+  // «2027-03» → «marzo de 2027»; con sufijo («2027-03 · queda deuda fuera del plan»), el mes traducido y el sufijo; un texto, tal cual.
+  const mesOTexto = (v) => {
+    const t = String(v || "");
+    return mesValido(t.slice(0, 7)) ? `${mesLargo(t.slice(0, 7))}${t.slice(7)}` : t || "—";
+  };
+
+  /**
+   * @param {object} e
+   * @param {object|null} e.plan el último plan óptimo (planOptimoResultadoUltimo)
+   * @param {object|null} e.outlook homeDebtOutlook()
+   * @param {boolean} e.coinciden avalancha y bola de nieve dan lo mismo
+   * @param {object} e.estrategias resumen de cada estrategia de «Orden de ataque» (debtStrategySummary): avalancha, bola-nieve, consolidar
+   */
+  function compararModelo({ plan, outlook = null, coinciden = false, estrategias = {}, reservaOperativa = null, reservaProtegida = null }) {
+    const filas = [];
+    const ok = plan?.ok && !plan.nothing && !plan.sinDatos;
+    const s = ok ? plan.recommended?.summary || {} : {};
+    const usa = ok && plan.recommended?.strategy === "bola-nieve" ? "bola-nieve" : "avalancha";
+    const ordenTexto = (k) => (k === "bola-nieve" ? "la más pequeña primero" : "la más cara primero");
+    if (ok) {
+      filas.push({
+        id: "plan",
+        nombre: "El plan, con lo elegido",
+        detalle: `Lo de más cada mes, ${ordenTexto(usa)}; cada cuota que se libera pasa a la siguiente.${coinciden ? " Con vuestras deudas, los dos órdenes coinciden." : ""}`,
+        libres: mesOTexto(s.debtFreeMonthKey),
+        intereses: Number.isFinite(s.totalInterest) ? s.totalInterest : null,
+        cifraNota: s.commissionCost > 0 ? `y ${euros(s.commissionCost)} de comisiones` : s.forgiven > 0 ? `y os perdonan ${euros(s.forgiven)}` : "",
+        caja: "",
+        destacado: true,
+        acciones: [{ accion: "ajustar", texto: "Ajustar el plan" }],
+      });
+      const alt = plan.alternative?.summary;
+      if (!coinciden && alt && mesValido(alt.debtFreeMonthKey)) {
+        const otro = usa === "bola-nieve" ? "avalancha" : "bola-nieve";
+        filas.push({
+          id: "otro-orden",
+          nombre: otro === "bola-nieve" ? "La más pequeña primero" : "La más cara primero",
+          detalle: "Lo mismo que el plan, en el otro orden.",
+          libres: mesLargo(alt.debtFreeMonthKey),
+          intereses: Number.isFinite(alt.totalInterest) ? alt.totalInterest : null,
+          cifraNota: "",
+          caja: "",
+          acciones: [{ accion: "orden", valor: otro, texto: "Usar este orden" }],
+        });
+      }
+    }
+    // Las rutas de «Orden de ataque»: cada deuda se paga de golpe con la caja en el primer mes en que cabe sin bajar de la reserva.
+    [["avalancha", "Pagar de golpe con la caja, la más cara primero"], ["bola-nieve", "Pagar de golpe con la caja, la más pequeña primero"]].forEach(([id, nombre]) => {
+      const e = estrategias[id];
+      if (!e || !(e.total > 0)) return;
+      filas.push({
+        id: `caja-${id}`,
+        nombre,
+        // Esta ruta comprueba la reserva operativa (o, sin ella, que la caja no quede en negativo); el plan, la reserva protegida. Se dice
+        // cuál y, si la caja baja de la protegida, se avisa: es lo que esta comparación tiene que enseñar.
+        detalle: e.viable
+          ? `Cada deuda se cancela entera el primer mes en que la caja llega ${reservaOperativa > 0 ? `sin bajar de la reserva operativa (${euros(reservaOperativa)})` : "sin quedar en negativo (no hay reserva operativa configurada)"}.`
+          : `${e.total - e.aplicadas} de ${e.total} pagos no caben ${reservaOperativa > 0 ? `sin bajar de la reserva operativa (${euros(reservaOperativa)})` : "sin dejar la caja en negativo"} en el horizonte.`,
+        // El motor dice «sin deuda pendiente» cuando la ruta lo salda todo: es el estado al final, no una fecha (el fallo de TRE-D0).
+        // La fecha es la del último pago de la ruta.
+        libres: String(e.libreDeDeuda || "") === "sin deuda pendiente" ? (mesValido(e.ultimoPago) ? mesLargo(e.ultimoPago) : "dentro del horizonte") : mesOTexto(e.libreDeDeuda),
+        intereses: null,
+        cifraNota: e.costeTotal > 0 ? `${euros(e.costeTotal)} de golpe` : "",
+        caja: Number.isFinite(e.cajaMinima)
+          ? `La caja baja hasta ${euros(e.cajaMinima)} en el peor mes${reservaProtegida > 0 && e.cajaMinima < reservaProtegida ? `: por debajo de la reserva protegida (${euros(reservaProtegida)}), que el plan sí respeta` : ""}.`
+          : "",
+        aviso: !e.viable || (reservaProtegida > 0 && Number.isFinite(e.cajaMinima) && e.cajaMinima < reservaProtegida),
+        acciones: [{ accion: "ruta", valor: id, texto: "Ver la ruta" }, { accion: "escenario", valor: id, texto: "Guardar como escenario" }],
+      });
+    });
+    const c = estrategias.consolidar;
+    if (c?.consolidacion?.available) {
+      filas.push({
+        id: "consolidar",
+        nombre: "Juntarlas en un préstamo",
+        detalle: `Un préstamo nuevo cancela todas y queda una cuota de ${euros(c.consolidacion.cuota)} al mes.`,
+        libres: mesOTexto(c.libreDeDeuda),
+        intereses: Number.isFinite(c.consolidacion.intereses) ? c.consolidacion.intereses : null,
+        cifraNota: "del préstamo nuevo",
+        caja: Number.isFinite(c.cajaMinima) ? `La caja baja hasta ${euros(c.cajaMinima)} en el peor mes.` : "",
+        acciones: [{ accion: "prestamo", texto: "Ver el préstamo" }, { accion: "escenario", valor: "consolidar", texto: "Guardar como escenario" }],
+      });
+    } else if (c) {
+      filas.push({
+        id: "consolidar",
+        nombre: "Juntarlas en un préstamo",
+        detalle: c.consolidacion?.motivo === "cartera" ? "Con una sola deuda no hay nada que juntar." : "Sin una oferta de préstamo no hay cifras: probad una con sus condiciones.",
+        libres: "—",
+        intereses: null,
+        cifraNota: "",
+        caja: "",
+        acciones: c.consolidacion?.motivo === "cartera" ? [] : [{ accion: "prestamo", texto: "Probar un préstamo" }],
+      });
+    }
+    if (ok) {
+      const b = plan.baseline || {};
+      const plazos = String(outlook?.segunPlazos || "").slice(0, 7);
+      const distintos = mesValido(plazos) && plazos !== b.debtFreeMonthKey;
+      filas.push({
+        id: "solo-cuotas",
+        nombre: "Solo las cuotas (no tocar nada)",
+        detalle: `Sin poner nada de más: cada deuda con su cuota.${distintos ? ` Según los plazos firmados de cada contrato, ${mesLargo(plazos)}: no cuadran con capital, cuota y TAE; revisadlos en Contratos.` : ""}`,
+        libres: mesOTexto(b.debtFreeMonthKey),
+        intereses: Number.isFinite(b.totalInterest) ? b.totalInterest : null,
+        cifraNota: "",
+        caja: "",
+        acciones: [{ accion: "camino", texto: "Ver el camino" }],
+      });
+    }
+    return { filas, vacio: !filas.length };
+  }
+
+  function compararHtml(m) {
+    if (m.vacio) return '<p class="dpv2-nota">Sin deudas con cuota y TAE no hay formas que comparar: completadlas en Contratos.</p>';
+    const filas = m.filas.map((f) => {
+      const cifra = f.intereses !== null
+        ? `<strong>${esc(euros(f.intereses))}</strong><small>de intereses${f.cifraNota ? ` ${esc(f.cifraNota)}` : ""}</small>`
+        : f.cifraNota ? `<strong>${esc(f.cifraNota)}</strong><small>sin intereses comparables</small>` : '<strong>—</strong><small>sin cifra</small>';
+      // Una forma sin cifras (un préstamo sin oferta) dice qué falta y cómo probarla, sin celdas vacías.
+      const sinCifras = f.libres === "—" && f.intereses === null && !f.cifraNota;
+      const acciones = f.acciones.map((a) => `<button type="button" class="e19-btn e19-btn-secondary" data-dpv2-cmp="${esc(a.accion)}"${a.valor ? ` data-dpv2-cmp-valor="${esc(a.valor)}"` : ""}>${esc(a.texto)}</button>`).join("");
+      return `<li class="dpv2-cmp-fila${f.destacado ? " is-plan" : ""}${f.aviso ? " is-aviso" : ""}" data-dpv2-cmp-fila="${esc(f.id)}">
+        <div class="dpv2-cmp-nombre"><h3>${esc(f.nombre)}</h3><p>${esc(f.detalle)}</p>${f.caja ? `<p class="dpv2-cmp-caja">${esc(f.caja)}</p>` : ""}</div>
+        ${sinCifras ? "" : `<div class="dpv2-cmp-dato"><span>Libres en</span><strong>${esc(f.libres)}</strong></div>
+        <div class="dpv2-cmp-dato is-cifra">${cifra}</div>`}
+        ${acciones ? `<div class="dpv2-cmp-acciones">${acciones}</div>` : ""}
+      </li>`;
+    }).join("");
+    return `<ul class="dpv2-cmp-lista">${filas}</ul>`;
+  }
+
+  function compararChromeHtml() {
+    return `<div class="dpv2-aj-in">
+      <div class="dpv2-aj-fija">
+        <span class="clas-v2-asa" aria-hidden="true"></span>
+        <div class="dpv2-aj-cabeza">
+          <div><p class="dpv2-kicker">Deuda · Plan</p><h2 id="dpv2CompararTitulo">Comparar con otras formas</h2></div>
+          <button type="button" class="e19-btn e19-btn-secondary clas-v2-cerrar" data-dpv2-cmp="cerrar" aria-label="Cerrar «Comparar con otras formas»">×</button>
+        </div>
+        <p class="dpv2-nota">Cuándo acabáis y cuánto cuesta cada forma de saldar la deuda, con vuestros contratos de hoy. Comparar no cambia nada.</p>
+      </div>
+      <div id="dpv2CompararLista"></div>
+      <div class="dpv2-aj-pie"><button type="button" class="e19-btn e19-btn-primary" data-dpv2-cmp="cerrar">Listo</button></div>
     </div>`;
   }
 
@@ -568,10 +721,102 @@
   }
 
   // Desde el repintado (lo de siempre, otro tema o sin deudas): los controles vuelven ya, sin esperar al «close», que llega después.
-  function cerrarAjustarSiAbierto() {
+  // También cierra «Comparar con otras formas» (TRE-D3c).
+  function cerrarPanelesSiAbiertos() {
     const dialog = ajDialogo();
     ajDevolver();
     if (dialog?.open) dialog.close();
+    const cmp = cmpDialogo();
+    if (cmp?.open) cmp.close();
+  }
+
+  // --- TRE-D3c: «Comparar con otras formas», con la app. Calcula las rutas de «Orden de ataque» al abrir (son el motor de escenarios,
+  // cuatro pasadas: no se hace en cada repintado de la vista).
+  const cmpDialogo = () => (typeof qs === "function" ? qs("deudaPlanV2Comparar") : null);
+  let cmpEstado = "";
+
+  function compararEntrada() {
+    const plan = typeof planOptimoResultadoUltimo !== "undefined" ? planOptimoResultadoUltimo : null;
+    const estrategias = {};
+    guard(() => {
+      const base = escenarioMotorBaseInput();
+      const reserva = typeof debtStrategyReserveValue !== "undefined" && debtStrategyReserveValue !== null ? debtStrategyReserveValue : debtStrategyReserveDefault();
+      ["avalancha", "bola-nieve", "consolidar"].forEach((id) => {
+        const r = guard(() => debtStrategySummary(id, base, reserva), null);
+        if (r) {
+          estrategias[id] = {
+            libreDeDeuda: r.libreDeDeuda, costeTotal: r.costeTotal, cajaMinima: r.cajaMinima, viable: r.viable, total: r.total, aplicadas: r.aplicadas,
+            ultimoPago: (r.result?.resultados || []).filter((x) => x.resultado === "aplicada" && x.mesResuelto).map((x) => x.mesResuelto).sort().at(-1) || null,
+            consolidacion: r.consolidacion ? { available: r.consolidacion.available, intereses: r.consolidacion.intereses, cuota: r.consolidacion.cuota, motivo: r.consolidacion.motivo } : null,
+          };
+        }
+      });
+    });
+    return {
+      plan,
+      outlook: guard(() => homeDebtOutlook(), null),
+      coinciden: Boolean(plan?.ok && typeof planOptimoOrdenesCoinciden === "function" && guard(() => planOptimoOrdenesCoinciden(plan), false)),
+      estrategias,
+      reservaOperativa: guard(() => debtStrategyReserveDefault(), null),
+      reservaProtegida: guard(() => planOptimoReferencias().reserve, null),
+    };
+  }
+
+  function pintarComparar() {
+    const dialog = cmpDialogo();
+    const lista = dialog?.querySelector("#dpv2CompararLista");
+    if (!lista) return;
+    lista.innerHTML = `${compararHtml(compararModelo(compararEntrada()))}${cmpEstado ? `<p class="dpv2-cmp-estado" role="status">${esc(cmpEstado)}</p>` : ""}`;
+  }
+
+  function onCmpClick(event) {
+    const boton = event.target.closest?.("[data-dpv2-cmp]");
+    const dialog = cmpDialogo();
+    if (!boton || !dialog) return;
+    const accion = boton.dataset.dpv2Cmp;
+    const valor = boton.dataset.dpv2CmpValor || "";
+    if (accion === "cerrar") return dialog.close();
+    root.FinanceMedidor?.anotar("deuda-comparar", "accion");
+    if (accion === "orden") {
+      ajTocar(root.document.querySelector(`input[name="planOptimoOrden"][value="${valor === "bola-nieve" ? "bola-nieve" : "avalancha"}"]`), true, "change");
+      cmpEstado = valor === "bola-nieve" ? "Orden cambiado: primero la más pequeña. Se puede volver en «Ajustar el plan»." : "Orden cambiado: primero la más cara. Se puede volver en «Ajustar el plan».";
+      pintarComparar();
+    } else if (accion === "escenario") {
+      if (typeof handleDeudaCompararGuardarComoEscenario === "function") handleDeudaCompararGuardarComoEscenario(valor);
+      cmpEstado = "Guardado como escenario en Escenarios › Guardados. No se ha aplicado nada.";
+      pintarComparar();
+    } else {
+      dialog.close();
+      if (accion === "ajustar") abrirAjustar();
+      else if (accion === "ruta") {
+        if (typeof deudaRutaSelectedStrategy !== "undefined") deudaRutaSelectedStrategy = valor;
+        irAlDetalle(".deuda-ruta-layout");
+        if (typeof renderDeudaRuta === "function") guard(() => renderDeudaRuta());
+      } else if (accion === "camino") irAlDetalle("#caminoDeudaCard");
+      else if (accion === "prestamo") root.location.hash = "deuda-prestamo";
+    }
+  }
+
+  function abrirComparar() {
+    const dialog = cmpDialogo();
+    if (!dialog || typeof dialog.showModal !== "function") {
+      irAlDetalle(".deuda-ruta-layout");
+      return;
+    }
+    if (!dialog.dataset.enganchado) {
+      dialog.dataset.enganchado = "1";
+      dialog.addEventListener("click", onCmpClick);
+      dialog.addEventListener("close", () => {
+        cmpEstado = "";
+        qs("deudaPlanV2")?.querySelector('[data-dpv2="comparar"]')?.focus?.();
+      });
+      root.addEventListener("hashchange", () => { if (dialog.open) dialog.close(); });
+    }
+    if (!dialog.firstElementChild) dialog.innerHTML = compararChromeHtml();
+    cmpEstado = "";
+    pintarComparar();
+    if (!dialog.open) dialog.showModal();
+    root.FinanceMedidor?.anotar("deuda-comparar", "vista");
   }
 
   function irAlDetalle(selector) {
@@ -600,7 +845,7 @@
       render();
     } else if (accion === "detalle") irAlDetalle(null);
     else if (accion === "ajustar") abrirAjustar();
-    else if (accion === "comparar") irAlDetalle(".deuda-ruta-layout");
+    else if (accion === "comparar") abrirComparar();
     else if (accion === "cerrar") irAlDetalle("#planCierres");
     else if (accion === "volver") {
       guard(() => root.localStorage.removeItem(MODO_KEY));
@@ -614,7 +859,7 @@
     if (!box) return;
     const v2 = root.document.documentElement.dataset.tema === "v2";
     if (!v2) {
-      cerrarAjustarSiAbierto();
+      cerrarPanelesSiAbiertos();
       box.hidden = true;
       return;
     }
@@ -624,14 +869,17 @@
     }
     const m = modelo(entrada());
     if (m.vacio) {
-      cerrarAjustarSiAbierto();
+      cerrarPanelesSiAbiertos();
       box.hidden = true;
       box.innerHTML = "";
       return;
     }
     if (modoAnterior()) {
-      cerrarAjustarSiAbierto();
+      cerrarPanelesSiAbiertos();
       box.dataset.modo = "anterior";
+      // Sin olvidar el pintado de la vista nueva, «Volver a la vista nueva» no repintaba nada (el HTML era «el mismo») y se quedaba
+      // en este aviso hasta recargar (fallo de TRE-D1, visto en la e2e de TRE-D3c).
+      box.__html = "";
       box.innerHTML = `<p class="dpv2-volver">Estáis viendo todo el detalle del plan. <button type="button" class="e19-btn e19-btn-secondary" data-dpv2="volver">Volver a la vista nueva</button></p>`;
     } else {
       delete box.dataset.modo;
@@ -646,11 +894,12 @@
       }
       // TRE-D2: con el panel abierto, cada control que se toca repinta el plan óptimo y, con él, esto: la vista previa del panel también.
       if (ajDialogo()?.open) pintarAjustar();
+      if (cmpDialogo()?.open) pintarComparar();
     }
     box.hidden = false;
   }
 
-  const api = { modelo, html, mesLargo, MODO_KEY, ajustarModelo, ajustarVistaHtml, ajustarChromeHtml, AJ_SITIOS };
+  const api = { modelo, html, mesLargo, MODO_KEY, ajustarModelo, ajustarVistaHtml, ajustarChromeHtml, AJ_SITIOS, compararModelo, compararHtml, compararChromeHtml };
   root.renderDeudaPlanV2 = render;
   root.FinanceDeudaPlanV2 = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;

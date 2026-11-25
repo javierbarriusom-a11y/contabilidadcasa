@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-25-comparar-formas",
+      fecha: "2026-11-25",
+      texto: "Deuda › Plan › «Comparar con otras formas»: el plan, el otro orden, pagar con la caja, un préstamo y solo las cuotas, lado a lado.",
+      href: "#deuda-ruta",
+    },
+    {
       id: "2026-11-25-ajustar-plan",
       fecha: "2026-11-25",
       texto: "Deuda › Plan › «Ajustar el plan»: todo lo del plan en un panel, con la fecha y el ahorro cambiando mientras tocáis.",

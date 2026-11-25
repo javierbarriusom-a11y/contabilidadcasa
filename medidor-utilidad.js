@@ -80,6 +80,8 @@
     { id: "deuda-plan-v2", nombre: "Deuda nueva", accion: ["mes marcado o plan guardado", "meses marcados o planes guardados"], descarte: ["vez «Ver todo el detalle»", "veces «Ver todo el detalle»"], deshecho: null },
     // TRE-D2: el panel «Ajustar el plan». Una apertura con algún ajuste tocado es una acción; «Restablecer lo recomendado», un descarte.
     { id: "deuda-ajustar", nombre: "Ajustar el plan", accion: ["apertura con un ajuste", "aperturas con algún ajuste"], descarte: ["vez «Restablecer lo recomendado»", "veces «Restablecer lo recomendado»"], deshecho: null },
+    // TRE-D3c: «Comparar con otras formas». Acción: ver una ruta, usar el otro orden o guardar una forma como escenario.
+    { id: "deuda-comparar", nombre: "Comparar con otras formas", accion: ["ida a una forma o escenario guardado", "idas a una forma o escenarios guardados"], descarte: null, deshecho: null },
     { id: "simulador-v2", nombre: "Simulador de deuda nuevo", accion: ["estrategia guardada o acuerdo marcado", "estrategias guardadas o acuerdos marcados"], descarte: ["vez «Ver el simulador anterior»", "veces «Ver el simulador anterior»"], deshecho: null },
     { id: "huella-extracto", nombre: "Huella anónima del extracto", accion: ["huella copiada", "huellas copiadas"], descarte: null, deshecho: null },
     { id: "copia-aviso", nombre: "Aviso de la copia de seguridad", accion: ["copia descargada desde el aviso", "copias descargadas desde el aviso"], descarte: null, deshecho: null },
