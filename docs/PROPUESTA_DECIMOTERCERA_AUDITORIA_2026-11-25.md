@@ -474,3 +474,251 @@ coincidan (o que lleven nombre de comparación). Es la prueba que habría detect
   retira una pantalla: recomendación, decidir en la revisión del 14/12 con datos); UND-21 sigue a D-N11.
 
 **Siguiente número de decisión libre: D-N45** (si se aceptan D-N40 a D-N44 con estos números).
+
+---
+
+## 7. Segunda pasada (25/11, tarde): lo medido fuera de Deuda, funciones nuevas y lo que queda del backlog
+
+> Mismo criterio que el resto del documento: **propuesta, no backlog**; cifras de los contratos y movimientos **FICTICIOS** del
+> arranque en caliente; decisiones nuevas desde **D-N45**. Medido con Playwright sobre `dist/` recién construido (Chromium del
+> contenedor), a 390 × 844 y 1280 × 900, recorriendo 18 rutas.
+
+### 7.0 Resumen en seis frases
+
+1. **El escritorio arrastra unos 2.000 px de vacío en todas las pantallas.** El menú lateral mide 3.615 px con «Herramientas
+   avanzadas» abierto (381 enlaces y botones visibles) y no se desplaza por su cuenta; Hoy mide 1.450 px. Al bajar, el área principal
+   queda en blanco y solo sigue el menú. Es un defecto visible, no una opinión de diseño.
+2. **En el iPhone, la cifra protagonista de Hoy no está en la primera pantalla cuando se estrena un dispositivo.** «Disponible hasta
+   cobrar» empieza a 810 px de 844 durante la primera semana de uso en cada dispositivo, aunque los datos lleguen ya sincronizados.
+   Pasada esa semana empieza a ~560 px, y el gráfico sigue fuera. Delante hay tres líneas de estado técnico («Dato real», la
+   sincronización y «Fuente: …») y las cinco pestañas en dos filas.
+3. **Hay una quinta fecha de «libre de deuda».** La tira heredada de cinco cifras, que sigue arriba en las pantallas sin rediseñar
+   (Inversión, Patrimonio…), dice «Libre de deuda · nov 2026». D-N40 y TRE-07 tienen que cubrir toda la app, no solo Deuda.
+4. **Se cuela texto de ingeniero:** ocho códigos internos en pantalla («(I1)», «(T6)», «(D6)», «(WP-25)», «(WP-45)», «(WP-53)»), un
+   decimal con punto («1.8 meses») y una fecha ISO en el recuadro «Estado» («fecha de análisis 2026-11-25»).
+5. **Deuda no es la pantalla más larga.** Ajustes en el escritorio mide 25.645 px, con 59 titulares y 145 campos (las áreas de
+   UND-04 son solo del móvil). Inversión › Cartera mide 8.946 px y 51 campos en el móvil, y Fiscal 8.039 y 46. El Centro de alertas
+   (versión anterior) mide 11.450 y 70.
+6. **Lo que más rinde ahora no es otra función de deuda.** Es corregir lo que se ve mal en todas partes (TRE-08 a 11), el **Plan
+   2027 desde lo real de 2026** (TRE-12, que vence el 31/12) y las tres piezas básicas de cualquier app de finanzas que aquí aún no
+   existen: **una pantalla de reglas**, **dividir un movimiento** y **los recibos que suben** (TRE-14, 15 y 17).
+
+### 7.1 Medidas por pantalla (vista por defecto, arranque en caliente)
+
+| Pantalla | Alto 390 px | Campos 390 | Alto 1280 px | Campos 1280 | Comentario |
+|---|---|---|---|---|---|
+| Hoy | 2.816 | 0 | 1.450 (documento: 3.615) | 2 | El documento lo estira el menú (§7.0.1) |
+| Movimientos | 3.951 | 0 | — | 3 | |
+| Plan › Mes | 2.091 | 7 | — | 9 | |
+| Plan › Previsión | 3.286 | 0 | — | 2 | |
+| Cierre | 3.448 | 9 | — | 11 | |
+| Deuda › Plan | 6.304 | 20 | 3.863 | 22 | §1 |
+| Deuda › Contratos | 5.900 | 71 | 4.235 | 73 | §1.5 |
+| Deuda › Ofertas › Comparar | 5.704 | 19 | — | 21 | §2.5b |
+| Inversión › Cartera | **8.946** | **51** | 7.041 | 53 | Sin rediseñar (UND-05) |
+| Herramientas › Fiscal | **8.039** | **46** | 4.968 | 48 | Campaña de fin de año y Renta |
+| Ajustes | 5.047 (por áreas) | 29 | **25.645** | **145** | 59 titulares en el escritorio |
+| Centro de alertas (versión anterior) | **11.450** | **70** | 4.727 | 72 | En el menú, en «Versiones anteriores» |
+
+«—»: lo tapa el alto del menú (3.615 px), así que la cifra del documento no mide la pantalla. Los campos a 1280 incluyen los 2 del
+menú lateral (el selector Hogar / Persona 1 / Persona 2). Ninguna ruta desborda en horizontal
+ni dio errores de página. Fuera de las pantallas: **267 scripts** y `app.js` con **32.068 líneas**.
+
+### 7.2 Correcciones (lo que se ve mal en todas partes)
+
+**TRE-08 · El menú lateral con desplazamiento propio (P0 visual · S).** Hoy, `.sidebar` es `position: sticky` con
+`min-height: 100vh` y `overflow: visible`, en `styles.css:502`. Con su contenido más alto que la ventana, no se queda fijo y estira
+el documento. Además, `advancedNav` se abre al visitar una pantalla suya y no se vuelve a cerrar (`app.js:4377`).
+- En el escritorio (> 860 px): `height: 100dvh; overflow-y: auto; overscroll-behavior: contain`, con una sombra arriba y abajo que
+  avisa de que hay más. El documento pasa a medir lo que la pantalla.
+- «Herramientas avanzadas» se abre al entrar en una pantalla suya y **se cierra al volver a una principal**, salvo si el hogar la
+  abrió a mano (se recuerda por sesión).
+- «Cuadro de mandos» sale dos veces en el menú (en Análisis y en Versiones anteriores): se deja una.
+- Criterio de hecho: a 1280 × 900, alto del documento de Hoy igual al de `#home` ± 40 px. Una e2e lo mide también en Movimientos y
+  Plan, y el axe sigue en verde (el menú con desplazamiento propio necesita `tabindex` y nombre si es una región desplazable).
+- **D-N45 (se consulta):** sacar «Versiones anteriores» (10 entradas) del menú y dejarla como lista en Ajustes › Laboratorio, junto
+  a la revisión trimestral (D-N38). Los enlaces y los hashes siguen funcionando: no se retira ninguna pantalla, solo su entrada en el
+  menú. Recomendación: **sí**. Son pantallas que la revisión del 14/12 ya va a juzgar, y hoy ocupan ~360 px del menú.
+
+**TRE-09 · La primera pantalla de Hoy en el iPhone (P0 de uso · S).** Objetivo: **la cifra y su gráfico en los primeros 844 px**,
+siempre. Es la pantalla más vista y la única que se mira de pie.
+- Las tres líneas de estado («Dato real», sincronización y «Fuente: …») pasan a **un punto de estado en la cabecera**, junto al ojo
+  de UND-17: verde (guardado y sincronizado), ámbar (solo en este equipo) o rojo (error). Al tocarlo se abre la hoja con lo de
+  siempre. «Fuente: demo-publico-anonimizado» no es información para el hogar: se queda en esa hoja. Es el patrón de cualquier app
+  bancaria: el estado se ve con un vistazo y se lee al tocar.
+- «Primeros pasos» se basa en la primera semana **de este navegador** (`dex5IsFirstWeek`, `app.js:810`), así que sale en cada
+  dispositivo nuevo aunque haya meses de datos sincronizados. Pasa a depender **de los datos**: menos de 30 días de movimientos y
+  ningún mes firmado.
+- Las cinco pestañas de áreas, **en una sola fila con desplazamiento horizontal** y un degradado en el borde que dice que hay más,
+  en vez de dos filas. Ahorra ~50 px y es el patrón que ya usan las pestañas de Deuda.
+- «Ver todo el detalle» baja al final de la vista (es una salida, no una acción del día), y «+ Registrar gasto» se queda arriba.
+- Criterio de hecho: e2e a 390 × 844 (`@safari`) con la cifra y el gráfico por encima de 844 px, con y sin «Primeros pasos».
+
+**TRE-10 · Sin texto de ingeniero en pantalla, comprobado por el CI (P1 · S).** Ya hubo una limpieza de códigos («(T11)», ESTADO
+§2). Volvieron porque nada lo impide. Propuesta:
+- Arreglar las nueve fugas de §7.0.4: los ocho códigos y «1.8 meses» en Herramientas › Patrimonio. La fecha ISO del recuadro
+  «Estado» pasa a «25 nov».
+- Una prueba que, con el arranque en caliente, recorra las rutas del menú y falle con códigos entre paréntesis
+  (`\((?:[A-Z]{1,4}-?\d{1,3})\)`), fechas ISO, decimales con punto seguidos de «meses», «%» o «€», y «NaN», «undefined» o
+  «Infinity». Es el mismo patrón que la prueba de privacidad, aplicado al lenguaje.
+
+**TRE-11 · La tira heredada de cinco cifras, con la fecha única (P0, con D-N40 · S).** La tira sigue arriba en las pantallas sin
+rediseñar y lee `homeDebtOutlook`, que cuenta los plazos declarados. Con D-N40 «sí», enseña la fecha del plan o, si no hay plan,
+nombra la que da: «según los plazos firmados». **TRE-07 debe recorrer todas las rutas**, no solo Deuda y Hoy: sin esto, el arreglo de
+TRE-D0 deja una quinta fecha en Inversión y en Patrimonio.
+
+### 7.3 Funciones nuevas
+
+Elegidas con tres filtros: (a) resuelven una tarea que el hogar hace cada mes o cada año y hoy hace fuera de la app o a mano; (b) no
+duplican nada de lo que ya hay ni de lo ya propuesto (lo comprobé en el código: `grep` de cada concepto); (c) caben en una pantalla
+que ya existe, sin entrada nueva en el menú (TRE-04: uno entra, uno sale).
+
+**TRE-12 · Plan 2027 desde lo real de 2026 (P1 · M · vence el 31/12).** El momento de más valor del año para una app de presupuesto
+es diciembre, y hoy el plan del año siguiente se rehace a mano partida a partida. No hay nada en el código para el año siguiente.
+- **Dónde:** Plan › Mes. En diciembre, una línea encima de las partidas: «Preparar el plan de 2027 con lo real de 2026 · unos 10 min».
+  Es una hoja a pantalla completa en el móvil y un diálogo ancho en el escritorio, con el patrón del Repaso semanal (pasos a la
+  izquierda).
+- **Paso 1 · Lo que pasó.** Por partida, el real de los 12 meses: total, mediana mensual y los meses raros marcados (más del doble de
+  la mediana; se pueden excluir con un toque, «fue la avería del coche»). Con menos de 12 meses, lo que haya, y lo dice.
+- **Paso 2 · La propuesta.** La mediana × 12, más la inflación por categoría (energía, alimentación, seguros, colegio y vivienda,
+  editable: es PRV-06 en pequeño), más **los cambios que la app ya conoce**: las cuotas que libera el plan de deuda en 2027 (el
+  Gantt de TRE-D1, mes a mes), los recibos que suben (TRE-17), la revisión del tipo de la hipoteca (WP-20) y las promociones al 0 %
+  que acaban (DUO-D8). Cada partida dice de dónde sale su cifra: «Mediana 312 € × 12 + 3 % de alimentación».
+- **Paso 3 · Lado a lado.** 2026 previsto · 2026 real · 2027 propuesto, con la diferencia y «Aceptar todas» o partida a partida.
+  Abajo, lo que hace a la previsión: ahorro del año, colchón en el punto más bajo y fecha de libre de deuda (la única, D-N40).
+- **Escribe el plan** solo tras «Qué ocurrirá» (decisión 6 de ESTADO §3), y se deshace entero.
+- Medida: minutos del recorrido (objetivo: 10) y % de partidas aceptadas tal cual.
+- **D-N46 (se consulta):** la base, ¿la **mediana de 12 meses** (recomendada: aguanta los meses raros) o el último trimestre × 4
+  (recoge cambios recientes, pero exagera la estacionalidad)? ¿Y se hace antes del 31/12?
+
+**TRE-13 · Vuestro 2026 en una página (P2 · S-M · enero).** Tras firmar diciembre: ingresos, gasto, tasa de ahorro, **deuda pagada
+(capital e intereses, por separado)**, patrimonio de enero a diciembre, las tres partidas que más crecieron frente al plan, el acierto
+de la previsión y las decisiones grandes del año. Sobrio (sin confeti, por el tono de la casa), imprimible y con el mismo formato
+que TRE-01. Es la conversación de pareja más valiosa del año y hoy no tiene soporte.
+
+**TRE-14 · Las reglas de clasificación, en una hoja (P1 · M).** Clasificar es el cuello de botella medido (XDA-05: 5 de 7 grupos sin
+propuesta en noviembre). ESTADO §4 reconoce que «no existe una pantalla de reglas»: una regla mal creada solo se arregla movimiento a
+movimiento, desde la ficha.
+- **Dónde:** Movimientos › «Reglas (N)», como hoja, sin entrada en el menú.
+- **Qué enseña:** una fila por regla, con lo que reconoce (el concepto, o las palabras de CLA-01), su partida, cuántos movimientos
+  ha cogido y el último. Se puede buscar.
+- **Avisos arriba:** reglas que se contradicen (el mismo comercio a dos partidas), reglas que no han cogido nada en 90 días y
+  reglas creadas por «Por clasificar».
+- **Acciones:** editar la partida (con «¿a cuáles?» como en la ficha: solo los nuevos, o también los de meses sin firmar) y borrar
+  con «Deshacer» (DUO-06). Lo firmado no cambia.
+- Es lo que tienen Monarch, YNAB o Lunch Money, y lo que convierte Clasificar en algo que se mantiene en vez de algo que se repite.
+
+**TRE-15 · Dividir un movimiento entre partidas (P1 · M · cambia el modelo).** El caso diario: el ticket del híper con súper y
+farmacia, un pedido de Amazon de tres cosas o el recibo de la comunidad con derrama. Hoy un movimiento va a una sola partida (0
+resultados para «dividir» en el código).
+- En la ficha del movimiento: «Dividir», con dos o más líneas (partida e importe). El resto se calcula solo y no se guarda hasta que
+  suma el total.
+- En la lista, una etiqueta «2 partidas».
+- Cierre y los reales leen el reparto. Las reglas no dividen (una regla no puede saber el reparto de un ticket).
+- **D-N47 (se consulta):** toca el modelo de reales y el cierre (`bank-actuals-applied`), y una división en un mes firmado debe quedar
+  prohibida o reabrir el mes. Recomendación: **sí, y solo en meses sin firmar**.
+
+**TRE-16 · Etiquetas que cruzan partidas (P2 · M).** «Viaje a Roma» o «Reforma del baño»: movimientos de varias partidas con su total
+y su fecha de inicio y fin. Hoy solo se puede ver por partida. La búsqueda que contesta (TRE-02) las usa («roma» da el total). Sin
+etiquetas automáticas: se ponen en lote desde Movimientos (TRE-20).
+
+**TRE-17 · Recibos que suben y cargos nuevos que se repiten (P1 · M).** El motor ya reconoce el recibo de cada mes por su importe y su
+día (DEC-14, `canonical-pattern-rules.js`, `recurring`). Lo que falta es **vigilarlo**:
+- Una lista de recibos y suscripciones: lo que cuestan al mes y al año, cómo han cambiado frente a hace 12 meses y su día de cargo.
+- Un aviso en «Decidir esta semana» solo en dos casos:
+  - un recibo sube más del 5 % («El seguro del coche pasa de 41 a 47 € al mes: +72 € al año»);
+  - aparece un **cargo nuevo que se repite** («9,99 € al mes desde septiembre, ¿lo reconocéis?»).
+- Acciones: «Es correcto», «No lo reconocemos» (el kit de UND-13 adaptado: cómo pedir la baja o reclamar) y «Recordádmelo antes de la
+  renovación» (TRE-19).
+- Es la función con el retorno más claro y más medible de todo el documento. Las suscripciones olvidadas y las subidas que se
+  aceptan solas son el agujero típico de un hogar.
+
+**TRE-18 · El nombre limpio del comercio en las listas (P2 · S-M).** «COMPRA TARJ. 5678 MERCADONA VALENCIA ES» → «Mercadona». Se hace
+con la misma normalización que ya usa Clasificar para agrupar por comercio. El concepto original sigue en la ficha. Un alias
+editable («Esto es: Colegio») vale también para las reglas. Movimientos se lee el doble de rápido; es lo primero que se nota en
+Copilot o Monarch.
+
+**TRE-19 · Las fechas, al calendario del móvil (P2 · S).** La app solo habla cuando se abre, y una notificación web sin servidor no
+llega con la app cerrada (y en el iPhone exige instalarla como app). La alternativa fiable, sin servidor ni permisos, es **«Añadir al
+calendario» (.ics)**, que crea un evento con recordatorio en el calendario del teléfono. Fechas:
+- el día del pago de la deuda (TRE-D4);
+- el fin de cada promoción al 0 % (DUO-D8);
+- la revisión del tipo (WP-20);
+- las renovaciones de UND-10 (seguros, ITV, suscripciones anuales);
+- el repaso semanal.
+
+El fichero solo lleva el título y la fecha, **sin importes** (un calendario se comparte y se sincroniza fuera).
+
+**TRE-20 · Elegir varios movimientos a la vez (P2 · S-M).** Pulsación larga en el móvil y Mayús + clic en el escritorio. Con varios
+elegidos: poner partida, marcar como traspaso, poner etiqueta (TRE-16) o «Por clasificar». Hoy la edición múltiple solo existe en
+Partidas.
+
+**TRE-21 · Ajustes en el escritorio con índice fijo (P1 · M).** 25.645 px y 145 campos. Lo menos invasivo, que **no** reabre D-N29
+(«áreas solo en el móvil»): a la izquierda, un índice fijo con los diez grupos de siempre, «Buscar un ajuste» y la marca del grupo en
+el que estáis (scroll-spy); a la derecha, el contenido de siempre, sin mover ninguna tarjeta. Si en la revisión del 14/12 no basta,
+se consulta pasar las áreas también al escritorio.
+
+**TRE-22 · Inversión con una pregunta (P1 · L).** Es UND-05/INV-01 con prioridad subida por la medida: 8.946 px y 51 campos en el
+móvil, con la tira heredada (y su quinta fecha) delante del título.
+- **Respuesta:** «¿Llegáis a vuestros objetivos?» con una fila por objetivo (cuánto falta, a qué ritmo vais y la fecha probable).
+- **Acción:** la aportación del mes que la previsión garantiza (INV-06, el mismo motor que el plan de deuda de UND-12, sin bajar del
+  suelo).
+- **Por qué:** el reparto frente al objetivo y el coste total de la cartera en euros al año (INV-03).
+- **Ajustes:** cada posición como tarjeta con su ficha, **el mismo componente que Contratos en TRE-D4**.
+
+Referencia visual: `Inversion.png`.
+
+**TRE-23 · Tres componentes comunes antes de rehacer más pantallas (P1 técnica · M).** TRE-D4 (Contratos), TRE-22 (Inversión),
+TRE-21 (Ajustes) y la ficha de cuentas piden lo mismo. Construirlo cuatro veces es la forma de que cada pantalla quede distinta:
+- la **ficha de edición** (diálogo en el escritorio, hoja a pantalla completa en el móvil, campos en grupos, validación en línea,
+  «Guardar» fijo al pie al alcance del pulgar —TRE-06— y deshacer tras guardar);
+- la **lista de tarjetas** con insignias de estado (con forma, no solo color);
+- el **plegado con señal** (chevron, contador y resumen del valor: «Comisiones · 1 contrato»), que §1.4 echa en falta.
+
+Un fichero cada uno, con prueba propia y página en `design-system.html`. Abarata TRE-D4 y TRE-22 en torno a un tercio, y es lo que
+hace que la app parezca una y no doce auditorías.
+
+### 7.4 El backlog anterior: lo que no se ha hecho y qué hacer con ello
+
+Método: cruce automático de los identificadores de las auditorías novena a duodécima con `PROJECT_STATE.md` y `ESTADO.md`, y
+revisión a mano del título de cada uno de los que no aparecen. Puede haber alguno hecho con otro nombre; lo marco donde lo sé.
+
+| Estado | Ids | Qué hacer |
+|---|---|---|
+| **Hechos con otro nombre** (no repetir) | HOG-04 → UND-17 (ocultar cifras); UND-14 → DUO-D1; UND-16 → DUO-D2; DEC-05 → DUO-05 (rehecha, pendiente); DEC-19 → TRE-09 | Nada |
+| **Absorbidos por algo ya propuesto** | DEC-08 → TRE-D4; DEC-07 → TRE-D1 y TRE-22; DEC-09 → TRE-02; DEC-33 → UND-10 (+ TRE-19); DEC-34, DEC-35, DEC-37, HOG-01 y HOG-02 → UND-18 y TRE-01; DEC-06 → UND-04 (móvil) y TRE-21 (escritorio); DUO-03 → la revisión del 14/12 (D-N38, ya hecha la hoja) | Se hacen con su sucesor |
+| **Abiertos y que siguen valiendo, P1** | **INV-02** (¿invertir o amortizar?, neto de impuestos frente a la TAE más cara: va dentro de «¿Por qué este orden?» de TRE-D1); **INV-06** (aportar lo que la previsión garantiza, en TRE-22); **PRV-03** (estacionalidad) y **PRV-06** (inflación por categoría), que necesita TRE-12; **DEC-25** (la previsión con lo exigible: con DUO-D9 ya se sabe qué está en impago); **DEC-42** (Hoy primero, carga partida) con DUO-09; DUO-06, DUO-07, UND-10 y UND-25 | Al orden de §7.5 |
+| **Abiertos, P2** | DAT-04 (confirmar saldos con una captura: el OCR de tickets ya existe); DAT-06 y DEC-02 (calidad del dato por mes y sello en cada cifra, que conviene juntar); INV-03 (coste total de la cartera); INV-04 (importar posiciones por CSV); PRV-07 (línea de vida con hitos); PRV-08 (exportar la previsión a Excel con fórmulas); DEC-04 (las causas del cambio de cifra al firmar); DEC-32 (sensibilidad de una línea por escenario); DEC-28 («Salir del fichero», solo si aplica); DEC-43 (graduar por defecto a los 28 días); UND-09 (con TRE-D7); UND-18; DUO-08 (con UND-20) | Tras el cierre de diciembre |
+| **Bloqueados por algo externo** | DAT-02 (PSD2, O-6); DAT-03 (buzón por correo: necesita servidor); CLA-05 (propuesta por modelo: A5-1); DAT-01 (la tarjeta de crédito con su detalle: falta un extracto real); UND-21 (D-N11) | Siguen esperando |
+| **Descarto (con motivo)** | **PRV-04** (1.000 trayectorias remuestreando meses reales) e **INV-05** (probabilidad de éxito por Monte Carlo): con 13 meses de historia, la muestra no da para una probabilidad; sería precisión falsa con aspecto de ciencia. **INV-07** (concentración por región, sector o divisa): choca con el hueco de datos de clase de activo (índice de decisiones). **PRV-09** (previsión en sombra): solo tiene sentido cuando haya un método nuevo que comparar | No se hacen mientras no cambie el motivo |
+
+### 7.5 Orden recomendado (integra §5)
+
+1. **Ya, sin decisión pendiente:** TRE-08 (menú) y TRE-10 (texto de ingeniero y su prueba). Son correcciones pequeñas y visibles en
+   todas las pantallas.
+2. **Con D-N40 «sí»:** TRE-D0 + TRE-07 (sobre todas las rutas) + TRE-11. Después, TRE-09 (la primera pantalla de Hoy).
+3. **Antes del 31/12:** TRE-12 (Plan 2027), si D-N46 es «sí», y TRE-17 (recibos que suben), que alimenta TRE-12. **TRE-23 antes de
+   TRE-D4.**
+4. **Semana del 14/12 (revisión trimestral):** D-N45 (Versiones anteriores fuera del menú) con los datos de la revisión; TRE-21.
+5. **Enero:** TRE-13 (vuestro 2026), TRE-14 (reglas), TRE-15 (dividir, si D-N47 es «sí»), TRE-D4 y TRE-22 sobre TRE-23.
+6. Después: TRE-16, 18, 19 y 20 y los P2 de §7.4.
+
+### 7.6 Lo que no quiero callar
+
+- **El ritmo de propuestas supera con mucho al de comprobación.** Van trece auditorías en cinco semanas y 156 funciones con ficha
+  propia solo desde la novena (14/11), contadas en los documentos. El panel del 4/11 decía «construido 65 %, comprobado 0 %», y
+  Deuda › Plan llegó a 6.300 px a base de funciones bien hechas una a una. Mi recomendación como quien la construye: **no añadir ni una función más a
+  Deuda hasta que TRE-D1 esté publicada y medida dos semanas**, y que TRE-04 (uno entra, uno sale) sea regla, no propuesta.
+- **Los defectos de §7.2 los habría visto un humano en diez segundos**, y ninguna prueba los vio porque las pruebas comprueban que
+  cada función hace lo suyo, no cómo se ve la app entera. Por eso TRE-07, TRE-10 y UND-25 (comprobaciones transversales) valen más
+  que cualquier función nueva de esta lista.
+- **El dato real sigue siendo la restricción.** TRE-12, 13 y 17 dependen de que los extractos lleguen cada mes. Si diciembre no se
+  importa entero, el Plan 2027 se hará con 11 meses y lo dirá; pero el mejor uso de 10 minutos del hogar esta semana sigue siendo
+  importar y clasificar noviembre.
+
+**Decisiones nuevas:**
+- **D-N45:** «Versiones anteriores», del menú a Ajustes › Laboratorio.
+- **D-N46:** la base del Plan 2027 y si se hace antes del 31/12.
+- **D-N47:** dividir movimientos, solo en meses sin firmar.
+
+**Siguiente número libre: D-N48.**
