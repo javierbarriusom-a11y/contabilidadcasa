@@ -17,8 +17,11 @@ Las marcadas EJEMPLO usan datos ficticios: reproducir el diseño, nunca las cifr
 | D1 | Patrimonio › Resumen | `Patrimonio` | `PatrimonioDesktop` | — |
 | D2 | Patrimonio › Inversión | `Inversion` (EJEMPLO) | `InversionDesktop` (EJEMPLO) | XDA-06, XIN-01–04 |
 | D3 | Patrimonio › Deuda | `Deuda` | `DeudaDesktop` | XDO-01, 03, 04, 06, WP-19 |
+| D3-TRE | Deuda › Plan, Ajustar, Comparar, Contratos y Ofertas (maqueta de la decimotercera auditoría, **navegable y responsive**: un solo `html/DeudaTRE.html` de 320 a 1440 px; abrir con `#comparar`, `#contratos`, `#ofertas` o `#ajustes`) | `DeudaTRE`, `DeudaTREContratos`, `DeudaTREOfertas` (EJEMPLO) | `DeudaTREDesktop`, `DeudaTREAjustesDesktop`, `DeudaTREComparar`, `DeudaTREOfertasDesktop` (EJEMPLO) | TRE-D0 a D4 y Ofertas (`docs/PROPUESTA_DECIMOTERCERA_AUDITORIA_2026-11-25.md` §2 y §2.5b) |
 | D4 | Decidir › Taller de deuda nueva | `Taller` (EJEMPLO) | `TallerDesktop` (EJEMPLO) | XDN-03, 06 |
 | E1 | Importar extracto | `Importar` (EJEMPLO) | `ImportarDesktop` (EJEMPLO) | XDA-02, 03, 04 |
 | E2 | Lo que la app te pide + Laboratorio | `LoQuePide` (EJEMPLO) | `LoQuePideDesktop` (EJEMPLO) | XDA-01, XGO-03, XUX-06 |
 
 La barra inferior (móvil) y la barra lateral (escritorio) aparecen ya montadas dentro de cada pantalla.
+
+`DeudaTRE.html` no es de Claude Design: la hizo Claude Code el 25/11/2026 sobre el lenguaje de `DeudaDesktop` (el diagrama por contrato con lo adelantado rayado, el control −/+ y las tres cifras), que la implementación había ido dejando atrás. Calcula en vivo con los dos contratos FICTICIOS del arranque en caliente y una previsión inventada; la barra oscura de arriba es de la maqueta, no del diseño. Es la referencia de TRE-D1 a D4 mientras el hogar no pida otra.
