@@ -6783,3 +6783,30 @@
     width: 520px;
   }
 }
+
+/* DEC-38 a 195 px (un móvil de 390 px con el zoom al 200 %, WCAG 1.4.4) para Contratos, Ofertas y los componentes comunes: la rejilla no
+   crece por su contenido y los botones y las entradas del plegado parten línea si no caben (con las fuentes del CI, «Prioridad ajustada por
+   fiscalidad» o «Ver todo el detalle» empujaban el ancho a 204 px). */
+:root[data-tema="v2"] .dcv2,
+:root[data-tema="v2"] .dov2 {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+:root[data-tema="v2"] .dcv2 .e19-btn,
+:root[data-tema="v2"] .dov2 .e19-btn,
+:root[data-tema="v2"] .cv2-banda .e19-btn,
+:root[data-tema="v2"] .cv2-acciones .e19-btn {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+:root[data-tema="v2"] .cv2-plegado-entrada > span:first-child {
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .cv2-plegado-entrada strong,
+:root[data-tema="v2"] .cv2-plegado-entrada small,
+:root[data-tema="v2"] .cv2-plegado > summary {
+  overflow-wrap: anywhere;
+}

@@ -13729,5 +13729,12 @@ test.describe("TRE-D4 · Deuda › Contratos nuevo", () => {
     const ficha = page.locator("#deudaContratoFicha");
     await expect(ficha.locator("#dcv2Previa")).not.toBeEmpty();
     expect(await ficha.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+    // A 195 px (DEC-38) y con el texto más ancho que en local (las fuentes del CI lo ensanchaban y el CI de #688 lo vio: 204 px), nada se sale.
+    await page.keyboard.press("Escape");
+    await page.setViewportSize({ width: 195, height: 800 });
+    await page.addStyleTag({ content: "body, button { letter-spacing: 0.6px !important; }" });
+    await page.locator("#deudaContratosV2 [data-dcv2-herramientas] > summary").click();
+    const fuera = await page.evaluate(() => [...document.querySelectorAll("#deudaContratosV2 *")].filter((e) => e.getClientRects().length && e.getBoundingClientRect().right > window.innerWidth + 1).map((e) => `${e.tagName}.${e.className}`));
+    expect(fuera).toEqual([]);
   });
 });
