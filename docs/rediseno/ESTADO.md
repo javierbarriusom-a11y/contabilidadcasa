@@ -253,3 +253,9 @@ Captura de Hoy con datos reales: «Hasta el siguiente ingreso: **0 días** · ha
 Registrado en `BACKLOG_DEFINITIVO.md` §5.0 (P13, 19/10). **El proyecto WebKit (P14) está hecho desde el 26/10** (con un reintento en el CI desde el 28/10, decisión del hogar; su primer intento queda en el registro, `BACKLOG_DEFINITIVO.md` §10, trampa 15): `safari` en `playwright.config.cjs` (iPhone 13, 390×844) repite las pruebas v2 a 390 px con la etiqueta `@safari`, bloqueante en el CI. Cada pantalla nueva o rehecha del rediseño etiqueta así su prueba a 390 px.
 
 **Criterio para graduar una pantalla** (retirar la vista antigua y su código): a las dos semanas de uso la app avisa y el hogar lo confirma a mano (P9); la métrica de referencia sigue siendo la del handoff (Hoy: tiempo hasta la primera acción; Movimientos: extractos importados por semana).
+
+**Deuda, siguiente rediseño (25/11/2026, propuesta, pendiente de D-N40 a D-N43):** antes de tocar Deuda › Plan o Contratos, lee
+`docs/PROPUESTA_DECIMOTERCERA_AUDITORIA_2026-11-25.md` §1-§2 y abre la maqueta navegable `docs/rediseno/referencias/html/DeudaTRE.html`
+(fila D3-TRE de `referencias/INDICE.md`). Es la referencia de TRE-D1 a D4: una sola fecha protagonista, «Este mes», «Cómo vais», el orden
+como diagrama por contrato, «Ajustar el plan» en panel y «Comparar con otras formas» que recoge lo heredado sin perderlo. Sustituye como
+referencia de Deuda a `Deuda`/`DeudaDesktop` en lo que difieran, y no es de Claude Design.

@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deuda · maqueta TRE</title>
+<!--
+  Maqueta navegable de la decimotercera auditoría (docs/PROPUESTA_DECIMOTERCERA_AUDITORIA_2026-11-25.md, §2).
+  TRE-D0 a TRE-D4: Deuda › Plan (una sola fecha, «Este mes», «Cómo vais», el orden), «Ajustar el plan»,
+  «Comparar con otras formas» y Deuda › Contratos en tarjetas con su ficha.
+  EJEMPLO: todas las cifras salen de los dos contratos FICTICIOS del arranque en caliente
+  (tests/helpers/arranque-en-caliente.cjs) y de una previsión inventada. Se copia el diseño, nunca las cifras.
+  Mismo lenguaje que DeudaDesktop.html / Deuda.html (Claude Design): Geist, verde #0E3B32, tarjetas de 16 px.
+  Un solo fichero, sin dependencias salvo la fuente. Responde de 320 a 1440 px.
+-->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+:root{
+  --bg:#F4F5F2;--card:#FFFFFF;--ink:#111814;--muted:#56615B;--faint:#8C958F;--line:#E1E5E1;--line2:#EEF1EE;--field:#D5DBD6;
+  --brand:#0E3B32;--brand2:#1D5245;--soft:#DDEBE4;--link:#0E6B4F;--warnbg:#FBF1DC;--warnink:#5E3C00;--bad:#9B2C1F;--badbg:#FBE6E2;--good:#1F7A55;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.45 'Geist',system-ui,sans-serif}
+a{color:var(--link)}
+button{font-family:inherit}
+.lab{font:500 11px/1.35 'Geist Mono',ui-monospace,Menlo,monospace;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-.025em}
+.meta{font-size:13px;line-height:1.45;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;border-radius:12px;font:600 14px/1 'Geist',system-ui,sans-serif;border:1px solid var(--field);background:#fff;color:var(--ink);cursor:pointer;text-decoration:none}
+.btn-p{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn-g{border-color:transparent;background:transparent;color:var(--link);padding:0 8px}
+.btn:focus-visible,.row-btn:focus-visible,.chip:focus-visible,.seg button:focus-visible{outline:3px solid #7FB8A3;outline-offset:2px}
+.chip{display:inline-flex;align-items:center;min-height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--field);background:#fff;font:500 13.5px 'Geist',system-ui,sans-serif;color:var(--ink);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.badge{display:inline-flex;align-items:center;gap:4px;min-height:22px;padding:0 8px;border-radius:999px;font:500 11.5px 'Geist',system-ui,sans-serif;background:var(--line2);color:var(--muted);white-space:nowrap}
+.badge.warn{background:var(--warnbg);color:var(--warnink)}
+.badge.bad{background:var(--badbg);color:var(--bad)}
+.badge.ok{background:var(--soft);color:var(--brand)}
+
+/* Barra de la maqueta: no es parte del diseño */
+.mock{position:sticky;top:0;z-index:30;background:#2A2F2C;color:#E9ECE9;font-size:12.5px;padding:8px 16px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.mock b{color:#fff}
+.mock label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.mock .mv{display:inline-flex;gap:4px}
+.mock .mv button{min-height:30px;padding:0 10px;border-radius:8px;border:1px solid #4A524D;background:transparent;color:#E9ECE9;font-size:12.5px;cursor:pointer}
+.mock .mv button[aria-pressed="true"]{background:#E9ECE9;color:#111814}
+
+.wrap{max-width:1180px;margin:0 auto;padding:24px 24px 80px}
+.head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+.head h1{margin:0;font-size:30px;letter-spacing:-.03em}
+.seg{display:inline-flex;gap:2px;padding:4px;background:#E9ECE9;border-radius:12px}
+.seg button{min-height:38px;padding:0 16px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:14px;cursor:pointer}
+.seg button[aria-selected="true"],.seg button[aria-pressed="true"]{background:#fff;color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+
+/* Hero */
+.hero{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:0}
+.hero > div{padding:22px 24px}
+.hero > div + div{border-left:1px solid var(--line2)}
+.big{font-size:44px;font-weight:700;letter-spacing:-.035em;line-height:1.05;margin:6px 0 4px}
+.mid{font-size:30px;font-weight:700;letter-spacing:-.03em;line-height:1.1;margin:6px 0 4px}
+.delta{display:inline-block;margin-left:8px;font-size:13px;font-weight:600;color:var(--good);vertical-align:middle;opacity:0;transition:opacity .2s}
+.delta.on{opacity:1}
+.delta.neg{color:var(--bad)}
+.prog{grid-column:1/-1;border-top:1px solid var(--line2);padding:14px 24px 18px !important;border-left:0 !important}
+.bar{height:10px;border-radius:999px;background:var(--line2);overflow:hidden;margin:8px 0 6px}
+.bar i{display:block;height:100%;background:var(--brand);border-radius:999px}
+.alert{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:14px 18px;border-radius:14px;background:var(--warnbg);color:var(--warnink);margin-top:14px}
+.alert.bad{background:var(--badbg);color:var(--bad)}
+
+.grid2{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;margin-top:16px}
+.sec{padding:20px 22px}
+.sec h2{margin:0 0 4px;font-size:17px;letter-spacing:-.01em}
+.mes{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;margin:12px 0}
+.mes .sum{font-size:24px;font-weight:700}
+.arrow{color:var(--muted)}
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.dots{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 8px}
+.dot{display:flex;flex-direction:column;align-items:center;gap:4px;font:500 11px 'Geist Mono',monospace;color:var(--muted)}
+.dot span{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:14px;border:2px solid var(--brand)}
+.dot .f{background:var(--brand);color:#fff}
+.dot .h{background:linear-gradient(90deg,var(--brand) 50%,#fff 50%)}
+.dot .e{border-color:var(--field)}
+.dot .c{border-style:dashed}
+
+/* Gantt */
+.gantt{margin-top:10px}
+.g-axis,.g-row{display:grid;grid-template-columns:210px minmax(0,1fr);gap:14px;align-items:center}
+.g-axis{font:500 11px 'Geist Mono',monospace;color:var(--muted);padding-bottom:6px}
+.g-axis .ticks{position:relative;height:16px}
+.g-axis .ticks span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.g-row{padding:12px 0;border-top:1px solid var(--line2)}
+.g-name b{display:block;font-size:14.5px}
+.g-track{position:relative;height:14px;border-radius:999px;background:var(--line2)}
+.g-track .solid{position:absolute;top:0;height:100%;border-radius:999px;background:var(--ink)}
+.g-track .saved{position:absolute;top:0;height:100%;border-radius:0 999px 999px 0;background:repeating-linear-gradient(135deg,#C9D0CA 0 4px,transparent 4px 8px)}
+.g-track .now{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--link)}
+.g-note{grid-column:2;font-size:12.5px;color:var(--muted);margin-top:6px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;font-size:12.5px;color:var(--muted)}
+.legend i{display:inline-block;width:18px;height:8px;border-radius:4px;margin-right:6px;vertical-align:middle}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font:500 11px 'Geist Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:10px;border-bottom:1px solid var(--line2);vertical-align:top}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+td .btn-g{min-height:24px;padding:0}
+.row-btn{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;min-height:60px;padding:12px 18px;border:0;border-top:1px solid var(--line2);background:transparent;text-align:left;cursor:pointer;font-size:15px;color:var(--ink)}
+.row-btn:first-child{border-top:0}
+.row-btn small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.chev{flex:none;width:20px;height:20px;color:var(--muted)}
+details.why{margin-top:12px;border-top:1px solid var(--line2);padding-top:10px}
+details.why summary{cursor:pointer;font-weight:600;color:var(--link);list-style:none;display:flex;gap:6px;align-items:center;min-height:36px}
+details.why summary::-webkit-details-marker{display:none}
+details.why summary::before{content:"▸";transition:transform .15s}
+details.why[open] summary::before{transform:rotate(90deg)}
+
+/* Panel lateral / hoja inferior */
+.scrim{position:fixed;inset:0;background:rgba(17,24,20,.35);z-index:40;display:none}
+.scrim.on{display:block}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(440px,100%);background:#fff;z-index:41;transform:translateX(100%);transition:transform .22s ease,visibility .22s;display:flex;flex-direction:column;visibility:hidden}
+.drawer.on{transform:none;visibility:visible;box-shadow:-8px 0 30px rgba(0,0,0,.12)}
+.d-head{padding:18px 20px 12px;border-bottom:1px solid var(--line2);display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.d-head h2{margin:0;font-size:19px}
+.d-live{font-size:13.5px;color:var(--muted);margin-top:4px}
+.d-live b{color:var(--ink)}
+.d-body{padding:4px 20px 20px;overflow:auto;flex:1}
+.grp{padding:16px 0;border-bottom:1px solid var(--line2)}
+.grp > .lab{display:block;margin-bottom:10px}
+.stepper{display:grid;grid-template-columns:48px minmax(0,1fr) 48px;align-items:center;gap:10px;margin:10px 0}
+.stepper button{height:48px;border-radius:12px;border:1px solid var(--field);background:#fff;font-size:20px;cursor:pointer}
+.stepper output{text-align:center;font-size:28px;font-weight:700}
+input[type=range]{width:100%;accent-color:var(--brand)}
+.ticks2{display:flex;justify-content:space-between;font:500 11px 'Geist Mono',monospace;color:var(--muted)}
+.field{display:flex;align-items:center;gap:8px;max-width:220px;border:1px solid var(--field);border-radius:12px;padding:0 12px;min-height:48px;background:#fff}
+.field input{border:0;outline:0;width:100%;font:600 16px 'Geist',system-ui;text-align:right;background:transparent}
+.field:focus-within{outline:3px solid #7FB8A3}
+.ord{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ord button{text-align:left;padding:12px;border-radius:12px;border:1px solid var(--field);background:#fff;cursor:pointer;min-height:72px}
+.ord button[aria-pressed="true"]{border:2px solid var(--brand);background:#F3F8F5}
+.ord b{display:block;font-size:14px}
+.ord span{font-size:12.5px;color:var(--muted)}
+.cost-row{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 0;border-top:1px solid var(--line2)}
+.d-foot{padding:14px 20px;border-top:1px solid var(--line2);display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap}
+
+/* Contratos */
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:14px}
+.ccard{padding:18px}
+.ccard h3{margin:0;font-size:16px}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 4px}
+.kv b{display:block;font-size:18px}
+dialog{border:0;border-radius:18px;padding:0;width:min(560px,100%);max-height:92vh}
+dialog::backdrop{background:rgba(17,24,20,.35)}
+.f-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.f-grid label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
+.f-grid input,.f-grid select{min-height:44px;border:1px solid var(--field);border-radius:10px;padding:0 12px;font:500 15px 'Geist',system-ui;color:var(--ink);background:#fff}
+fieldset{border:0;margin:0;padding:14px 0;border-top:1px solid var(--line2)}
+legend{font:500 11px 'Geist Mono',monospace;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);padding:0 0 10px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 16px;border-radius:12px;display:none;gap:16px;align-items:center;z-index:60;font-size:14px}
+.toast.on{display:flex}
+.toast button{background:transparent;border:0;color:#9FD3BE;font-weight:600;cursor:pointer;min-height:32px}
+.note{font-size:12.5px;color:var(--muted);border-left:3px solid var(--soft);padding:2px 0 2px 10px;margin-top:10px}
+[hidden]{display:none !important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+@media (max-width:760px){
+  .wrap{padding:16px 16px 80px}
+  .head h1{font-size:24px}
+  .hero,.grid2{grid-template-columns:1fr}
+  .hero > div + div{border-left:0;border-top:1px solid var(--line2)}
+  .big{font-size:36px}
+  .g-axis,.g-row{grid-template-columns:1fr}
+  .g-axis .lab0{display:none}
+  .g-note{grid-column:1}
+  .drawer{top:auto;width:100%;height:88vh;border-radius:18px 18px 0 0;transform:translateY(100%)}
+  .drawer.on{transform:none}
+  .f-grid{grid-template-columns:1fr}
+  .kv b{font-size:16px}
+  .hide-m{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="mock" role="region" aria-label="Controles de la maqueta (no son parte del diseño)">
+  <b>MAQUETA TRE · EJEMPLO</b>
+  <span class="mv" role="group" aria-label="Vista">
+    <button type="button" data-go="plan" aria-pressed="true">Plan</button>
+    <button type="button" data-go="comparar" aria-pressed="false">Comparar</button>
+    <button type="button" data-go="contratos" aria-pressed="false">Contratos</button>
+  </span>
+  <label><input type="checkbox" id="mkGuardado" checked> Con plan guardado</label>
+  <label><input type="checkbox" id="mkSuelo"> Liquidez bajo el suelo (TRE-D3)</label>
+  <span>Cifras ficticias · <a href="../../../PROPUESTA_DECIMOTERCERA_AUDITORIA_2026-11-25.md" style="color:#9FD3BE">propuesta §2</a></span>
+</div>
+
+<div class="wrap">
+  <div class="head">
+    <h1>Deuda</h1>
+    <div class="seg" role="tablist" aria-label="Deuda">
+      <button type="button" role="tab" data-go="plan" aria-selected="true">Plan</button>
+      <button type="button" role="tab" data-go="contratos" aria-selected="false">Contratos</button>
+      <button type="button" role="tab" data-go="ofertas" aria-selected="false">Ofertas</button>
+    </div>
+  </div>
+
+  <!-- ============ PLAN ============ -->
+  <section class="view" id="v-plan" aria-labelledby="t-plan">
+    <h2 id="t-plan" class="sr">Plan</h2>
+
+    <div class="card hero">
+      <div>
+        <span class="lab" id="heroLab">Libres de deuda en</span>
+        <div class="big num"><span id="heroFecha">—</span><span class="delta" id="heroDelta"></span></div>
+        <div class="meta" id="heroSub">—</div>
+      </div>
+      <div>
+        <span class="lab">Os ahorráis en intereses</span>
+        <div class="mid num"><span id="heroAhorro">—</span><span class="delta" id="ahorroDelta"></span></div>
+        <div class="meta" id="ahorroSub">—</div>
+      </div>
+      <div class="prog">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <span class="meta"><b style="color:var(--ink)" id="pagadoPct">—</b> pagado · quedan <b style="color:var(--ink)" class="num" id="quedan">—</b></span>
+          <span class="badge" title="Falta el capital inicial de un contrato; se estima de cuota, TAE y plazo (TRE-D6)">1 dato estimado</span>
+        </div>
+        <div class="bar" role="img" id="barLabel" aria-label=""><i id="barFill"></i></div>
+      </div>
+    </div>
+
+    <div class="alert bad" id="alertSuelo" hidden>
+      <span><b>Primero, el colchón.</b> Estáis 1.200 € por debajo del suelo: el plan pone lo de más al colchón hasta <b id="sueloHasta">—</b> y después vuelve a la tarjeta. La tarjeta (21,9 %) sigue recibiendo la mitad porque supera el 15 %.</span>
+      <button type="button" class="btn" data-open="ajustes">Cambiarlo</button>
+    </div>
+
+    <div class="grid2">
+      <div class="card sec">
+        <span class="lab" id="mesLab">Este mes · diciembre</span>
+        <div class="mes">
+          <span class="sum num" id="mesTotal">—</span>
+          <span class="meta" id="mesDesglose">—</span>
+        </div>
+        <div class="meta" id="mesDia">Mejor día: <b style="color:var(--ink)">2 de diciembre</b>, el día después de la nómina (la previsión diaria no baja de 7.900 € ese mes).</div>
+        <div class="acts">
+          <button type="button" class="btn btn-p" id="btnPagado">Ya lo he pagado</button>
+          <button type="button" class="btn" id="btnNoPuedo">Este mes no puedo</button>
+        </div>
+        <div class="note" id="mesSig">—</div>
+      </div>
+
+      <div class="card sec" id="cardVais">
+        <span class="lab">Cómo vais</span>
+        <div id="vaisOn">
+          <div class="dots" role="list" aria-label="Meses del plan">
+            <div class="dot" role="listitem"><span class="f" aria-hidden="true">✓</span>sep<span class="sr">: hecho</span></div>
+            <div class="dot" role="listitem"><span class="f" aria-hidden="true">✓</span>oct<span class="sr">: hecho</span></div>
+            <div class="dot" role="listitem"><span class="h" aria-hidden="true"></span>nov<span class="sr">: a medias</span></div>
+            <div class="dot" role="listitem"><span class="e c" aria-hidden="true"></span>dic<span class="sr">: en curso</span></div>
+          </div>
+          <div class="meta"><b style="color:var(--ink)">Racha de 2 meses.</b> 640 € de más de 810 previstos. Noviembre, a medias: encontramos 100 € de 270 en el extracto.</div>
+          <details class="why"><summary>¿Por qué se ha movido la fecha?</summary>
+            <p class="meta">Pasa de agosto a septiembre de 2027: en noviembre faltaron 170 € de más y la previsión de enero baja 60 € por el seguro anual (TRE-D7).</p>
+          </details>
+        </div>
+        <div id="vaisOff" hidden>
+          <p class="meta" style="margin:10px 0">Si lo guardáis, cada mes buscaremos el pago de más en los extractos y solo preguntaremos si no lo encontramos.</p>
+          <button type="button" class="btn btn-p" id="btnGuardar">Este es nuestro plan</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card sec" style="margin-top:16px">
+      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline">
+        <div><h2>El orden</h2><span class="meta" id="ordenSub">—</span></div>
+        <button type="button" class="btn btn-g" id="btnTabla" aria-expanded="false">Ver como tabla</button>
+      </div>
+      <div class="gantt" id="gantt"></div>
+      <div id="ganttTabla" hidden></div>
+      <div class="legend"><span><i style="background:var(--ink)"></i>con vuestro plan</span><span><i style="background:repeating-linear-gradient(135deg,#C9D0CA 0 3px,transparent 3px 6px)"></i>lo que adelantáis frente a solo cuotas</span><span><i style="background:var(--link);width:3px"></i>hoy</span></div>
+      <details class="why"><summary>¿Por qué este orden?</summary>
+        <div class="meta" id="porque"></div>
+      </details>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <button type="button" class="row-btn" data-open="ajustes"><span>Ajustar el plan<small id="ajSummary">—</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg></button>
+      <button type="button" class="row-btn" data-go="comparar"><span>Comparar con otras formas<small>Solo cuotas · lo firmado · bola de nieve · consolidar · liquidar con caja · no tocar nada</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg></button>
+      <button type="button" class="row-btn" disabled style="opacity:.6;cursor:default"><span>Cerrar las deudas saldadas<small>Ninguna saldada todavía · la primera, la tarjeta</small></span><span class="badge">0</span></button>
+    </div>
+  </section>
+
+  <!-- ============ COMPARAR ============ -->
+  <section class="view" id="v-comparar" hidden aria-labelledby="t-comp">
+    <button type="button" class="btn btn-g" data-go="plan" style="margin-bottom:8px">← Plan</button>
+    <div class="card sec">
+      <h2 id="t-comp">Comparar con otras formas</h2>
+      <p class="meta" style="margin:4px 0 14px">Todas con los mismos contratos y el mismo formato. Ninguna cambia vuestro plan; «Ver detalle» abre la herramienta de siempre.</p>
+      <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Forma</th><th>Libres en</th><th class="n">Intereses</th><th class="n hide-m">Caja más justa</th><th></th></tr></thead>
+        <tbody id="compBody"></tbody>
+      </table>
+      </div>
+      <p class="note">«Liquidar con caja» es lo que antes daba el titular «Sin deuda pendiente» (la estrategia heredada <i>ejecutada</i>). Aquí se dice en condicional y con su efecto en la caja; «Aplicar como escenario» sigue disponible en su detalle.</p>
+    </div>
+  </section>
+
+  <!-- ============ CONTRATOS ============ -->
+  <section class="view" id="v-contratos" hidden aria-labelledby="t-con">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:center">
+      <div><h2 id="t-con" style="margin:0;font-size:20px">Contratos</h2><span class="meta">2 vivos · <span class="num">7.500 €</span> · cuota <span class="num">250 €</span>/mes · 9 % de los ingresos (límite 35 %)</span></div>
+      <div class="acts" style="margin:0"><button type="button" class="btn btn-p" data-edit="nuevo">+ Añadir</button><button type="button" class="btn">Pegar varios</button></div>
+    </div>
+    <div class="alert" style="margin-top:14px">
+      <span><b>Faltan 2 datos</b> que mueven las cifras: el capital inicial del préstamo (para el % pagado) y la fecha de firma de la tarjeta (para comprobar su TAE).</span>
+      <button type="button" class="btn" data-edit="faltan">Completar ahora · 1 de 2</button>
+    </div>
+    <div class="cgrid">
+      <article class="card ccard">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+          <div><h3>Banco FICTICIO</h3><span class="meta">Tarjeta revolving · 1.º en el plan</span></div>
+          <span class="badge warn" title="DUO-D6">Revisad la TAE</span>
+        </div>
+        <div class="kv"><div><span class="lab">Debe</span><b class="num">2.400 €</b></div><div><span class="lab">TAE</span><b class="num">21,9 %</b></div><div><span class="lab">Cuota</span><b class="num">90 €</b></div></div>
+        <div class="bar"><i style="width:20%"></i></div>
+        <div class="meta">20 % pagado · con el plan, fuera en <b style="color:var(--ink)" class="cFin0">—</b></div>
+        <div class="acts"><button type="button" class="btn" data-edit="tarjeta">Editar</button><button type="button" class="btn">Kit para la entidad</button></div>
+      </article>
+      <article class="card ccard">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+          <div><h3>Caja FICTICIA</h3><span class="meta">Préstamo personal · 2.º en el plan</span></div>
+          <span class="badge">Comisión 1 %</span>
+        </div>
+        <div class="kv"><div><span class="lab">Debe</span><b class="num">5.100 €</b></div><div><span class="lab">TAE</span><b class="num">9,5 %</b></div><div><span class="lab">Cuota</span><b class="num">160 €</b></div></div>
+        <div class="bar"><i style="width:36%;background:repeating-linear-gradient(135deg,var(--brand) 0 4px,#4C7D6E 4px 8px)"></i></div>
+        <div class="meta">36 % pagado <span class="badge">estimado</span> · fuera en <b style="color:var(--ink)" class="cFin1">—</b></div>
+        <div class="acts"><button type="button" class="btn" data-edit="prestamo">Editar</button><button type="button" class="btn">Kit para la entidad</button></div>
+      </article>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <details class="why" style="margin:0;border:0;padding:6px 18px 14px">
+        <summary>Herramientas de contratos (8)</summary>
+        <table style="margin-top:6px">
+          <tbody>
+            <tr><td><b>CIRBE</b><div class="meta">Comparar con el informe del Banco de España</div></td><td class="n"><span class="badge">Sin informe</span></td></tr>
+            <tr><td><b>Deuda en la sombra</b><div class="meta">Compras a plazos que no parecen deuda</div></td><td class="n"><span class="badge warn">1 cargo por revisar</span></td></tr>
+            <tr><td><b>Índices de referencia</b><div class="meta">Euribor, €STR e IPC, con fecha</div></td><td class="n"><span class="badge">Sin dato</span></td></tr>
+            <tr><td><b>Revisión del tipo variable</b></td><td class="n"><span class="badge">Sin variables</span></td></tr>
+            <tr><td><b>Vigilancia de cláusulas</b></td><td class="n"><span class="badge ok">Al día</span></td></tr>
+            <tr><td><b>Cruce deuda-activos</b></td><td class="n"><span class="badge">Nada que cruzar</span></td></tr>
+            <tr><td><b>Deuda cara dormida</b></td><td class="n"><span class="badge ok">Ninguna</span></td></tr>
+            <tr><td><b>Cuota de la refinanciación</b></td><td class="n"><span class="badge">No aplica</span></td></tr>
+          </tbody>
+        </table>
+        <p class="note">Las dos listas de orden y el simulador de consolidación que hoy viven aquí pasan al Plan y a Ofertas › Préstamo, redirigiendo (D-N41, se consulta).</p>
+      </details>
+    </div>
+  </section>
+
+  <section class="view" id="v-ofertas" hidden>
+    <div class="card sec"><h2>Ofertas</h2><p class="meta">Fuera del alcance de esta maqueta: Comparar, Préstamo y Simulador visual siguen como hoy. Las ofertas abiertas se anuncian con una insignia en el Plan.</p></div>
+  </section>
+</div>
+
+<!-- ============ AJUSTAR EL PLAN ============ -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dTitle" aria-hidden="true">
+  <div class="d-head">
+    <div><h2 id="dTitle">Ajustar el plan</h2><div class="d-live" aria-live="polite">Libres en <b id="liveFecha">—</b> · os ahorráis <b id="liveAhorro">—</b></div></div>
+    <button type="button" class="btn" id="dClose" aria-label="Cerrar">✕</button>
+  </div>
+  <div class="d-body">
+    <div class="grp">
+      <span class="lab">Cuánto al mes, además de las cuotas</span>
+      <div class="seg" role="group" aria-label="Modo">
+        <button type="button" data-modo="prev" aria-pressed="true">Lo que permita la previsión</button>
+        <button type="button" data-modo="fijo" aria-pressed="false">Un importe fijo</button>
+      </div>
+      <div id="modoPrev" class="meta" style="margin-top:10px">Entre <b>270</b> y <b>1.200 €</b> según el mes, sin bajar nunca del suelo (7.230 €). Los meses de recibos fuertes ponen menos; los de paga extra, más.</div>
+      <div id="modoFijo" hidden>
+        <div class="stepper">
+          <button type="button" id="menos" aria-label="50 € menos">−</button>
+          <output id="fijoOut" class="num" aria-live="polite">300 €</output>
+          <button type="button" id="mas" aria-label="50 € más">+</button>
+        </div>
+        <input type="range" id="fijo" min="0" max="1000" step="50" value="300" aria-label="Importe fijo al mes">
+        <div class="ticks2"><span>0</span><span>250</span><span>500</span><span>750</span><span>1.000 €</span></div>
+        <p class="meta" id="rinde" style="margin-top:8px">—</p>
+      </div>
+    </div>
+    <div class="grp">
+      <span class="lab">Pago inicial</span>
+      <div class="field"><input id="inicial" inputmode="decimal" value="0" aria-label="Pago inicial en euros"><span>€</span></div>
+      <p class="meta" style="margin:6px 0 0">Como mucho 2.850 € (lo que tenéis por encima del suelo).</p>
+    </div>
+    <div class="grp">
+      <span class="lab">Orden</span>
+      <div class="ord">
+        <button type="button" data-orden="ava" aria-pressed="true"><b>La más cara primero</b><span id="ordAva">—</span></button>
+        <button type="button" data-orden="bola" aria-pressed="false"><b>La más pequeña primero</b><span id="ordBola">—</span></button>
+      </div>
+      <p class="meta" id="ordNota" style="margin:8px 0 0"></p>
+    </div>
+    <div class="grp">
+      <span class="lab">Lo que cambia el coste · 1 contrato</span>
+      <div class="cost-row"><span>Banco FICTICIO · tarjeta</span><button type="button" class="btn btn-g">+ Añadir</button></div>
+      <div class="cost-row"><span>Caja FICTICIA · préstamo <span class="badge">comisión 1 %</span></span><button type="button" class="btn btn-g">Editar</button></div>
+      <p class="meta" style="margin:6px 0 0">Comisiones, promociones al 0 % y ofertas de quita, por contrato.</p>
+    </div>
+    <div class="grp" style="border:0">
+      <details class="why" style="border:0;margin:0;padding:0"><summary>¿Cómo se calcula?</summary>
+        <p class="meta">Intereses mensuales sobre el capital, la cuota de cada contrato y lo de más al primero del orden; al saldar uno, su cuota pasa al siguiente. La comisión se resta del ahorro. Es una proyección; la app no paga nada.</p>
+      </details>
+    </div>
+  </div>
+  <div class="d-foot">
+    <button type="button" class="btn btn-g" id="reset">Restablecer lo recomendado</button>
+    <button type="button" class="btn btn-p" id="dGuardar">Guardar como nuestro plan</button>
+  </div>
+</aside>
+
+<dialog id="ficha" aria-labelledby="fTitle">
+  <form method="dialog">
+    <div class="d-head"><div><h2 id="fTitle">Banco FICTICIO · tarjeta</h2><div class="meta">Los cambios mueven el plan al guardar; podréis deshacer.</div></div><button class="btn" value="cancel" aria-label="Cerrar">✕</button></div>
+    <div class="d-body" style="padding-bottom:4px">
+      <fieldset><legend>Lo básico</legend><div class="f-grid">
+        <label>Entidad<input value="Banco FICTICIO"></label>
+        <label>Tipo<select><option>Tarjeta revolving</option><option>Préstamo</option><option>Hipoteca</option></select></label>
+        <label>Debe hoy (€)<input inputmode="decimal" value="2.400"></label>
+        <label>TAE (%)<input inputmode="decimal" value="21,9"></label>
+        <label>Cuota al mes (€)<input inputmode="decimal" value="90"></label>
+        <label>Estado<select><option>Al día</option><option>Pagos suspendidos</option><option>En impago</option><option>Con acuerdo</option></select></label>
+      </div></fieldset>
+      <fieldset><legend>Plazo y progreso</legend><div class="f-grid">
+        <label>Capital inicial (€)<input inputmode="decimal" value="3.000"></label>
+        <label>Fecha de firma<input type="month" value="2023-05" id="fFirma"></label>
+        <label>Plazos restantes<input inputmode="numeric" placeholder="Sin plazo (tarjeta)"></label>
+      </div></fieldset>
+      <fieldset><legend>Costes</legend><div class="f-grid">
+        <label>Comisión por amortizar (%)<input inputmode="decimal" placeholder="0"></label>
+        <label>Al 0 % hasta<input type="month"></label>
+        <label>Deducción fiscal (%)<input inputmode="decimal" placeholder="0"></label>
+      </div></fieldset>
+    </div>
+    <div class="d-foot"><button class="btn btn-g" value="cancel">Cancelar</button><button class="btn btn-p" value="ok" id="fOk">Guardar</button></div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status"><span id="toastTxt"></span><button type="button" id="toastUndo">Deshacer</button></div>
+
+<script>
+(function () {
+  "use strict";
+  var MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  var MESES_L = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  var START = { y: 2026, m: 11 }; // diciembre de 2026 (índice 0)
+  var DEUDAS = [
+    { id: "t", nombre: "Banco FICTICIO", tipo: "Tarjeta", saldo: 2400, tae: 21.9, cuota: 90, inicial: 3000 },
+    { id: "p", nombre: "Caja FICTICIA", tipo: "Préstamo", saldo: 5100, tae: 9.5, cuota: 160, inicial: 8000, comision: 0.01 }
+  ];
+  // Previsión inventada de lo que cabe sin bajar del suelo, de diciembre a noviembre.
+  var PREVISION = [270, 300, 320, 350, 300, 1200, 350, 330, 300, 280, 320, 900];
+  var st = { modo: "prev", fijo: 300, inicial: 0, orden: "ava", guardado: true, suelo: false };
+  var prevRes = null;
+
+  function eur(v) { var n = Math.round(v), s = String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, "."); return (n < 0 ? "−" : "") + s + " €"; }
+  function mesKey(i) { var t = START.m + i; return { y: START.y + Math.floor(t / 12), m: ((t % 12) + 12) % 12 }; }
+  function mesCorto(i) { var k = mesKey(i); return MESES[k.m] + " " + String(k.y).slice(2); }
+  function mesLargo(i) { var k = mesKey(i); return MESES_L[k.m] + " de " + k.y; }
+  function capital(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  function simular(opts) {
+    var ds = DEUDAS.map(function (d) { return { id: d.id, saldo: d.saldo, tae: d.tae, cuota: d.cuota, fin: null }; });
+    var orden = ds.slice().sort(opts.orden === "bola" ? function (a, b) { return a.saldo - b.saldo; } : function (a, b) { return b.tae - a.tae; });
+    var intereses = 0, comision = 0, colchon = opts.colchonFalta || 0, colchonFin = null;
+    var tramos = [];
+    function aplicar(importe, i) {
+      for (var k = 0; k < orden.length && importe > 0.005; k++) {
+        var d = orden[k];
+        if (d.saldo <= 0) continue;
+        var pago = Math.min(d.saldo, importe);
+        d.saldo -= pago; importe -= pago;
+        if (d.id === "p") comision += pago * 0.01;
+        if (d.saldo <= 0.005 && d.fin === null) d.fin = i;
+      }
+      return importe;
+    }
+    if (opts.inicial > 0) aplicar(opts.inicial, 0);
+    for (var i = 0; i < 180; i++) {
+      var liberado = 0;
+      ds.forEach(function (d) {
+        if (d.saldo <= 0) { liberado += d.cuota; return; }
+        var int = d.saldo * d.tae / 1200;
+        intereses += int;
+        var pago = Math.min(d.saldo + int, d.cuota);
+        d.saldo = d.saldo + int - pago;
+        if (d.saldo <= 0.005) { d.saldo = 0; if (d.fin === null) d.fin = i; liberado += d.cuota - pago; }
+      });
+      var extra = opts.extra(i) + liberado;
+      if (colchon > 0 && extra > 0) {
+        var aCol = opts.repartirCara ? extra / 2 : extra;
+        var usado = Math.min(colchon, aCol);
+        colchon -= usado; extra -= usado;
+        if (colchon <= 0.005 && colchonFin === null) colchonFin = i;
+      }
+      var primera = orden.filter(function (d) { return d.saldo > 0; })[0];
+      if (primera && extra > 0) tramos.push({ i: i, a: primera.id, extra: extra });
+      aplicar(extra, i);
+      if (ds.every(function (d) { return d.saldo <= 0; })) break;
+    }
+    var fin = Math.max.apply(null, ds.map(function (d) { return d.fin === null ? 179 : d.fin; }));
+    return { fin: fin, intereses: intereses, comision: opts.inicial || opts.extra(0) ? comision : 0, deudas: ds, orden: orden.map(function (d) { return d.id; }), tramos: tramos, colchonFin: colchonFin };
+  }
+
+  function extraFn() {
+    if (st.modo === "fijo") return function () { return st.fijo; };
+    return function (i) { return PREVISION[i % 12]; };
+  }
+  function base() { return simular({ extra: function () { return 0; }, inicial: 0, orden: "ava" }); }
+  function plan(o) {
+    o = o || {};
+    return simular({ extra: o.extra || extraFn(), inicial: o.inicial !== undefined ? o.inicial : st.inicial, orden: o.orden || st.orden, colchonFalta: st.suelo ? 1200 : 0, repartirCara: true });
+  }
+
+  function $(id) { return document.getElementById(id); }
+  function setDelta(el, antes, ahora, unidad) {
+    if (antes === null || antes === ahora) { el.className = "delta"; el.textContent = ""; return; }
+    var d = ahora - antes;
+    el.className = "delta on" + ((unidad === "mes" ? d > 0 : d < 0) ? " neg" : "");
+    el.textContent = unidad === "mes" ? (d < 0 ? "↑ " + (-d) + (d === -1 ? " mes antes" : " meses antes") : "↓ " + d + (d === 1 ? " mes después" : " meses después")) : (d > 0 ? "+" : "−") + eur(Math.abs(d));
+  }
+
+  function render() {
+    var b = base(), p = plan();
+    var ahorro = b.intereses - p.intereses - p.comision;
+    $("heroFecha").textContent = capital(mesLargo(p.fin));
+    $("heroLab").textContent = st.guardado ? "Con vuestro plan, libres de deuda en" : "Con el plan recomendado, libres de deuda en";
+    var adelanto = b.fin - p.fin;
+    $("heroSub").textContent = adelanto > 0 ? adelanto + " meses antes que pagando solo las cuotas (" + mesLargo(b.fin) + ")" : "Igual que pagando solo las cuotas";
+    $("heroAhorro").textContent = eur(Math.max(0, ahorro));
+    $("ahorroSub").textContent = "pagaréis " + eur(p.intereses + p.comision) + " en lugar de " + eur(b.intereses) + (p.comision > 1 ? " (incluye " + eur(p.comision) + " de comisión)" : "");
+    if (prevRes) { setDelta($("heroDelta"), prevRes.fin, p.fin, "mes"); setDelta($("ahorroDelta"), prevRes.ahorro, Math.round(ahorro), "eur"); }
+    prevRes = { fin: p.fin, ahorro: Math.round(ahorro) };
+    var ini = DEUDAS.reduce(function (s, d) { return s + d.inicial; }, 0), viva = DEUDAS.reduce(function (s, d) { return s + d.saldo; }, 0);
+    var pct = Math.round((1 - viva / ini) * 100);
+    $("pagadoPct").textContent = pct + " %"; $("quedan").textContent = eur(viva); $("barFill").style.width = pct + "%";
+    $("barLabel").setAttribute("aria-label", pct + " % del capital pagado");
+    $("alertSuelo").hidden = !st.suelo;
+    if (st.suelo) $("sueloHasta").textContent = p.colchonFin === null ? "más adelante" : mesLargo(p.colchonFin);
+
+    // Este mes
+    var t0 = p.tramos.filter(function (t) { return t.i === 0; })[0];
+    var deExtra0 = st.inicial > 0 ? 0 : extraFn()(0);
+    var aCol = st.suelo ? deExtra0 / 2 : 0;
+    var cuotas = DEUDAS.reduce(function (s, d) { return s + d.cuota; }, 0);
+    $("mesTotal").textContent = eur(cuotas + deExtra0);
+    var dest = t0 ? DEUDAS.filter(function (d) { return d.id === t0.a; })[0] : null;
+    $("mesDesglose").innerHTML = "cuotas " + eur(cuotas) + " <span class='arrow'>+</span> de más " + eur(deExtra0) +
+      (st.suelo ? " <span class='arrow'>→</span> " + eur(aCol) + " al colchón y " + eur(deExtra0 - aCol) + " a " : " <span class='arrow'>→</span> ") +
+      (dest ? "<b style='color:var(--ink)'>" + dest.nombre + " · " + dest.tipo.toLowerCase() + "</b> (" + String(dest.tae).replace(".", ",") + " %)" : "—");
+    var tarjeta = p.deudas.filter(function (d) { return d.id === "t"; })[0], prest = p.deudas.filter(function (d) { return d.id === "p"; })[0];
+    var primero = p.orden[0] === "t" ? tarjeta : prest, segundo = p.orden[0] === "t" ? prest : tarjeta;
+    var n1 = p.orden[0] === "t" ? DEUDAS[0] : DEUDAS[1], n2 = p.orden[0] === "t" ? DEUDAS[1] : DEUDAS[0];
+    $("mesSig").textContent = "Después: " + n1.nombre + " queda saldada en " + mesLargo(primero.fin) + " y sus " + eur(n1.cuota) + " de cuota pasan a " + n2.nombre + ".";
+    $("vaisOn").hidden = !st.guardado; $("vaisOff").hidden = st.guardado;
+
+    // Gantt
+    var maxI = Math.max(b.fin, p.fin) + 1;
+    var ticks = "", años = {};
+    for (var i = 0; i <= maxI; i++) { var k = mesKey(i); if (k.m === 0 && !años[k.y]) { años[k.y] = 1; ticks += "<span style='left:" + (i / maxI * 100) + "%'>" + k.y + "</span>"; } }
+    var rows = "";
+    [n1, n2].forEach(function (d, idx) {
+      var sim = p.deudas.filter(function (x) { return x.id === d.id; })[0];
+      var bs = b.deudas.filter(function (x) { return x.id === d.id; })[0];
+      var finP = sim.fin, finB = bs.fin === null ? maxI : bs.fin;
+      var nota = idx === 0 ? "Recibe lo de más desde ya. Saldada en " + mesLargo(finP) + (finB > finP ? " (" + (finB - finP) + " meses antes)" : "") + "; sus " + eur(d.cuota) + " pasan a la siguiente."
+        : "Recibe lo de más y la cuota liberada desde " + mesLargo(primero.fin) + ". Saldada en " + mesLargo(finP) + (finB > finP ? " (" + (finB - finP) + " meses antes)" : "") + ".";
+      rows += "<div class='g-row'><div class='g-name'><b>" + d.nombre + " · " + d.tipo.toLowerCase() + "</b><span class='meta'>" + eur(d.saldo) + " · " + String(d.tae).replace(".", ",") + " % · " + eur(d.cuota) + "/mes</span></div>" +
+        "<div><div class='g-track' role='img' aria-label='" + d.nombre + ": saldada en " + mesLargo(finP) + ", con solo cuotas en " + mesLargo(finB) + "'>" +
+        "<span class='solid' style='left:0;width:" + ((finP + 1) / maxI * 100) + "%'></span>" +
+        (finB > finP ? "<span class='saved' style='left:" + ((finP + 1) / maxI * 100) + "%;width:" + ((finB - finP) / maxI * 100) + "%'></span>" : "") +
+        "<span class='now' style='left:0'></span></div></div><div class='g-note'>" + nota + "</div></div>";
+    });
+    $("gantt").innerHTML = "<div class='g-axis'><span class='lab0'>Contrato</span><div class='ticks'>" + ticks + "</div></div>" + rows;
+    $("ganttTabla").innerHTML = "<table><thead><tr><th>Contrato</th><th>Con el plan</th><th>Solo cuotas</th><th class='n'>Cuota que libera</th></tr></thead><tbody>" +
+      [n1, n2].map(function (d) { var s = p.deudas.filter(function (x) { return x.id === d.id; })[0], bb = b.deudas.filter(function (x) { return x.id === d.id; })[0]; return "<tr><td>" + d.nombre + "</td><td>" + mesLargo(s.fin) + "</td><td>" + (bb.fin === null ? "—" : mesLargo(bb.fin)) + "</td><td class='n'>" + eur(d.cuota) + "</td></tr>"; }).join("") + "</tbody></table>";
+    $("ordenSub").textContent = (st.orden === "ava" ? "La más cara primero" : "La más pequeña primero") + "; cada cuota que se libera pasa a la siguiente.";
+    $("porque").innerHTML = "<p>Cada euro de más en <b>" + n1.nombre + "</b> deja de pagar un " + String(n1.tae).replace(".", ",") + " % al año; en " + n2.nombre + ", un " + String(n2.tae).replace(".", ",") + " %. Por eso va primero.</p>" +
+      "<p>Con vuestras deudas, la más cara es también la más pequeña: los dos órdenes dan el mismo resultado.</p><p><a href='#'>¿Y si el siguiente euro fuese al colchón o a invertir?</a> · <a href='#'>¿Os compensa un préstamo para juntarlas?</a></p>";
+    $("ajSummary").textContent = (st.modo === "prev" ? "Lo que permita la previsión" : eur(st.fijo) + " fijos al mes") + " · " + (st.orden === "ava" ? "la más cara primero" : "la más pequeña primero") + " · pago inicial " + eur(st.inicial) + " · 1 comisión";
+
+    // Panel
+    $("liveFecha").textContent = mesLargo(p.fin); $("liveAhorro").textContent = eur(Math.max(0, ahorro));
+    $("fijoOut").textContent = eur(st.fijo); $("fijo").value = st.fijo;
+    $("modoPrev").hidden = st.modo !== "prev"; $("modoFijo").hidden = st.modo !== "fijo";
+    document.querySelectorAll("[data-modo]").forEach(function (x) { x.setAttribute("aria-pressed", String(x.dataset.modo === st.modo)); });
+    document.querySelectorAll("[data-orden]").forEach(function (x) { x.setAttribute("aria-pressed", String(x.dataset.orden === st.orden)); });
+    var pa = plan({ orden: "ava" }), pb = plan({ orden: "bola" });
+    $("ordAva").textContent = mesCorto(pa.fin) + " · " + eur(b.intereses - pa.intereses - pa.comision) + " de ahorro";
+    $("ordBola").textContent = mesCorto(pb.fin) + " · " + eur(b.intereses - pb.intereses - pb.comision) + " de ahorro";
+    $("ordNota").textContent = pa.fin === pb.fin ? "Con vuestras deudas coinciden: la más cara es también la más pequeña." : "";
+    if (st.modo === "fijo") {
+      var mas = plan({ extra: function () { return st.fijo + 50; } });
+      $("rinde").textContent = "50 € más al mes: " + (p.fin - mas.fin > 0 ? (p.fin - mas.fin) + (p.fin - mas.fin === 1 ? " mes" : " meses") + " antes y " : "") + eur(p.intereses - mas.intereses) + " menos de intereses." + (p.fin - mas.fin <= 1 ? " A partir de aquí rinde poco." : "");
+    }
+    // Comparar
+    var firmado = 34;
+    var cons = (function () { var s = 7500 * 1.02, int = 0, i = 0; for (; i < 180 && s > 0; i++) { var x = s * 8.5 / 1200; int += x; s = s + x - 250; } return { fin: i - 1, int: int + 150 }; })();
+    var filas = [
+      ["<b>Vuestro plan</b> <span class='badge ok'>el de arriba</span>", mesLargo(p.fin), eur(p.intereses + p.comision), "7.950 €", ""],
+      ["Solo las cuotas", mesLargo(b.fin), eur(b.intereses), "8.400 €", "Camino a deuda cero"],
+      ["Según los plazos firmados", mesLargo(firmado), "—", "—", "Contratos"],
+      ["La más pequeña primero", mesLargo(pb.fin), eur(pb.intereses + pb.comision), "7.950 €", "Orden de ataque"],
+      ["Juntarlas en un préstamo (8,5 %, 2 % de apertura)", mesLargo(cons.fin), eur(cons.int), "8.400 €", "Ofertas › Préstamo"],
+      ["Liquidar con caja ahora", "ya", "0 €", "<span class='badge bad'>2.580 €: bajo el suelo</span>", "Orden de ataque · Aplicar como escenario"],
+      ["No tocar nada", mesLargo(b.fin), eur(b.intereses), "8.400 €", ""]
+    ];
+    $("compBody").innerHTML = filas.map(function (f) { return "<tr><td>" + f[0] + "</td><td>" + f[1] + "</td><td class='n'>" + f[2] + "</td><td class='n hide-m'>" + f[3] + "</td><td>" + (f[4] ? "<button type='button' class='btn btn-g' title='Abre: " + f[4] + "'>Ver detalle</button>" : "") + "</td></tr>"; }).join("");
+    document.querySelectorAll(".cFin0").forEach(function (e) { e.textContent = mesLargo(tarjeta.fin); });
+    document.querySelectorAll(".cFin1").forEach(function (e) { e.textContent = mesLargo(prest.fin); });
+  }
+
+  // Navegación
+  function go(v) {
+    ["plan", "comparar", "contratos", "ofertas"].forEach(function (x) { $("v-" + x).hidden = x !== v; });
+    document.querySelectorAll(".seg[role=tablist] [data-go]").forEach(function (b) { b.setAttribute("aria-selected", String(b.dataset.go === v || (v === "comparar" && b.dataset.go === "plan"))); });
+    document.querySelectorAll(".mock [data-go]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.go === v)); });
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll("[data-go]").forEach(function (b) { b.addEventListener("click", function () { go(b.dataset.go); }); });
+
+  // Panel
+  var lastFocus = null;
+  function openDrawer() { lastFocus = document.activeElement; $("drawer").classList.add("on"); $("drawer").setAttribute("aria-hidden", "false"); $("scrim").classList.add("on"); $("dClose").focus(); }
+  function closeDrawer() { $("drawer").classList.remove("on"); $("drawer").setAttribute("aria-hidden", "true"); $("scrim").classList.remove("on"); if (lastFocus) lastFocus.focus(); }
+  document.querySelectorAll("[data-open=ajustes]").forEach(function (b) { b.addEventListener("click", openDrawer); });
+  $("dClose").addEventListener("click", closeDrawer); $("scrim").addEventListener("click", closeDrawer);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && $("drawer").classList.contains("on")) closeDrawer(); });
+  document.querySelectorAll("[data-modo]").forEach(function (b) { b.addEventListener("click", function () { st.modo = b.dataset.modo; render(); }); });
+  document.querySelectorAll("[data-orden]").forEach(function (b) { b.addEventListener("click", function () { st.orden = b.dataset.orden; render(); }); });
+  $("fijo").addEventListener("input", function (e) { st.fijo = Number(e.target.value); render(); });
+  $("menos").addEventListener("click", function () { st.fijo = Math.max(0, st.fijo - 50); render(); });
+  $("mas").addEventListener("click", function () { st.fijo = Math.min(1000, st.fijo + 50); render(); });
+  $("inicial").addEventListener("input", function (e) { var v = Number(String(e.target.value).replace(/\./g, "").replace(",", ".")) || 0; st.inicial = Math.min(2850, Math.max(0, v)); render(); });
+  $("reset").addEventListener("click", function () { st.modo = "prev"; st.fijo = 300; st.inicial = 0; st.orden = "ava"; $("inicial").value = "0"; render(); });
+  $("dGuardar").addEventListener("click", function () { st.guardado = true; $("mkGuardado").checked = true; closeDrawer(); render(); toast("Guardado como vuestro plan."); });
+
+  // Maqueta
+  $("mkGuardado").addEventListener("change", function (e) { st.guardado = e.target.checked; render(); });
+  $("mkSuelo").addEventListener("change", function (e) { st.suelo = e.target.checked; render(); });
+  $("btnGuardar").addEventListener("click", function () { st.guardado = true; $("mkGuardado").checked = true; render(); toast("Guardado. Cada mes buscaremos el pago en los extractos."); });
+  $("btnTabla").addEventListener("click", function () { var on = $("ganttTabla").hidden; $("ganttTabla").hidden = !on; $("gantt").hidden = on; this.textContent = on ? "Ver como gráfico" : "Ver como tabla"; this.setAttribute("aria-expanded", String(on)); });
+
+  var undoFn = null, tmo = null;
+  function toast(txt, undo) { $("toastTxt").textContent = txt; $("toastUndo").hidden = !undo; undoFn = undo || null; $("toast").classList.add("on"); clearTimeout(tmo); tmo = setTimeout(function () { $("toast").classList.remove("on"); }, 8000); }
+  $("toastUndo").addEventListener("click", function () { if (undoFn) undoFn(); $("toast").classList.remove("on"); });
+  $("btnPagado").addEventListener("click", function () { toast("Diciembre, marcado como hecho.", function () { toast("Deshecho."); }); });
+  $("btnNoPuedo").addEventListener("click", function () { toast("Anotado: diciembre sin poner de más. El plan se recalcula.", function () { toast("Deshecho."); }); });
+  document.querySelectorAll("[data-edit]").forEach(function (b) { b.addEventListener("click", function () { $("ficha").showModal(); }); });
+  $("fOk").addEventListener("click", function () { setTimeout(function () { toast("Contrato guardado.", function () { toast("Deshecho."); }); }, 0); });
+
+  render();
+  prevRes = null; render();
+  var h = (location.hash || "").replace("#", "");
+  if (["comparar", "contratos"].indexOf(h) >= 0) go(h);
+  if (h === "ajustes") openDrawer();
+})();
+</script>
+</body>
+</html>

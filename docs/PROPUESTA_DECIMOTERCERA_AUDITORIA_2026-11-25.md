@@ -158,6 +158,11 @@ cascada existe en WP-42 (escalera del próximo euro), en otra pestaña, y el pla
 
 ### 2.2 Deuda › Plan, nueva estructura (de arriba abajo)
 
+> **Maqueta navegable:** [`docs/rediseno/referencias/html/DeudaTRE.html`](rediseno/referencias/html/DeudaTRE.html) (abrirla en el navegador;
+> `#comparar`, `#contratos` y `#ajustes` abren cada vista) y sus capturas en `docs/rediseno/referencias/png/DeudaTRE*.png`. Medida con
+> Playwright: Deuda › Plan pasa de **3.863 a 1.340 px** a 1440 y de **6.304 a 2.211 px** a 390, sin desbordamiento ni errores.
+> Calcula en vivo (fecha, ahorro, «Este mes», el orden, la comparación) con los contratos FICTICIOS; no es el motor de la app.
+
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
 │ DEUDA · PLAN                                   [Plan] [Contratos] [Ofertas] │
@@ -311,8 +316,8 @@ plan», tasa de «Ya lo he pagado» sobre meses del plan, % de contratos con dat
 como cualquier pantalla del rediseño.
 
 **Orden de trabajo técnico:** nuevo `deuda-plan-v2.js` (vista) sobre los motores actuales, sin tocar el cálculo; la vista actual
-sigue disponible en «Versiones anteriores» hasta la graduación (como el resto del rediseño); referencias visuales a pedir a
-Claude Design o maqueta en `docs/rediseno/referencias/` antes de TRE-D1 (ESTADO.md §1: las pantallas se copian de referencia).
+sigue disponible en «Versiones anteriores» hasta la graduación (como el resto del rediseño); referencia visual: la maqueta
+`docs/rediseno/referencias/html/DeudaTRE.html` (25/11/2026), salvo que el hogar pida otra a Claude Design (ESTADO.md §1: las pantallas se copian de referencia).
 
 ---
 
@@ -408,8 +413,7 @@ coincidan (o que lleven nombre de comparación). Es la prueba que habría detect
 ## 5. Orden recomendado
 
 1. **Ya (esta semana):** TRE-D0 (titular y fecha única) + TRE-07 (coherencia en el CI). Arreglo pequeño, protege todo lo demás.
-2. **Semana del 30/11:** referencias visuales de Deuda › Plan y Contratos (Claude Design o maqueta en `docs/rediseno/referencias/`);
-   TRE-D1 (hero, este mes, cómo vais, Gantt) y TRE-05 (Hoy con límite).
+2. **Semana del 30/11:** con la maqueta `DeudaTRE.html` como referencia, TRE-D1 (hero, este mes, cómo vais, Gantt) y TRE-05 (Hoy con límite).
 3. **Semana del 7/12:** TRE-D2 (panel de ajustes) y TRE-D3 si D-N42 es «sí»; DUO-05 rehecha si el hogar dice sí.
 4. **Semana del 14/12 (revisión trimestral):** TRE-D3 «Comparar», UND-25 + TRE-04, DUO-06.
 5. **Tras el cierre de diciembre:** TRE-D4 (contratos en tarjetas), TRE-D5 a D9, TRE-01 a 03, UND-10.
