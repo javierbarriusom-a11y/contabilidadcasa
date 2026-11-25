@@ -17,7 +17,7 @@ Las marcadas EJEMPLO usan datos ficticios: reproducir el diseño, nunca las cifr
 | D1 | Patrimonio › Resumen | `Patrimonio` | `PatrimonioDesktop` | — |
 | D2 | Patrimonio › Inversión | `Inversion` (EJEMPLO) | `InversionDesktop` (EJEMPLO) | XDA-06, XIN-01–04 |
 | D3 | Patrimonio › Deuda | `Deuda` | `DeudaDesktop` | XDO-01, 03, 04, 06, WP-19 |
-| D3-TRE | Deuda › Plan, Ajustar, Comparar y Contratos (maqueta de la decimotercera auditoría, **navegable y responsive**: un solo `html/DeudaTRE.html` de 320 a 1440 px; abrir con `#comparar`, `#contratos` o `#ajustes`) | `DeudaTRE`, `DeudaTREContratos` (EJEMPLO) | `DeudaTREDesktop`, `DeudaTREAjustesDesktop`, `DeudaTREComparar` (EJEMPLO) | TRE-D0 a D4 (`docs/PROPUESTA_DECIMOTERCERA_AUDITORIA_2026-11-25.md` §2) |
+| D3-TRE | Deuda › Plan, Ajustar, Comparar, Contratos y Ofertas (maqueta de la decimotercera auditoría, **navegable y responsive**: un solo `html/DeudaTRE.html` de 320 a 1440 px; abrir con `#comparar`, `#contratos`, `#ofertas` o `#ajustes`) | `DeudaTRE`, `DeudaTREContratos`, `DeudaTREOfertas` (EJEMPLO) | `DeudaTREDesktop`, `DeudaTREAjustesDesktop`, `DeudaTREComparar`, `DeudaTREOfertasDesktop` (EJEMPLO) | TRE-D0 a D4 y Ofertas (`docs/PROPUESTA_DECIMOTERCERA_AUDITORIA_2026-11-25.md` §2 y §2.5b) |
 | D4 | Decidir › Taller de deuda nueva | `Taller` (EJEMPLO) | `TallerDesktop` (EJEMPLO) | XDN-03, 06 |
 | E1 | Importar extracto | `Importar` (EJEMPLO) | `ImportarDesktop` (EJEMPLO) | XDA-02, 03, 04 |
 | E2 | Lo que la app te pide + Laboratorio | `LoQuePide` (EJEMPLO) | `LoQuePideDesktop` (EJEMPLO) | XDA-01, XGO-03, XUX-06 |

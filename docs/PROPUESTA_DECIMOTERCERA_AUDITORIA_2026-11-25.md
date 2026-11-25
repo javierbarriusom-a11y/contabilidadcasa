@@ -258,6 +258,40 @@ Herramientas de contratos ▸  (CIRBE · deuda en la sombra · índices · revis
   una y su estado («CIRBE: sin informe»). Las dos listas de orden se retiran de aquí **redirigiendo** al Plan (regla de la casa:
   retirar = redirigir sin borrar código; se consulta, D-N41).
 
+### 2.5b Deuda › Ofertas: que sean ofertas
+
+**Hoy** (Ofertas › Comparar, 3.598 px a 1280 con dos contratos ficticios) mezcla siete cosas, y solo dos son ofertas: «¿Dónde
+va el próximo euro?» (la escalera de WP-42), «Dinero parado», «Repartir la nómina», la capacidad de endeudamiento, la oferta de
+reunificación, «Modo de liquidación por contrato» (con su tabla de ocho modos) y, en las otras dos subpestañas, la calculadora
+de Préstamo y el Simulador visual. Quien entra a ver «¿nos compensa lo que nos ha ofrecido el banco?» no lo encuentra, y quien
+busca «dónde va la nómina» no lo busca en Ofertas.
+
+**Propuesta: Ofertas es la bandeja de lo que os ofrecen las entidades o podéis pedirles, cada cosa medida contra vuestro plan.**
+De arriba abajo (maqueta: `DeudaTRE.html#ofertas`):
+
+1. **Resumen en una línea:** cuántas ofertas abiertas, la que más ahorra frente al plan y cuándo vence la más próxima. Si no hay
+   ninguna, el hueco enseña «Qué podéis pedir».
+2. **Una tarjeta por oferta abierta** (quita, reunificación, refinanciación, traspaso al 0 %, aplazamiento): las condiciones en
+   tres líneas, cuándo vence (en ámbar a menos de 30 días) y el **veredicto frente a vuestro plan**, con el mismo motor y la misma
+   salida al mes (si la cuota baja, la diferencia se pone de más para comparar con justicia): «Os compensa: X € menos» /
+   «No os compensa: X € más» / «Casi igual», con fecha, coste total (intereses y comisiones) y cuotas al mes. «La letra
+   pequeña» se pliega con la trampa de cada tipo: cancelar la tarjeta al traspasar, el plazo que se alarga al reunificar, la
+   huella en los ficheros de una quita. Acciones: «Meterla en el plan» (como propuesta, con deshacer: aceptarla con la entidad es
+   cosa vuestra), «No nos interesa» (al historial) y «Avisadme 5 días antes» o «Contraoferta» (al kit de UND-13).
+3. **«Añadir una oferta»:** un diálogo con el tipo en fichas y solo los campos de ese tipo. Sustituye a «Oferta de reunificación»
+   y a las ofertas de quita de Ajustar el plan, que pasan a leerse de aquí (una sola fuente).
+4. **«Qué podéis pedir»:** sale de los contratos, no de ofertas reales. Por ejemplo, la tarjeta revolving cara: pedir
+   préstamo con plazo o traspaso, y revisar la TAE (DUO-D6); el préstamo con comisión: si baja con el tiempo; y antes de un
+   impago, aplazamiento o carencia por escrito. Cada fila lleva a «Preparar la llamada» (kit).
+5. **Tres accesos plegados:** «Probar a mano» (el Simulador visual y los ocho modos de liquidación, tal cual), «Juntarlas en un
+   préstamo: la calculadora» (Ofertas › Préstamo, tal cual, para una oferta que aún no está por escrito) e «Historial» (ofertas
+   rechazadas o vencidas, con fecha, útil para negociar).
+
+**Salen de Ofertas, porque no son ofertas** (se consulta, D-N44): la escalera del próximo euro y «Dinero parado» → al Plan,
+dentro de «¿Por qué este orden?» y de TRE-D3 (colchón primero), que es su pregunta; «Repartir la nómina» → Plan › Mes, donde se
+confirma la nómina; la capacidad de endeudamiento → la cabecera de Contratos (y la línea del hero solo si pasa del umbral).
+Medido en la maqueta: Ofertas, 1.343 px a 1440 y 2.708 a 390, con dos ofertas abiertas.
+
 ### 2.6 Inventario: dónde va cada pieza (garantía de «sin perder información»)
 
 | Pieza actual | Hoy en | Pasa a |
@@ -285,6 +319,12 @@ Herramientas de contratos ▸  (CIRBE · deuda en la sombra · índices · revis
 | Prioridad fiscal y orden avalancha/bola (listas) | Contratos | Plan (se consulta: D-N41) |
 | Simulador de consolidación | Contratos | Ofertas › Préstamo (se consulta: D-N41) |
 | Dos altas | Contratos | Una alta con dos modos |
+| ¿Dónde va el próximo euro? y Dinero parado | Ofertas › Comparar | Plan: «¿Por qué este orden?» y TRE-D3 (D-N44) |
+| Repartir la nómina | Ofertas › Comparar | Plan › Mes, al confirmar la nómina (D-N44) |
+| Capacidad de endeudamiento | Ofertas › Comparar y Plan | Cabecera de Contratos (D-N44) |
+| Oferta de reunificación y ofertas de quita | Ofertas › Comparar y Ajustar el plan | «Añadir una oferta» y su tarjeta con veredicto |
+| Modo de liquidación por contrato (8 modos) y Simulador visual | Ofertas | Ofertas › «Probar a mano» |
+| Préstamo (calculadora de consolidación) | Ofertas › Préstamo | Ofertas › «Juntarlas en un préstamo» |
 
 ### 2.7 Detalle visual (sistema de diseño v2)
 
@@ -427,7 +467,10 @@ coincidan (o que lleven nombre de comparación). Es la prueba que habría detect
 - **D-N42** · ¿El plan propone por defecto «colchón primero» cuando la liquidez está bajo la reserva, salvo deudas por encima de
   un 15 % de TAE? Recomendación: **sí**; el umbral, editable.
 - **D-N43** · ¿El plan reparte por titular (TRE-D8)? Solo si las deudas tienen titulares distintos y queréis verlo así.
+- **D-N44** · Ofertas: ¿sacar de ella la escalera del próximo euro y «Dinero parado» (al Plan), «Repartir la nómina» (a Plan ›
+  Mes) y la capacidad de endeudamiento (a Contratos), para que Ofertas sea solo ofertas con su veredicto? Recomendación: **sí**;
+  son pantallas en uso, por eso se consulta.
 - **Pendientes de antes:** DUO-05 rehecha como barra que se esconde al bajar (recomendación: sí); DUO-02 (un solo «¿Y si…?»,
   retira una pantalla: recomendación, decidir en la revisión del 14/12 con datos); UND-21 sigue a D-N11.
 
-**Siguiente número de decisión libre: D-N44** (si se aceptan D-N40 a D-N43 con estos números).
+**Siguiente número de decisión libre: D-N45** (si se aceptan D-N40 a D-N44 con estos números).

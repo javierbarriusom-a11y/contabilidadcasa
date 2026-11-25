@@ -141,6 +141,16 @@ input[type=range]{width:100%;accent-color:var(--brand)}
 .cost-row{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 0;border-top:1px solid var(--line2)}
 .d-foot{padding:14px 20px;border-top:1px solid var(--line2);display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap}
 
+/* Ofertas */
+.verd{border-radius:12px;padding:12px 14px;margin:6px 0 4px;background:var(--line2)}
+.verd.ok{background:var(--soft)}
+.verd.no{background:var(--warnbg)}
+.verd > b{display:block;font-size:15px;margin-bottom:6px}
+.verd.ok > b{color:var(--brand)}
+.verd.no > b{color:var(--warnink)}
+.verd dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:13.5px}
+.verd dt{color:var(--muted)}
+.verd dd{margin:0;font-variant-numeric:tabular-nums}
 /* Contratos */
 .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:14px}
 .ccard{padding:18px}
@@ -175,6 +185,8 @@ legend{font:500 11px 'Geist Mono',monospace;letter-spacing:.07em;text-transform:
   .f-grid{grid-template-columns:1fr}
   .kv b{font-size:16px}
   .hide-m{display:none}
+  .cost-row{flex-wrap:wrap}
+  .cost-row .btn{white-space:nowrap}
 }
 </style>
 </head>
@@ -186,6 +198,7 @@ legend{font:500 11px 'Geist Mono',monospace;letter-spacing:.07em;text-transform:
     <button type="button" data-go="plan" aria-pressed="true">Plan</button>
     <button type="button" data-go="comparar" aria-pressed="false">Comparar</button>
     <button type="button" data-go="contratos" aria-pressed="false">Contratos</button>
+    <button type="button" data-go="ofertas" aria-pressed="false">Ofertas</button>
   </span>
   <label><input type="checkbox" id="mkGuardado" checked> Con plan guardado</label>
   <label><input type="checkbox" id="mkSuelo"> Liquidez bajo el suelo (TRE-D3)</label>
@@ -356,8 +369,59 @@ legend{font:500 11px 'Geist Mono',monospace;letter-spacing:.07em;text-transform:
     </div>
   </section>
 
-  <section class="view" id="v-ofertas" hidden>
-    <div class="card sec"><h2>Ofertas</h2><p class="meta">Fuera del alcance de esta maqueta: Comparar, Préstamo y Simulador visual siguen como hoy. Las ofertas abiertas se anuncian con una insignia en el Plan.</p></div>
+  <!-- ============ OFERTAS ============ -->
+  <section class="view" id="v-ofertas" hidden aria-labelledby="t-of">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:center">
+      <div><h2 id="t-of" style="margin:0;font-size:20px">Ofertas</h2><span class="meta">Lo que os ofrecen las entidades o podéis pedirles, medido contra vuestro plan. Nada se acepta solo.</span></div>
+      <button type="button" class="btn btn-p" id="btnNuevaOferta">+ Añadir una oferta</button>
+    </div>
+
+    <div class="alert" style="margin-top:14px;background:var(--soft);color:var(--brand)">
+      <span><b>2 abiertas.</b> La que más os ahorra: <b id="ofMejor">—</b>. Vence <b>el 15 de diciembre</b> (en 20 días).</span>
+    </div>
+
+    <div class="cgrid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+      <article class="card ccard" id="ofA">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+          <div><span class="badge">Traspaso al 0 %</span><h3 style="margin-top:8px">Entidad FICTICIA · tarjeta nueva</h3><span class="meta">Para la deuda de Banco FICTICIO (2.400 €)</span></div>
+          <span class="badge warn">Vence en 20 días</span>
+        </div>
+        <ul class="meta" style="margin:10px 0;padding-left:18px"><li>0 % durante 12 meses; después, 18 % TAE</li><li>Comisión del traspaso: 3 % (72 €), una vez</li><li>Misma cuota: 90 €/mes</li></ul>
+        <div class="verd" data-of="A"></div>
+        <details class="why"><summary>La letra pequeña</summary>
+          <p class="meta">Solo compensa si la tarjeta de Banco FICTICIO se cancela al traspasar: con las dos abiertas, lo habitual es acabar con las dos deudas. Si a los 12 meses queda saldo, pasa al 18 %; el plan lo cuenta.</p>
+        </details>
+        <div class="acts"><button type="button" class="btn btn-p" data-of-acc="A">Meterla en el plan</button><button type="button" class="btn" data-of-rech="A">No nos interesa</button><button type="button" class="btn btn-g">Avisadme 5 días antes</button></div>
+      </article>
+
+      <article class="card ccard" id="ofB">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+          <div><span class="badge">Reunificación</span><h3 style="margin-top:8px">Banco FICTICIO · préstamo único</h3><span class="meta">Junta las dos deudas (7.500 €)</span></div>
+          <span class="badge">Vence el 31 de diciembre</span>
+        </div>
+        <ul class="meta" style="margin:10px 0;padding-left:18px"><li>7,9 % TAE a 48 meses</li><li>Comisión de apertura: 2 % (150 €), financiada</li><li>Cuota: 190 €/mes en lugar de 250 €</li></ul>
+        <div class="verd" data-of="B"></div>
+        <details class="why"><summary>La letra pequeña</summary>
+          <p class="meta">La cuota baja 60 € porque el plazo se alarga. Para comparar con justicia, el cálculo pone esos 60 € también de más cada mes. Si los dedicaseis a otra cosa, acabaríais en 48 meses y pagaríais bastante más.</p>
+        </details>
+        <div class="acts"><button type="button" class="btn" data-of-acc="B">Meterla en el plan</button><button type="button" class="btn" data-of-rech="B">No nos interesa</button><button type="button" class="btn btn-g">Contraoferta</button></div>
+      </article>
+    </div>
+
+    <div class="card sec" style="margin-top:16px">
+      <h2>Qué podéis pedir</h2>
+      <p class="meta" style="margin:4px 0 6px">Sale de vuestros contratos, no de ofertas reales. Cada una lleva a su guion para la llamada y su carta (el kit para la entidad).</p>
+      <div class="cost-row"><span><b>Banco FICTICIO · tarjeta al 21,9 %</b><br><span class="meta">Pedid pasarla a un préstamo con plazo o un traspaso al 0 %. Y revisad la TAE: según la fecha de firma, podría ser un indicio de usura.</span></span><button type="button" class="btn">Preparar la llamada</button></div>
+      <div class="cost-row"><span><b>Caja FICTICIA · préstamo con comisión del 1 %</b><br><span class="meta">Preguntad si la comisión por amortizar baja o desaparece pasado cierto plazo: vuestro plan amortiza en 2027.</span></span><button type="button" class="btn">Preparar la llamada</button></div>
+      <div class="cost-row"><span><b>Si un mes no llegáis</b><br><span class="meta">Antes del impago: pedid un aplazamiento o una carencia por escrito. Una quita solo suele ofrecerse con la deuda ya en impago, y deja huella en los ficheros.</span></span><button type="button" class="btn">Ver cómo</button></div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <button type="button" class="row-btn"><span>Probar a mano<small>Por contrato: esperar, quita, refinanciar o los 8 modos de liquidación (lo que hoy es el Simulador visual y «Modo de liquidación»)</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg></button>
+      <button type="button" class="row-btn"><span>Juntarlas en un préstamo: la calculadora<small>Con una oferta que aún no tenéis por escrito (lo que hoy es Ofertas › Préstamo)</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg></button>
+      <button type="button" class="row-btn"><span>Historial<small>1 rechazada: quita de Banco FICTICIO (1.900 € por 2.400 €), 3 de noviembre</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg></button>
+    </div>
+    <p class="note">Salen de Ofertas, porque no son ofertas: «¿Dónde va el próximo euro?» pasa al Plan («¿Por qué este orden?» y colchón primero), «Repartir la nómina» a Plan › Mes y la capacidad de endeudamiento a la cabecera de Contratos. Se consulta (D-N44).</p>
   </section>
 </div>
 
@@ -442,6 +506,21 @@ legend{font:500 11px 'Geist Mono',monospace;letter-spacing:.07em;text-transform:
       </div></fieldset>
     </div>
     <div class="d-foot"><button class="btn btn-g" value="cancel">Cancelar</button><button class="btn btn-p" value="ok" id="fOk">Guardar</button></div>
+  </form>
+</dialog>
+
+<dialog id="nuevaOferta" aria-labelledby="noTitle">
+  <form method="dialog">
+    <div class="d-head"><div><h2 id="noTitle">Añadir una oferta</h2><div class="meta">Lo que os han dado por escrito. Se mide contra vuestro plan; nada se acepta solo.</div></div><button class="btn" value="cancel" aria-label="Cerrar">✕</button></div>
+    <div class="d-body">
+      <fieldset style="border-top:0"><legend>Qué os ofrecen</legend>
+        <div class="acts" style="margin:0" role="group" aria-label="Tipo de oferta">
+          <button type="button" class="chip" aria-pressed="true" data-tipo="quita">Quita</button><button type="button" class="chip" aria-pressed="false" data-tipo="reu">Reunificación</button><button type="button" class="chip" aria-pressed="false" data-tipo="ref">Refinanciación</button><button type="button" class="chip" aria-pressed="false" data-tipo="cero">Al 0 %</button><button type="button" class="chip" aria-pressed="false" data-tipo="apl">Aplazamiento</button>
+        </div>
+      </fieldset>
+      <fieldset><legend>Condiciones</legend><div class="f-grid" id="noCampos"></div></fieldset>
+    </div>
+    <div class="d-foot"><button class="btn btn-g" value="cancel">Cancelar</button><button class="btn btn-p" value="ok" id="noOk">Medirla contra el plan</button></div>
   </form>
 </dialog>
 
@@ -617,7 +696,69 @@ legend{font:500 11px 'Geist Mono',monospace;letter-spacing:.07em;text-transform:
     $("compBody").innerHTML = filas.map(function (f) { return "<tr><td>" + f[0] + "</td><td>" + f[1] + "</td><td class='n'>" + f[2] + "</td><td class='n hide-m'>" + f[3] + "</td><td>" + (f[4] ? "<button type='button' class='btn btn-g' title='Abre: " + f[4] + "'>Ver detalle</button>" : "") + "</td></tr>"; }).join("");
     document.querySelectorAll(".cFin0").forEach(function (e) { e.textContent = mesLargo(tarjeta.fin); });
     document.querySelectorAll(".cFin1").forEach(function (e) { e.textContent = mesLargo(prest.fin); });
+    if (typeof renderOfertas === "function" && document.getElementById("ofMejor")) renderOfertas();
   }
+
+  // Ofertas: el mismo cálculo con los contratos que dejaría cada oferta, y lo mismo al mes que el plan.
+  function simGen(lista, extra) {
+    var ds = lista.map(function (d) { return Object.assign({ fin: null }, d); });
+    var intereses = 0;
+    for (var i = 0; i < 180; i++) {
+      var liberado = 0;
+      ds.forEach(function (d) {
+        if (d.saldo <= 0) { liberado += d.cuota; return; }
+        var tae = d.promo && i < d.promo ? 0 : d.tae;
+        var int = d.saldo * tae / 1200; intereses += int;
+        var pago = Math.min(d.saldo + int, d.cuota);
+        d.saldo = d.saldo + int - pago;
+        if (d.saldo <= 0.005) { d.saldo = 0; d.fin = i; liberado += d.cuota - pago; }
+      });
+      var x = extra(i) + liberado;
+      ds.filter(function (d) { return d.saldo > 0; }).sort(function (a, b) { return (b.promo && i < b.promo ? 0 : b.tae) - (a.promo && i < a.promo ? 0 : a.tae); }).forEach(function (d) {
+        if (x <= 0) return; var pago = Math.min(d.saldo, x); d.saldo -= pago; x -= pago; if (d.saldo <= 0.005 && d.fin === null) d.fin = i;
+      });
+      if (ds.every(function (d) { return d.saldo <= 0; })) break;
+    }
+    return { fin: Math.max.apply(null, ds.map(function (d) { return d.fin === null ? 179 : d.fin; })), intereses: intereses };
+  }
+  function renderOfertas() {
+    var e = extraFn();
+    var plan0 = plan(); // el mismo cálculo que la cifra de arriba del Plan
+    var coste0 = plan0.intereses + plan0.comision;
+    var A = simGen([{ id: "t", saldo: 2400, tae: 18, cuota: 90, promo: 12 }, { id: "p", saldo: 5100, tae: 9.5, cuota: 160 }], e);
+    var costeA = A.intereses + 72 + plan0.comision; // la comisión del préstamo no cambia con el traspaso
+    var B = simGen([{ id: "r", saldo: 7650, tae: 7.9, cuota: 190 }], function (i) { return e(i) + 60; });
+    var costeB = B.intereses + 150;
+    function verd(el, r, coste, cuota, nombre) {
+      var dCoste = coste - coste0, dMes = plan0.fin - r.fin, ok = dCoste < -20;
+      el.className = "verd " + (ok ? "ok" : "no");
+      el.innerHTML = "<b>" + (ok ? "Os compensa: " + eur(-dCoste) + " menos" : (dCoste > 20 ? "No os compensa: " + eur(dCoste) + " más" : "Casi igual que vuestro plan")) + "</b>" +
+        "<dl><dt>Libres en</dt><dd>" + mesLargo(r.fin) + (dMes > 0 ? " · " + dMes + (dMes === 1 ? " mes antes" : " meses antes") : dMes < 0 ? " · " + (-dMes) + (dMes === -1 ? " mes después" : " meses después") : " · el mismo mes") + "</dd>" +
+        "<dt>Coste total</dt><dd>" + eur(coste) + " frente a " + eur(coste0) + " (intereses y comisiones)</dd>" +
+        "<dt>Cuotas al mes</dt><dd>" + cuota + "</dd></dl>";
+      return { ok: ok, ahorro: -dCoste, nombre: nombre };
+    }
+    var a = verd(document.querySelector("[data-of=A]"), A, costeA, "250 €, como ahora", "el traspaso al 0 %");
+    var b = verd(document.querySelector("[data-of=B]"), B, costeB, "190 € (60 € menos; el cálculo los pone de más)", "la reunificación");
+    var mejor = a.ahorro >= b.ahorro ? a : b;
+    $("ofMejor").textContent = mejor.ahorro > 0 ? mejor.nombre + ", " + eur(mejor.ahorro) + " menos que vuestro plan" : "ninguna mejora vuestro plan";
+  }
+  var CAMPOS = {
+    quita: [["Contrato", "Banco FICTICIO · tarjeta"], ["Pagáis (€)", ""], ["Y se cancela una deuda de (€)", "2.400"], ["Plazo para pagarla", ""], ["Vence la oferta", ""]],
+    reu: [["Contratos que junta", "Los dos"], ["TAE (%)", ""], ["Plazo (meses)", ""], ["Comisión de apertura (€)", ""], ["Vence la oferta", ""]],
+    ref: [["Contrato", "Caja FICTICIA · préstamo"], ["Nueva TAE (%)", ""], ["Nuevo plazo (meses)", ""], ["Comisión (€)", ""], ["Vence la oferta", ""]],
+    cero: [["Contrato que se traspasa", "Banco FICTICIO · tarjeta"], ["Meses al 0 %", ""], ["TAE después (%)", ""], ["Comisión del traspaso (%)", ""], ["Vence la oferta", ""]],
+    apl: [["Contrato", "Caja FICTICIA · préstamo"], ["Meses sin cuota", ""], ["Intereses durante el aplazamiento", ""], ["Vence la oferta", ""]]
+  };
+  function pintarCampos(tipo) {
+    $("noCampos").innerHTML = CAMPOS[tipo].map(function (c) { return "<label>" + c[0] + "<input value='" + c[1] + "'></label>"; }).join("");
+    document.querySelectorAll("[data-tipo]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.tipo === tipo)); });
+  }
+  document.querySelectorAll("[data-tipo]").forEach(function (b) { b.addEventListener("click", function () { pintarCampos(b.dataset.tipo); }); });
+  $("btnNuevaOferta").addEventListener("click", function () { pintarCampos("quita"); $("nuevaOferta").showModal(); });
+  $("noOk").addEventListener("click", function () { setTimeout(function () { toast("Oferta guardada: aparece con su veredicto frente al plan."); }, 0); });
+  document.querySelectorAll("[data-of-acc]").forEach(function (b) { b.addEventListener("click", function () { toast("Metida en el plan como propuesta: la fecha y el ahorro de arriba ya la cuentan. Aceptarla con la entidad lo hacéis vosotros.", function () { toast("Deshecho."); }); }); });
+  document.querySelectorAll("[data-of-rech]").forEach(function (b) { b.addEventListener("click", function () { toast("Pasa al historial, con la fecha.", function () { toast("Deshecho."); }); }); });
 
   // Navegación
   function go(v) {
@@ -661,7 +802,7 @@ legend{font:500 11px 'Geist Mono',monospace;letter-spacing:.07em;text-transform:
   render();
   prevRes = null; render();
   var h = (location.hash || "").replace("#", "");
-  if (["comparar", "contratos"].indexOf(h) >= 0) go(h);
+  if (["comparar", "contratos", "ofertas"].indexOf(h) >= 0) go(h);
   if (h === "ajustes") openDrawer();
 })();
 </script>
