@@ -6,7 +6,8 @@
  *   B · «Este mes»: cuánto y a qué contrato, con «Ya lo he pagado» y «Este mes no puedo» (las mismas respuestas que la pregunta de DUO-D1);
  *   C · «Cómo vais»: los meses del plan guardado, con su forma y la racha; sin plan, «Este es nuestro plan»;
  *   D · el orden: una barra por contrato hasta que se salda con el plan, y rayado lo que se adelanta frente a pagar solo las cuotas;
- *   E · accesos: «Ajustar el plan», «Comparar con otras formas» y «Cerrar las deudas saldadas», que hoy llevan a su sitio en el detalle.
+ *   E · accesos: «Ajustar el plan» abre su panel (TRE-D2: los controles del plan óptimo de siempre, agrupados, con la vista previa
+ *       arriba); «Comparar con otras formas» y «Cerrar las deudas saldadas» llevan a su sitio en el detalle.
  * Lee los motores de siempre (el plan óptimo ya calculado, `planOptimoResultadoUltimo`; el camino sin extra; el seguimiento): no calcula
  * nada propio. Todo lo de siempre sigue debajo y vuelve con «Ver todo el detalle» (decisión 5 de ESTADO: no se retira nada en uso).
  * `localStorage["deuda-plan-v2-modo"] = "anterior"` abre siempre lo de siempre (lo usan las pruebas de sus controles). D-N49: con la vista
@@ -237,6 +238,108 @@
       <p class="dpv2-detalle"><button type="button" class="e19-btn e19-btn-secondary" data-dpv2="detalle">Ver todo el detalle</button></p>`;
   }
 
+  // --- TRE-D2 · «Ajustar el plan» (decimotercera auditoría §2.3; auditoría de diseño §5.2, PR 2) ---------------------------------------
+  // Lo puro: de lo que ya calculó el plan óptimo a la vista previa y a la nota de cada grupo. La vista previa enseña la fecha *con estos
+  // ajustes* (la del plan óptimo que se está tocando), no la fecha única: con un plan guardado, la fecha única es la guardada y no se
+  // movería al tocar nada; aquí se ve lo que cambiaría y, al lado, la del plan guardado.
+
+  /**
+   * @param {object} e
+   * @param {object|null} e.plan el último plan óptimo calculado (planOptimoResultadoUltimo)
+   * @param {object|null} e.outlook homeDebtOutlook(), para saber si hay plan guardado y su fecha
+   * @param {"prevision"|"fijo"} e.modo
+   * @param {number|null} e.fijo el importe fijo al mes
+   * @param {boolean} e.coinciden si avalancha y bola de nieve dan lo mismo (planOptimoOrdenesCoinciden)
+   */
+  function ajustarModelo({ plan, outlook = null, modo = "prevision", fijo = null, coinciden = false }) {
+    const guardadoKey = outlook?.fuente === "plan-guardado" ? String(outlook.libreDeDeuda || "").slice(0, 7) : "";
+    const guardado = mesValido(guardadoKey) ? guardadoKey : null;
+    const mes = modo === "fijo"
+      ? `${euros(fijo)} al mes además de las cuotas, todos los meses.`
+      : "Cada mes, lo que deje la previsión sin bajar del suelo: los meses de recibos fuertes, menos; los de pagas extra, más.";
+    if (!plan?.ok || plan.nothing || plan.sinDatos) {
+      const error = plan?.ok === false && plan.error ? String(plan.error)
+        : "Con estos ajustes no se puede calcular el plan: ninguna deuda tiene cuota activa con TAE o plazo (se completan en Contratos).";
+      return { ok: false, error, mes, orden: "", coste: "", guardado, guardar: guardado ? null : "Este es nuestro plan" };
+    }
+    const s = plan.recommended?.summary || {};
+    const vivo = mesValido(s.debtFreeMonthKey) ? s.debtFreeMonthKey : null;
+    const ahorro = Number.isFinite(s.totalSaved) ? s.totalSaved : Number.isFinite(s.interestSaved) ? s.interestSaved : null;
+    const difiere = Boolean(guardado) && vivo !== guardado;
+
+    const nombre = (k) => (k === "bola-nieve" ? "La más pequeña primero" : "La más cara primero");
+    const usa = plan.recommended?.strategy === "bola-nieve" ? "bola-nieve" : "avalancha";
+    const alt = plan.alternative?.summary;
+    let orden = "";
+    if (coinciden) {
+      orden = "Con vuestras deudas, los dos órdenes coinciden: dan la misma fecha y los mismos intereses. Cambiar el orden o el margen no mueve ninguna cifra.";
+    } else if (alt && mesValido(alt.debtFreeMonthKey) && vivo) {
+      const otro = usa === "bola-nieve" ? "avalancha" : "bola-nieve";
+      const intereses = (x) => (Number.isFinite(x?.totalInterest) ? `, ${euros(x.totalInterest)} de intereses` : "");
+      orden = `${nombre(usa)} (el que usa el plan): libres en ${mesLargo(vivo)}${intereses(s)}. ${nombre(otro)}: ${mesLargo(alt.debtFreeMonthKey)}${intereses(alt)}.`;
+    }
+
+    const coste = [];
+    if (s.forgiven > 0) coste.push(`Con las quitas os perdonan ${euros(s.forgiven)}.`);
+    if (s.commissionCost > 0) coste.push(`Las comisiones por amortizar antes suman ${euros(s.commissionCost)}, ya restadas de lo que os ahorráis.`);
+    (plan.warnings || []).forEach((w) => {
+      if (w.id === "comision-quita") coste.push(`La comisión de ${w.label} no cuenta: el plan la cancela con la quita, y una quita no es amortizar.`);
+      else if (w.id === "comision-baja" && mesValido(w.desde)) coste.push(`${w.label}: su comisión baja en ${mesLargo(w.desde)}; esperar a esa fecha os ahorraría ${euros(w.ahorro)}.`);
+      else if (w.id === "promocion" && mesValido(w.hasta)) {
+        coste.push(w.saldada ? `${w.label} se salda antes de que acabe su promoción al 0 % (${mesLargo(w.hasta)}).`
+          : Number.isFinite(w.saldoAlAcabar) ? `${w.label}: al acabar su promoción al 0 % (${mesLargo(w.hasta)}) quedarán ${euros(w.saldoAlAcabar)}.` : "");
+      }
+    });
+
+    return {
+      ok: true,
+      fecha: vivo ? mesLargo(vivo) : "fuera del horizonte del plan",
+      ahorro,
+      guardado,
+      difiere,
+      mes,
+      orden,
+      coste: coste.filter(Boolean).join(" "),
+      // Sin plan guardado: guardarlo. Con uno y otra fecha: sustituirlo (lo hace el seguimiento de DUO-D1, con su deshacer).
+      guardar: !guardado ? "Este es nuestro plan" : difiere ? "Guardar estos ajustes como nuestro plan" : null,
+    };
+  }
+
+  function ajustarVistaHtml(a) {
+    if (!a.ok) return esc(a.error);
+    const ahorro = a.ahorro === null ? "" : ` · os ahorráis <strong>${esc(euros(a.ahorro))}</strong>`;
+    const guardado = a.difiere ? `<span class="dpv2-aj-guardado">Vuestro plan guardado: ${esc(mesLargo(a.guardado))}.</span>` : "";
+    return `Con estos ajustes, libres en <strong>${esc(a.fecha)}</strong>${ahorro}.${guardado}`;
+  }
+
+  function ajustarChromeHtml() {
+    const grupo = (id, titulo, extra = "") => `<section class="dpv2-aj-grupo" aria-labelledby="dpv2Aj-${id}">
+        <h3 id="dpv2Aj-${id}">${titulo}</h3>
+        <div data-dpv2-hueco="${id}"></div>${extra}
+        <p class="dpv2-nota" data-dpv2-aj-nota="${id}"></p>
+      </section>`;
+    return `<div class="dpv2-aj-in">
+      <div class="dpv2-aj-fija">
+        <span class="clas-v2-asa" aria-hidden="true"></span>
+        <div class="dpv2-aj-cabeza">
+          <div><p class="dpv2-kicker">Deuda · Plan</p><h2 id="dpv2AjustarTitulo">Ajustar el plan</h2></div>
+          <button type="button" class="e19-btn e19-btn-secondary clas-v2-cerrar" data-dpv2-aj="cerrar" aria-label="Cerrar «Ajustar el plan»">×</button>
+        </div>
+        <p class="dpv2-aj-vista" id="dpv2AjustarVista" aria-live="polite"></p>
+        <button type="button" class="e19-btn e19-btn-secondary dpv2-aj-guardar" data-dpv2-aj="guardar" hidden>Este es nuestro plan</button>
+      </div>
+      <div data-dpv2-hueco="nota"></div>
+      ${grupo("mes", "Cuánto al mes", `<div class="dpv2-aj-pasos" role="group" aria-label="Importe fijo de 50 en 50 euros"><button type="button" class="e19-btn e19-btn-secondary" data-dpv2-aj="menos" aria-label="50 euros menos al mes">− 50 €</button><button type="button" class="e19-btn e19-btn-secondary" data-dpv2-aj="mas" aria-label="50 euros más al mes">+ 50 €</button></div>`)}
+      ${grupo("orden", "En qué orden")}
+      ${grupo("colchon", "Colchón primero")}
+      ${grupo("coste", 'Lo que cambia el coste <span class="dpv2-aj-cuenta" data-dpv2-aj-cuenta></span>')}
+      <div class="dpv2-aj-pie">
+        <button type="button" class="e19-btn e19-btn-secondary" data-dpv2-aj="restablecer">Restablecer lo recomendado</button>
+        <button type="button" class="e19-btn e19-btn-primary" data-dpv2-aj="cerrar">Listo</button>
+      </div>
+    </div>`;
+  }
+
   // --- Con la app ------------------------------------------------------------------------------------------------------------------
 
   function guard(fn, fallback = null) {
@@ -292,12 +395,183 @@
   function resumenAjustes() {
     return guard(() => {
       const partes = [];
-      const modo = typeof planOptimoModo !== "undefined" && planOptimoModo === "fijo" ? `${euros(planOptimoMensual || 0)} al mes` : "lo que permita la previsión";
+      // El importe que usa el plan: el campo, que el plan rellena con el de partida; `planOptimoMensual` es null hasta que se escribe uno.
+      const fijo = Number(String(qs("planOptimoMensual")?.value || "").replace(",", ".")) || (typeof planOptimoMensual === "number" ? planOptimoMensual : 0);
+      const modo = typeof planOptimoModo !== "undefined" && planOptimoModo === "fijo" ? `${euros(fijo)} al mes` : "lo que permita la previsión";
       partes.push(modo);
       partes.push(typeof planOptimoOrdenGuardado === "function" && planOptimoOrdenGuardado() === "bola-nieve" ? "la más pequeña primero" : "la más cara primero");
       if (typeof planOptimoPago !== "undefined" && planOptimoPago > 0) partes.push(`pago inicial ${euros(planOptimoPago)}`);
       return partes.join(" · ");
     }, "");
+  }
+
+  // TRE-D2: los controles del plan óptimo de siempre se prestan al panel (los mismos nodos: mismos ids, mismos manejadores delegados en
+  // `document` y lo guardado de siempre) y vuelven a su sitio al cerrarlo, marcado con un comentario. «@id»: el bloque `.cam-control`
+  // que contiene ese campo (importe fijo y pago inicial).
+  const AJ_SITIOS = {
+    nota: ["planOptimoNota"],
+    mes: ["planOptimoModo", "@planOptimoMensual"],
+    orden: ["planOptimoOrden", "planOptimoMargen"],
+    colchon: ["planOptimoColchonGrupo"],
+    coste: ["planOptimoQuitas", "planOptimoComisiones"],
+  };
+  let ajPrestados = [];
+  let ajTocado = false;
+  let ajRestableciendo = false;
+
+  const ajDialogo = () => (typeof qs === "function" ? qs("deudaPlanV2Ajustar") : null);
+
+  function ajNodo(ref) {
+    return ref.startsWith("@") ? qs(ref.slice(1))?.closest(".cam-control") || null : qs(ref);
+  }
+
+  function ajPrestar(dialog) {
+    for (const [grupo, refs] of Object.entries(AJ_SITIOS)) {
+      const destino = dialog.querySelector(`[data-dpv2-hueco="${grupo}"]`);
+      refs.forEach((ref) => {
+        const nodo = ajNodo(ref);
+        if (!nodo || !destino || dialog.contains(nodo)) return;
+        const hueco = root.document.createComment(`dpv2-ajustar ${ref}`);
+        nodo.before(hueco);
+        destino.append(nodo);
+        ajPrestados.push({ nodo, hueco });
+      });
+    }
+  }
+
+  function ajDevolver() {
+    ajPrestados.forEach(({ nodo, hueco }) => { if (hueco.parentNode) hueco.replaceWith(nodo); });
+    ajPrestados = [];
+  }
+
+  function pintarAjustar() {
+    const dialog = ajDialogo();
+    if (!dialog?.firstElementChild) return;
+    const plan = typeof planOptimoResultadoUltimo !== "undefined" ? planOptimoResultadoUltimo : null;
+    const modo = typeof planOptimoModo !== "undefined" && planOptimoModo === "fijo" ? "fijo" : "prevision";
+    const a = ajustarModelo({
+      plan,
+      outlook: guard(() => homeDebtOutlook(), null),
+      modo,
+      fijo: guard(() => Number(String(qs("planOptimoMensual")?.value || "0").replace(",", ".")) || 0, 0),
+      coinciden: Boolean(plan?.ok && typeof planOptimoOrdenesCoinciden === "function" && guard(() => planOptimoOrdenesCoinciden(plan), false)),
+    });
+    dialog.dataset.modo = modo;
+    const vista = dialog.querySelector("#dpv2AjustarVista");
+    if (vista) vista.innerHTML = ajustarVistaHtml(a);
+    ["mes", "orden", "coste"].forEach((id) => {
+      const nota = dialog.querySelector(`[data-dpv2-aj-nota="${id}"]`);
+      if (nota) nota.textContent = a[id] || "";
+    });
+    // El contador del grupo de coste: contratos con una quita, una comisión o una promoción escritas.
+    const con = new Set();
+    dialog.querySelectorAll("input[data-plan-optimo-quita]").forEach((i) => { if (Number(String(i.value).replace(",", ".")) > 0) con.add(i.dataset.planOptimoQuita); });
+    dialog.querySelectorAll("input[data-plan-optimo-comision]").forEach((i) => { if (String(i.value || "").trim()) con.add(i.dataset.planOptimoComision); });
+    const cuenta = dialog.querySelector("[data-dpv2-aj-cuenta]");
+    if (cuenta) cuenta.textContent = con.size ? `(${con.size} ${con.size === 1 ? "contrato" : "contratos"})` : "";
+    const guardar = dialog.querySelector('[data-dpv2-aj="guardar"]');
+    if (guardar) {
+      guardar.hidden = !a.guardar || !qs("planSeguimiento")?.querySelector("[data-seg-guardar]");
+      if (a.guardar) guardar.textContent = a.guardar;
+    }
+  }
+
+  function ajTocar(el, valor, evento = "input") {
+    if (!el) return;
+    if (el.type === "radio" || el.type === "checkbox") {
+      if (el.checked === valor) return;
+      el.checked = valor;
+    } else {
+      if (el.value === valor) return;
+      el.value = valor;
+    }
+    el.dispatchEvent(new Event(evento, { bubbles: true }));
+  }
+
+  // «Restablecer lo recomendado»: lo de partida del plan óptimo, por los mismos controles (y lo guardado de siempre). Las quitas, las
+  // comisiones y las promociones no se tocan: son datos de vuestros contratos, no preferencias del plan.
+  function restablecer() {
+    ajRestableciendo = true;
+    try {
+      ajTocar(root.document.querySelector('input[name="planOptimoModo"][value="prevision"]'), true, "change");
+      ajTocar(qs("planOptimoPago"), "0");
+      ajTocar(root.document.querySelector('input[name="planOptimoOrden"][value="avalancha"]'), true, "change");
+      ajTocar(qs("planOptimoMargenPct"), "3");
+      ajTocar(qs("planOptimoMargenAbs"), "150");
+      ajTocar(qs("planOptimoColchon"), true, "change");
+      ajTocar(qs("planOptimoColchonUmbral"), "15");
+    } finally {
+      ajRestableciendo = false;
+    }
+    const nota = qs("planOptimoNota");
+    if (nota) nota.textContent = "Lo recomendado: lo que permita la previsión, la más cara primero, sin pago inicial y primero el colchón. Las quitas y las comisiones siguen como las escribisteis.";
+    root.FinanceMedidor?.anotar("deuda-ajustar", "descarte");
+    pintarAjustar();
+  }
+
+  function pasoMensual(delta) {
+    const campo = qs("planOptimoMensual");
+    if (!campo) return;
+    const actual = Number(String(campo.value || "0").replace(",", ".")) || 0;
+    ajTocar(campo, String(Math.max(0, Math.round((actual + delta) / 10) * 10)));
+  }
+
+  function onAjClick(event) {
+    const boton = event.target.closest?.("[data-dpv2-aj]");
+    const dialog = ajDialogo();
+    if (!boton || !dialog) return;
+    const accion = boton.dataset.dpv2Aj;
+    if (accion === "cerrar") dialog.close();
+    else if (accion === "mas" || accion === "menos") pasoMensual(accion === "mas" ? 50 : -50);
+    else if (accion === "restablecer") restablecer();
+    else if (accion === "guardar") {
+      qs("planSeguimiento")?.querySelector("[data-seg-guardar]")?.click();
+      root.FinanceMedidor?.anotar("deuda-plan-v2", "accion");
+      dialog.close();
+    }
+  }
+
+  function onAjCambio() {
+    if (ajTocado || ajRestableciendo) return;
+    ajTocado = true;
+    root.FinanceMedidor?.anotar("deuda-ajustar", "accion");
+  }
+
+  function alCerrarAjustar() {
+    ajDevolver();
+    render();
+    qs("deudaPlanV2")?.querySelector('[data-dpv2="ajustar"]')?.focus?.();
+  }
+
+  function abrirAjustar() {
+    const dialog = ajDialogo();
+    if (!dialog || typeof dialog.showModal !== "function") {
+      irAlDetalle("#planOptimoCard");
+      return;
+    }
+    if (!dialog.dataset.enganchado) {
+      dialog.dataset.enganchado = "1";
+      dialog.addEventListener("click", onAjClick);
+      dialog.addEventListener("input", onAjCambio);
+      dialog.addEventListener("change", onAjCambio);
+      dialog.addEventListener("close", alCerrarAjustar);
+      root.addEventListener("hashchange", () => { if (dialog.open) dialog.close(); });
+    }
+    if (!dialog.firstElementChild) dialog.innerHTML = ajustarChromeHtml();
+    ajPrestar(dialog);
+    ajTocado = false;
+    pintarAjustar();
+    // En el escritorio el panel deja a la vista la columna de la izquierda: que sea el héroe, que cambia con cada ajuste.
+    if ((root.innerWidth || 0) >= 1024) qs("deudaPlanV2")?.querySelector(".dpv2-hero")?.scrollIntoView?.({ block: "start" });
+    if (!dialog.open) dialog.showModal();
+    root.FinanceMedidor?.anotar("deuda-ajustar", "vista");
+  }
+
+  // Desde el repintado (lo de siempre, otro tema o sin deudas): los controles vuelven ya, sin esperar al «close», que llega después.
+  function cerrarAjustarSiAbierto() {
+    const dialog = ajDialogo();
+    ajDevolver();
+    if (dialog?.open) dialog.close();
   }
 
   function irAlDetalle(selector) {
@@ -325,7 +599,7 @@
       root.FinanceMedidor?.anotar("deuda-plan-v2", "accion");
       render();
     } else if (accion === "detalle") irAlDetalle(null);
-    else if (accion === "ajustar") irAlDetalle("#planOptimoCard");
+    else if (accion === "ajustar") abrirAjustar();
     else if (accion === "comparar") irAlDetalle(".deuda-ruta-layout");
     else if (accion === "cerrar") irAlDetalle("#planCierres");
     else if (accion === "volver") {
@@ -340,6 +614,7 @@
     if (!box) return;
     const v2 = root.document.documentElement.dataset.tema === "v2";
     if (!v2) {
+      cerrarAjustarSiAbierto();
       box.hidden = true;
       return;
     }
@@ -349,11 +624,13 @@
     }
     const m = modelo(entrada());
     if (m.vacio) {
+      cerrarAjustarSiAbierto();
       box.hidden = true;
       box.innerHTML = "";
       return;
     }
     if (modoAnterior()) {
+      cerrarAjustarSiAbierto();
       box.dataset.modo = "anterior";
       box.innerHTML = `<p class="dpv2-volver">Estáis viendo todo el detalle del plan. <button type="button" class="e19-btn e19-btn-secondary" data-dpv2="volver">Volver a la vista nueva</button></p>`;
     } else {
@@ -367,11 +644,13 @@
         box.__vista = true;
         root.FinanceMedidor?.anotar("deuda-plan-v2", "vista");
       }
+      // TRE-D2: con el panel abierto, cada control que se toca repinta el plan óptimo y, con él, esto: la vista previa del panel también.
+      if (ajDialogo()?.open) pintarAjustar();
     }
     box.hidden = false;
   }
 
-  const api = { modelo, html, mesLargo, MODO_KEY };
+  const api = { modelo, html, mesLargo, MODO_KEY, ajustarModelo, ajustarVistaHtml, ajustarChromeHtml, AJ_SITIOS };
   root.renderDeudaPlanV2 = render;
   root.FinanceDeudaPlanV2 = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;

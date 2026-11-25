@@ -78,6 +78,8 @@
     { id: "cierre-v2", nombre: "Cierre nuevo", accion: ["acción o firma", "acciones o firmas"], descarte: ["vez «el cierre paso a paso»", "veces «el cierre paso a paso»"], deshecho: null },
     { id: "prevision-v2", nombre: "Previsión nueva", accion: ["horizonte cambiado o ida a otra pantalla", "horizontes cambiados o idas a otra pantalla"], descarte: ["vez «Ver todo el detalle»", "veces «Ver todo el detalle»"], deshecho: null },
     { id: "deuda-plan-v2", nombre: "Deuda nueva", accion: ["mes marcado o plan guardado", "meses marcados o planes guardados"], descarte: ["vez «Ver todo el detalle»", "veces «Ver todo el detalle»"], deshecho: null },
+    // TRE-D2: el panel «Ajustar el plan». Una apertura con algún ajuste tocado es una acción; «Restablecer lo recomendado», un descarte.
+    { id: "deuda-ajustar", nombre: "Ajustar el plan", accion: ["apertura con un ajuste", "aperturas con algún ajuste"], descarte: ["vez «Restablecer lo recomendado»", "veces «Restablecer lo recomendado»"], deshecho: null },
     { id: "simulador-v2", nombre: "Simulador de deuda nuevo", accion: ["estrategia guardada o acuerdo marcado", "estrategias guardadas o acuerdos marcados"], descarte: ["vez «Ver el simulador anterior»", "veces «Ver el simulador anterior»"], deshecho: null },
     { id: "huella-extracto", nombre: "Huella anónima del extracto", accion: ["huella copiada", "huellas copiadas"], descarte: null, deshecho: null },
     { id: "copia-aviso", nombre: "Aviso de la copia de seguridad", accion: ["copia descargada desde el aviso", "copias descargadas desde el aviso"], descarte: null, deshecho: null },

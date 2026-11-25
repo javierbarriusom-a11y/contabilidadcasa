@@ -13459,8 +13459,9 @@ test.describe("TRE-D1 · Deuda › Plan nuevo", () => {
       await vista.locator('[data-dpv2="pagado"]').click();
       await expect(vista.locator(".dpv2-estado.is-ok")).toContainText("Hecho este mes");
       await expect(vista.locator('.dpv2-meses li[data-estado="hecho"]')).toHaveCount(1);
-      // «Ajustar el plan» lleva al plan óptimo de siempre; «Volver a la vista nueva» deshace, y la elección se recuerda al recargar.
-      await vista.locator('[data-dpv2="ajustar"]').click();
+      // «Ver todo el detalle» lleva al plan óptimo de siempre; «Volver a la vista nueva» deshace, y la elección se recuerda al recargar.
+      // («Ajustar el plan» llevaba aquí hasta TRE-D2; ahora abre su panel, y lo prueba «TRE-D2 · Deuda › Ajustar el plan».)
+      await vista.locator('[data-dpv2="detalle"]').click();
       await expect(page.locator("#planOptimoCard")).toBeVisible();
       await expect(vista.locator('[data-dpv2="volver"]')).toBeVisible();
       await page.reload();
@@ -13469,6 +13470,102 @@ test.describe("TRE-D1 · Deuda › Plan nuevo", () => {
       await vista.locator('[data-dpv2="volver"]').click();
       await expect(vista.locator("#dpv2Fecha")).toBeVisible();
       await expect(page.locator("#planOptimoCard")).toBeHidden();
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
+// TRE-D2 · «Ajustar el plan» (decimotercera §2.3; auditoría de diseño §5.2, PR 2): panel derecho en el escritorio y hoja inferior en el
+// móvil, con los controles del plan óptimo de siempre (los mismos nodos) y una vista previa que se mueve con ellos; al cerrar, todo
+// vuelve a su sitio. Desde datos guardados (arranque en caliente), contratos FICTICIOS.
+test.describe("TRE-D2 · Deuda › Ajustar el plan", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+    const etiqueta = viewport.width === 390 ? " @safari" : "";
+    test(`los controles de siempre en el panel, la vista previa que se mueve, guardar y todo de vuelta a su sitio, a ${viewport.width} px${etiqueta}`, async ({ page }) => {
+      test.setTimeout(150000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await arrancarEnCaliente(page, { viewport });
+      await page.evaluate(() => { location.hash = "deuda-ruta"; });
+      await deudaPlanNueva(page);
+      const vista = page.locator("#deudaPlanV2");
+      await expect(vista.locator("#dpv2Fecha")).toBeVisible({ timeout: 20000 });
+      await vista.locator('[data-dpv2="ajustar"]').click();
+      const panel = page.locator("#deudaPlanV2Ajustar");
+      const previa = panel.locator("#dpv2AjustarVista");
+      await expect(panel).toBeVisible();
+      await expect(previa).toContainText(/libres en \S+ de 20\d\d/);
+      // Los controles son los de siempre, prestados: un solo nodo de cada uno en la página, y dentro del panel.
+      for (const id of ["planOptimoModo", "planOptimoPago", "planOptimoOrden", "planOptimoMargen", "planOptimoColchonGrupo", "planOptimoQuitas", "planOptimoComisiones", "planOptimoNota"]) {
+        await expect(page.locator(`#${id}`)).toHaveCount(1);
+        await expect(panel.locator(`#${id}`)).toHaveCount(1);
+      }
+      // Hoja inferior en el móvil y panel derecho en el escritorio, sin desbordar.
+      const caja = await panel.boundingBox();
+      if (viewport.width === 390) {
+        expect(caja.width).toBeGreaterThanOrEqual(389);
+        expect(Math.round(caja.y + caja.height)).toBeGreaterThanOrEqual(843);
+      } else {
+        expect(caja.width).toBeLessThanOrEqual(441);
+        expect(caja.x).toBeGreaterThanOrEqual(1280 - 441);
+      }
+      expect(await panel.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+      // Con «lo que permita la previsión» no hay importe que escribir; con «un importe fijo», sí, con sus pasos de 50 €.
+      await expect(panel.locator('input[name="planOptimoModo"][value="prevision"]')).toBeChecked();
+      await expect(panel.locator("#planOptimoMensual")).toBeHidden();
+      await expect(panel.locator('[data-dpv2-aj="mas"]')).toBeHidden();
+      await panel.locator('input[name="planOptimoModo"][value="fijo"]').check();
+      // El acceso resume el importe que usa el plan (el de partida, sin haber escrito nada), no «0 € al mes».
+      const dePartida = Number(await panel.locator("#planOptimoMensual").inputValue());
+      expect(dePartida).toBeGreaterThan(0);
+      await expect(vista.locator('[data-dpv2="ajustar"] small')).toHaveText(new RegExp(`^${dePartida.toLocaleString("es-ES").replace(".", "\\.")}\\s€ al mes`));
+      await panel.locator("#planOptimoMensual").fill("100");
+      await panel.locator("#planOptimoMensual").press("Tab");
+      await expect(panel.locator('[data-dpv2-aj-nota="mes"]')).toContainText("100");
+      const conCien = await previa.textContent();
+      for (let i = 0; i < 4; i += 1) await panel.locator('[data-dpv2-aj="mas"]').click();
+      await expect(panel.locator("#planOptimoMensual")).toHaveValue("300");
+      await expect.poll(() => previa.textContent()).not.toBe(conCien);
+      // Sin plan guardado, la fecha de la vista previa es la del héroe (la fecha única), que cambia a la vez.
+      const mesPrevia = (await previa.locator("strong").first().textContent()).trim().toLowerCase();
+      await expect.poll(async () => (await vista.locator("#dpv2Fecha").textContent()).trim().toLowerCase()).toBe(mesPrevia);
+      await panel.locator('[data-dpv2-aj="menos"]').click();
+      await expect(panel.locator("#planOptimoMensual")).toHaveValue("250");
+      // «Restablecer lo recomendado» vuelve a lo de partida por los mismos controles.
+      await panel.locator("#planOptimoPago").fill("500");
+      await panel.locator("#planOptimoPago").press("Tab");
+      await panel.locator('[data-dpv2-aj="restablecer"]').click();
+      await expect(panel.locator('input[name="planOptimoModo"][value="prevision"]')).toBeChecked();
+      await expect(panel.locator("#planOptimoPago")).toHaveValue("0");
+      await expect(panel.locator('input[name="planOptimoOrden"][value="avalancha"]')).toBeChecked();
+      await expect(panel.locator("#planOptimoNota")).toContainText("Lo recomendado");
+      // Escape cierra; los controles vuelven a la tarjeta de siempre, en su orden, y el foco al acceso.
+      await page.keyboard.press("Escape");
+      await expect(panel).toBeHidden();
+      await expect(vista.locator('[data-dpv2="ajustar"]')).toBeFocused();
+      const orden = await page.evaluate(() => [...document.querySelectorAll("#planOptimoCard > *")].map((el) => el.id || el.className).filter(Boolean));
+      const pos = (x) => orden.findIndex((o) => o === x || String(o).includes(x));
+      for (const id of ["planOptimoModo", "cam-control", "planOptimoQuitas", "planOptimoComisiones", "planOptimoColchonGrupo", "planOptimoOrden", "planOptimoMargen", "planOptimoNota", "planOptimoResultado"]) expect(pos(id), id).toBeGreaterThanOrEqual(0);
+      expect(pos("planOptimoModo")).toBeLessThan(pos("cam-control"));
+      expect(pos("planOptimoMargen")).toBeLessThan(pos("planOptimoNota"));
+      expect(pos("planOptimoNota")).toBeLessThan(pos("planOptimoResultado"));
+      // Guardar desde el panel: «Este es nuestro plan»; con el plan guardado, otro importe ofrece sustituirlo y nombra el guardado.
+      await vista.locator('[data-dpv2="ajustar"]').click();
+      await panel.locator('[data-dpv2-aj="guardar"]').click();
+      await expect(panel).toBeHidden();
+      await expect.poll(() => page.evaluate(() => homeDebtOutlook().fuente)).toBe("plan-guardado");
+      await vista.locator('[data-dpv2="ajustar"]').click();
+      await panel.locator('input[name="planOptimoModo"][value="fijo"]').check();
+      await panel.locator("#planOptimoMensual").fill("900");
+      await panel.locator("#planOptimoMensual").press("Tab");
+      await expect(previa).toContainText("Vuestro plan guardado");
+      await expect(panel.locator('[data-dpv2-aj="guardar"]')).toHaveText("Guardar estos ajustes como nuestro plan");
+      // «Ver todo el detalle» (con el panel cerrado) enseña los mismos controles en la tarjeta de siempre.
+      await panel.locator('[data-dpv2-aj="cerrar"]').last().click();
+      await expect(panel).toBeHidden();
+      await vista.locator('[data-dpv2="detalle"]').click();
+      await expect(page.locator("#planOptimoCard #planOptimoPago")).toBeVisible();
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }

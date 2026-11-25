@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-25-ajustar-plan",
+      fecha: "2026-11-25",
+      texto: "Deuda › Plan › «Ajustar el plan»: todo lo del plan en un panel, con la fecha y el ahorro cambiando mientras tocáis.",
+      href: "#deuda-ruta",
+    },
+    {
       id: "2026-11-25-deuda-nueva",
       fecha: "2026-11-25",
       texto: "Deuda › Plan, nueva: cuándo acabáis, lo de este mes con «Ya lo he pagado» y el orden; bajo la reserva, primero el colchón.",
