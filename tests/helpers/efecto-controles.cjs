@@ -109,12 +109,24 @@ const PANTALLAS = [
     },
   },
   {
-    // TRE-D1: la vista nueva de Deuda › Plan. Hoy solo tiene botones de acción (el censo no los cuenta); lo que se le añada en TRE-D2
-    // (el panel «Ajustar el plan») tendrá que registrarse aquí.
+    // TRE-D1: la vista nueva de Deuda › Plan. Solo tiene botones de acción (el censo no los cuenta); sus controles están en el panel
+    // «Ajustar el plan» (TRE-D2), la pantalla siguiente.
     nombre: "Deuda › Plan nuevo", hash: "#deuda-ruta", raiz: "#deudaPlanV2",
     entrar: async (page) => {
       await require("./deuda-plan-nueva.cjs").deudaPlanNueva(page);
       await expect(page.locator("#deudaPlanV2 #dpv2Fecha")).toBeVisible({ timeout: 20000 });
+    },
+  },
+  {
+    // TRE-D2: el panel «Ajustar el plan» de la vista nueva. Son los controles de siempre prestados (los mismos ids que en «Deuda › Plan»),
+    // pero aquí cada uno tiene que mover lo que el hogar ve en el panel: la vista previa y las notas de cada grupo.
+    nombre: "Deuda › Ajustar el plan", hash: "#deuda-ruta", raiz: "#deudaPlanV2Ajustar",
+    entrar: async (page) => {
+      await page.locator('#deudaPlanV2 [data-dpv2="ajustar"]').click();
+      await expect(page.locator("#deudaPlanV2Ajustar #dpv2AjustarVista")).toContainText("libres en", { timeout: 15000 });
+      await abrirDetalles(page, "#planOptimoQuitas");
+      await abrirDetalles(page, "#planOptimoMargen");
+      await abrirDetalles(page, "#planOptimoComisiones");
     },
   },
   {
@@ -147,6 +159,9 @@ const PANTALLAS = [
 const PLAN = "#planOptimoResultado";
 const CAMINO = "#caminoDeudaResultado";
 const COINCIDEN = /los dos órdenes coinciden/;
+// TRE-D2: lo que el hogar ve en el panel al tocar (la vista previa y las notas del orden y del coste). La nota de «Cuánto al mes» no
+// cuenta: repite el importe escrito, y eso no es un efecto.
+const AJUSTAR = '#dpv2AjustarVista, #deudaPlanV2Ajustar [data-dpv2-aj-nota="orden"], #deudaPlanV2Ajustar [data-dpv2-aj-nota="coste"]';
 
 // Cada entrada: `pantalla`, `clave` (la del censo, o una expresión regular para una familia), `control` (selector que se toca), `accion`,
 // `observa` y, si hace falta, `oExplica`, `modo` o `abrir`.
@@ -170,6 +185,20 @@ const EFECTOS = [
   { pantalla: "Deuda › Plan", nombre: "Camino: deslizador del extra", clave: "#caminoDeudaRango", control: "#caminoDeudaRango", accion: { tipo: "rango", valor: 500 }, observa: CAMINO },
   // DUO-D1: guardar el plan cambia lo que se ve bajo él (aparece el seguimiento, con sus meses).
   { pantalla: "Deuda › Plan", nombre: "Este es nuestro plan", clave: "button[data-seg-guardar]", control: "[data-seg-guardar]", accion: { tipo: "alternar" }, observa: "#planSeguimiento", modo: "texto" },
+  // TRE-D2 · el panel «Ajustar el plan». Cada entrada parte de lo que dejaron las de «Deuda › Plan» (importe fijo de 350 €, pago inicial
+  // de 1.000 €, quita de 1.500 €, colchón apagado, plan guardado): por eso los valores son otros.
+  { pantalla: "Deuda › Ajustar el plan", nombre: "Panel: lo que permita la previsión", clave: "radio:planOptimoModo=prevision", control: 'input[name="planOptimoModo"][value="prevision"]', accion: { tipo: "marcar" }, observa: AJUSTAR },
+  { pantalla: "Deuda › Ajustar el plan", nombre: "Panel: un importe fijo", clave: "radio:planOptimoModo=fijo", control: 'input[name="planOptimoModo"][value="fijo"]', accion: { tipo: "marcar" }, observa: AJUSTAR },
+  { pantalla: "Deuda › Ajustar el plan", nombre: "Panel: importe fijo al mes", clave: "#planOptimoMensual", control: "#planOptimoMensual", accion: { tipo: "rellenar", valor: 500 }, observa: AJUSTAR },
+  { pantalla: "Deuda › Ajustar el plan", nombre: "Panel: pago inicial", clave: "#planOptimoPago", control: "#planOptimoPago", accion: { tipo: "rellenar", valor: 2000 }, observa: AJUSTAR },
+  { pantalla: "Deuda › Ajustar el plan", nombre: "Panel: oferta de quita", clave: "input[data-plan-optimo-quita]", control: "input[data-plan-optimo-quita]", accion: { tipo: "rellenar", valor: 1200 }, observa: AJUSTAR },
+  { pantalla: "Deuda › Ajustar el plan", nombre: "Panel: comisión por amortizar antes", clave: "input[data-plan-optimo-comision]", control: 'input[data-plan-optimo-comision][data-comision-campo="pct"]', accion: { tipo: "rellenar", valor: 3 }, observa: AJUSTAR, oExplica: /no cuenta: el plan la cancela con la quita/ },
+  { pantalla: "Deuda › Ajustar el plan", nombre: "Panel: umbral de TAE de colchón primero", clave: "#planOptimoColchonUmbral", control: "#planOptimoColchonUmbral", accion: { tipo: "rellenar", valor: 25 }, observa: "#deudaPlanV2Ajustar #planOptimoColchonGrupo", oExplica: /no cambia nada|Apagado/ },
+  { pantalla: "Deuda › Ajustar el plan", nombre: "Panel: colchón primero", clave: "#planOptimoColchon", control: "#planOptimoColchon", accion: { tipo: "alternar" }, observa: "#deudaPlanV2Ajustar #planOptimoColchonGrupo", oExplica: /no cambia nada|Apagado/ },
+  { pantalla: "Deuda › Ajustar el plan", nombre: "Panel: bola de nieve", clave: "radio:planOptimoOrden=bola-nieve", control: 'input[name="planOptimoOrden"][value="bola-nieve"]', accion: { tipo: "marcar" }, observa: AJUSTAR, oExplica: COINCIDEN },
+  { pantalla: "Deuda › Ajustar el plan", nombre: "Panel: avalancha", clave: "radio:planOptimoOrden=avalancha", control: 'input[name="planOptimoOrden"][value="avalancha"]', accion: { tipo: "marcar" }, observa: AJUSTAR, oExplica: COINCIDEN },
+  { pantalla: "Deuda › Ajustar el plan", nombre: "Panel: margen en %", clave: "#planOptimoMargenPct", control: "#planOptimoMargenPct", accion: { tipo: "rellenar", valor: 30 }, observa: AJUSTAR, oExplica: COINCIDEN },
+  { pantalla: "Deuda › Ajustar el plan", nombre: "Panel: margen en euros", clave: "#planOptimoMargenAbs", control: "#planOptimoMargenAbs", accion: { tipo: "rellenar", valor: 4000 }, observa: AJUSTAR, oExplica: COINCIDEN },
   { pantalla: "Deuda › Ofertas › Simulador visual", nombre: "Las cuotas de hoy ya están en el plan", clave: "input[data-sim-v2-cuotas-en-plan]", control: "[data-sim-v2-cuotas-en-plan]", accion: { tipo: "alternar" }, observa: "#deudaSimuladorV2 [data-sim-v2-cifras]" },
   // La estrategia de cada contrato: su efecto es enseñar los campos de esa estrategia (las cifras cambian al rellenarlos; eso lo prueba SVD).
   { pantalla: "Deuda › Ofertas › Simulador visual", nombre: "Estrategia de un contrato", clave: /^radio:\[data-sim-v2-campo\]=/, control: '[data-sim-v2-campo$="_strategy"][value="refi"]', accion: { tipo: "marcar" }, observa: "#deudaSimuladorV2 .sim-v2-cuentas", modo: "texto" },

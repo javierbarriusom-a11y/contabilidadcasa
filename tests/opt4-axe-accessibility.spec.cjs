@@ -2574,3 +2574,29 @@ for (const scheme of ["light", "dark"]) {
     });
   });
 }
+
+// TRE-D2 (25/11/2026): el panel «Ajustar el plan», abierto, con sus plegados abiertos y con un importe fijo (todos los controles a la
+// vista), en claro y en oscuro, a 1280 y a 390 px.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`TRE-D2 · Deuda › Ajustar el plan en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      test(`#deudaPlanV2Ajustar a ${viewport.width} px: sin fallos de contraste ni de accesibilidad`, async ({ page }) => {
+        test.setTimeout(120000);
+        const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+        await arrancarEnCaliente(page, { viewport });
+        await page.evaluate(() => { location.hash = "deuda-ruta"; });
+        await deudaPlanNueva(page);
+        await expect(page.locator("#deudaPlanV2 #dpv2Fecha")).toBeVisible({ timeout: 20000 });
+        await page.locator('#deudaPlanV2 [data-dpv2="ajustar"]').click();
+        const panel = page.locator("#deudaPlanV2Ajustar");
+        await expect(panel.locator("#dpv2AjustarVista")).toContainText("libres en");
+        await panel.locator('input[name="planOptimoModo"][value="fijo"]').check();
+        for (const id of ["planOptimoQuitas", "planOptimoComisiones", "planOptimoMargen"]) await panel.locator(`#${id} > summary`).click();
+        const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+        const r = await new AxeBuilder({ page }).include("#deudaPlanV2Ajustar").analyze();
+        expect(fmt(r), fmt(r).slice(0, 5).join("\n")).toEqual([]);
+      });
+    }
+  });
+}

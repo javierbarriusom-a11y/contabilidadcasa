@@ -6120,3 +6120,245 @@
   line-height: 1.45;
   color: var(--e19-ink);
 }
+
+/* ---------- TRE-D2 · «Ajustar el plan» (25/11/2026; views/deuda-plan-v2.js) ----------
+   El patrón de Clasificar (A5): hoja inferior en el móvil y panel derecho en el escritorio, con la vista previa fija arriba (en el móvil,
+   la «mini-cabecera» de la propuesta §2.3). Los controles son los del plan óptimo de siempre, prestados mientras está abierto. */
+:root[data-tema="v2"] dialog.dpv2-ajustar {
+  position: fixed;
+  inset: auto 0 0 0;
+  width: 100%;
+  max-width: none;
+  max-height: min(90vh, 760px);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 24px 24px 0 0;
+  background: var(--e19-surface);
+  color: var(--e19-ink);
+  box-shadow: 0 -8px 30px rgba(17, 24, 20, 0.18);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+:root[data-tema="v2"] dialog.dpv2-ajustar::backdrop {
+  background: rgba(17, 24, 20, 0.42);
+}
+
+:root[data-tema="v2"] .dpv2-aj-in {
+  display: grid;
+  gap: 4px;
+  padding: 0 20px 24px;
+  box-sizing: border-box;
+}
+
+:root[data-tema="v2"] .dpv2-aj-fija {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  gap: 8px;
+  margin: 0 -20px;
+  padding: 10px 20px 12px;
+  background: var(--e19-surface);
+  border-bottom: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .dpv2-aj-fija .clas-v2-asa {
+  justify-self: center;
+}
+
+:root[data-tema="v2"] .dpv2-aj-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+:root[data-tema="v2"] .dpv2-aj-cabeza .dpv2-kicker {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .dpv2-aj-cabeza h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+  color: var(--e19-heading);
+}
+
+:root[data-tema="v2"] .dpv2-aj-vista {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--e19-accent-soft);
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .dpv2-aj-guardado {
+  display: block;
+  font-size: 13px;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .dpv2-aj-grupo {
+  padding: 16px 0 4px;
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .dpv2-aj-grupo:first-of-type {
+  border-top: 0;
+}
+
+:root[data-tema="v2"] .dpv2-aj-grupo h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--e19-heading);
+}
+
+:root[data-tema="v2"] .dpv2-aj-cuenta {
+  font-weight: 500;
+  color: var(--e19-muted);
+}
+
+/* El título del grupo ya dice lo que decía la leyenda de cada control: la leyenda queda para los lectores de pantalla. */
+:root[data-tema="v2"] .dpv2-ajustar legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+:root[data-tema="v2"] .dpv2-ajustar .plan-optimo-orden {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+:root[data-tema="v2"] .dpv2-ajustar .plan-optimo-orden label {
+  min-height: 44px;
+  align-items: center;
+}
+
+:root[data-tema="v2"] .dpv2-ajustar .cam-control {
+  margin-top: 10px;
+}
+
+/* Lo de cada mes desde la previsión no tiene importe que escribir: el campo y los pasos solo con «Un importe fijo» (propuesta §2.3). */
+:root[data-tema="v2"] .dpv2-ajustar[data-modo="prevision"] label:has(#planOptimoMensual),
+:root[data-tema="v2"] .dpv2-ajustar[data-modo="prevision"] .dpv2-aj-pasos {
+  display: none;
+}
+
+:root[data-tema="v2"] .dpv2-aj-pasos {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+:root[data-tema="v2"] .dpv2-aj-pasos .e19-btn {
+  min-width: 88px;
+  min-height: 44px;
+}
+
+:root[data-tema="v2"] .dpv2-ajustar .plan-optimo-margen {
+  margin-top: 8px;
+}
+
+:root[data-tema="v2"] .dpv2-ajustar #planOptimoNota:empty {
+  display: none;
+}
+
+:root[data-tema="v2"] .dpv2-aj-pie {
+  position: sticky;
+  bottom: -24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin: 12px -20px -24px;
+  padding: 12px 20px 20px;
+  background: var(--e19-surface);
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .dpv2-aj-pie .e19-btn {
+  min-height: 44px;
+}
+
+:root[data-tema="v2"] .dpv2-aj-pie {
+  justify-content: space-between;
+}
+
+:root[data-tema="v2"] .dpv2-aj-guardar {
+  justify-self: start;
+  min-height: 44px;
+}
+
+/* Los plegados de siempre tienen el «summary» en flex (sin marcador en Chromium): en el panel, un chevron que dice que se abren. */
+:root[data-tema="v2"] .dpv2-ajustar .plan-optimo-margen > summary {
+  gap: 8px;
+  font-weight: 600;
+  color: var(--e19-heading);
+}
+
+:root[data-tema="v2"] .dpv2-ajustar .plan-optimo-margen > summary::before {
+  content: "›";
+  display: inline-block;
+  width: 1em;
+  font-size: 20px;
+  line-height: 1;
+  text-align: center;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .dpv2-ajustar .plan-optimo-margen[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+:root[data-tema="v2"] .dpv2-ajustar .plan-optimo-colchon-umbral {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+:root[data-tema="v2"] .dpv2-ajustar .plan-optimo-colchon-umbral input {
+  width: 5em;
+  min-height: 44px;
+}
+
+@media (min-width: 1024px) {
+  :root[data-tema="v2"] dialog.dpv2-ajustar {
+    inset: 0 0 0 auto;
+    width: 440px;
+    height: 100vh;
+    max-height: none;
+    border-radius: 0;
+    border-left: 1px solid var(--e19-border);
+    box-shadow: -8px 0 30px rgba(17, 24, 20, 0.18);
+  }
+
+  /* El héroe de Deuda › Plan sigue a la vista, a la izquierda, y cambia con cada ajuste. */
+  :root[data-tema="v2"] dialog.dpv2-ajustar::backdrop {
+    background: rgba(17, 24, 20, 0.12);
+  }
+
+  :root[data-tema="v2"] .dpv2-aj-in {
+    padding: 0 24px 24px;
+  }
+
+  :root[data-tema="v2"] .dpv2-aj-fija {
+    margin: 0 -24px;
+    padding: 20px 24px 14px;
+  }
+
+  :root[data-tema="v2"] .dpv2-aj-pie {
+    margin: 12px -24px -24px;
+    padding: 12px 24px 24px;
+  }
+}
