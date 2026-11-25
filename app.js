@@ -241,8 +241,8 @@ const VIEW_CHUNKS = {
   "inversion-fiscal": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-fiscal" },
   "inversion-jubilacion": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-jubilacion" },
   "inversion-apalancamiento": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-apalancamiento" },
-  cierre: { src: "views/cierre.js?v=20261116dat05", rootId: "cierre" },
-  conciliar: { src: "views/cierre.js?v=20261116dat05", rootId: "conciliar" },
+  cierre: { src: "views/cierre.js?v=20261125firma", rootId: "cierre" },
+  conciliar: { src: "views/cierre.js?v=20261125firma", rootId: "conciliar" },
   analisis: { src: "views/analisis.js?v=20260922per4a1", rootId: "analisis" },
   "escenario-simular": { src: "views/escenarios.js?v=20261116xda10", rootId: "escenario-simular" },
   "escenario-aplicar": { src: "views/escenarios.js?v=20261116xda10", rootId: "escenario-aplicar" },
@@ -31409,7 +31409,7 @@ async function init() {
     const porClasificar = event.target.closest("[data-cierre-por-clasificar]");
     if (porClasificar) { handleCierrePorClasificar(porClasificar.dataset.cierrePorClasificar); return; }
     if (event.target.closest("[data-cierre-por-clasificar-deshacer]")) { handleCierrePorClasificarDeshacer(); return; }
-    if (event.target.id === "cierreSignButton") handleCierreSign();
+    if (event.target.id === "cierreSignButton") handleCierreSign(event.target); // el pulsado: hay dos (el de siempre y el nuevo)
     if (event.target.id === "cierreTargetSwitch") handleCierreTargetSwitch(event.target.dataset.month);
     if (event.target.id === "cierreDownloadCsv") handleCierreDownload("csv");
     if (event.target.id === "cierreDownloadPdf") handleCierreDownload("pdf");

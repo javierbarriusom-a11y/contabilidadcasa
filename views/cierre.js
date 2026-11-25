@@ -1517,8 +1517,8 @@ function handleCierreDownload(kind) {
 
 // 4/11/2026: el hogar pulsaba «Firmar · 1 sin cumplir» y no pasaba nada (un botón desactivado que parecía activo). Ahora se ve apagado
 // y, al tocarlo, dice qué falta y lleva el foco a la primera comprobación sin cumplir; no firma.
-function cierreFirmaFaltaTexto() {
-  const preparado = qs("cierreSignButton")?.dataset.falta; // el cierre nuevo (views/cierre-v2.js) ya lo trae escrito
+function cierreFirmaFaltaTexto(boton = qs("cierreSignButton")) {
+  const preparado = boton?.dataset.falta; // el cierre nuevo (views/cierre-v2.js) ya lo trae escrito
   if (preparado) return preparado;
   const faltan = [...document.querySelectorAll("#cierreStepBody .deuda-ruta-check.is-danger")].map((item) => item.textContent.trim()).filter(Boolean);
   const partes = [];
@@ -1527,11 +1527,15 @@ function cierreFirmaFaltaTexto() {
   return partes.join(" ") || "Todavía no se puede firmar este mes.";
 }
 
-async function handleCierreSign() {
-  const boton = qs("cierreSignButton");
+// 25/11/2026: el cierre de siempre y el nuevo pintan los dos #cierreSignButton y #cierreFirmaFalta. Con `qs()` (el primero del documento),
+// si el de siempre (oculto) tenía pintado su paso de firma, «Para firmar falta…» se escribía en el suyo y el hogar no veía nada al tocar
+// «Firmar» (salía en la batería, según el orden de pintado). Se usa el botón pulsado y el aviso que va junto a él.
+async function handleCierreSign(pulsado = null) {
+  const boton = pulsado || qs("cierreSignButton");
   if (boton?.getAttribute("aria-disabled") === "true") {
-    const aviso = qs("cierreFirmaFalta");
-    const texto = cierreFirmaFaltaTexto();
+    const junto = boton.nextElementSibling;
+    const aviso = junto?.classList?.contains("cierre-firma-falta") ? junto : qs("cierreFirmaFalta");
+    const texto = cierreFirmaFaltaTexto(boton);
     if (aviso) {
       aviso.textContent = texto;
       aviso.hidden = false;
