@@ -6809,6 +6809,8 @@
 :root[data-tema="v2"] .cv2-plegado-entrada small,
 :root[data-tema="v2"] .cv2-plegado > summary {
   overflow-wrap: anywhere;
+}
+
 /* ---------- TRE-D5a · Deuda › Ofertas como bandeja (25/11/2026; views/deuda-ofertas-v2.js) ----------
    De DeudaTREOfertasDesktop: la línea de lo abierto, una tarjeta por oferta con su veredicto frente al plan (verde si compensa, ámbar si
    no, neutro si casi igual; siempre con su frase), «Qué podéis pedir» y los accesos plegados. Con la bandeja pintada (y no en «Ver

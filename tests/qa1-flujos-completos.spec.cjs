@@ -13795,4 +13795,24 @@ test.describe("TRE-D5a · Deuda › Ofertas como bandeja", () => {
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }
+  test("a 195 px (DEC-38) y con el texto más ancho que en local, ni la bandeja ni «Añadir una oferta» se salen", async ({ page }) => {
+    test.setTimeout(120000);
+    await arrancarEnCaliente(page, { viewport: { width: 390, height: 844 } });
+    await page.evaluate(() => {
+      const t = escenarioMotorDebtOptions().find((c) => /FICTICIO/.test(c.entity));
+      storageSet(storageKey("deuda-ofertas"), JSON.stringify([{ id: "o1", tipo: "traspaso", contratoId: t.id, entidad: "Entidad FICTICIA", meses: 12, taeDespues: 18, comisionPct: 3, vence: "2099-12-15", estado: "abierta" }, { id: "o2", tipo: "reunificacion", entidad: "Banco FICTICIO", tin: 7.9, plazo: 48, comision: 150, estado: "abierta" }]));
+      location.hash = "deuda-comparar";
+    });
+    await deudaOfertasNueva(page);
+    await expect(page.locator("#deudaOfertasV2 .dov2-oferta")).toHaveCount(2, { timeout: 20000 });
+    await page.setViewportSize({ width: 195, height: 800 });
+    await page.addStyleTag({ content: "body, button { letter-spacing: 0.6px !important; }" });
+    await page.locator("#deudaOfertasV2 [data-dov2-accesos] > summary").click();
+    for (const d of await page.locator("#deudaOfertasV2 .dov2-letra").all()) await d.locator("summary").click();
+    const fuera = (sel) => page.evaluate((s) => [...document.querySelectorAll(`${s} *`)].filter((e) => e.getClientRects().length && e.getBoundingClientRect().right > window.innerWidth + 1).map((e) => `${e.tagName}.${e.className}`), sel);
+    expect(await fuera("#deudaOfertasV2")).toEqual([]);
+    await page.locator('#deudaOfertasV2 [data-dov2="anadir"]').click();
+    await expect(page.locator("#dov2AnadirVista")).not.toBeEmpty();
+    expect(await fuera("#deudaOfertaAnadir")).toEqual([]);
+  });
 });
