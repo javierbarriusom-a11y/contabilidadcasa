@@ -22,7 +22,8 @@ function extract(source, name) {
   const start = source.indexOf(`function ${name}(`);
   assert.ok(start >= 0, `falta ${name}`);
   let depth = 0;
-  for (let i = source.indexOf("{", start); i < source.length; i += 1) {
+  // El cuerpo empieza tras la lista de parámetros (un parámetro por defecto `= {}` no es el cuerpo).
+  for (let i = source.indexOf(") {", start) + 2; i < source.length; i += 1) {
     if (source[i] === "{") depth += 1;
     if (source[i] === "}") {
       depth -= 1;

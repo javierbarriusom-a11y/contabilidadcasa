@@ -13219,3 +13219,118 @@ test.describe("Deuda › Ruta · plan óptimo de saldo", () => {
     });
   }
 });
+
+// TRE-07 (decimotercera auditoría, §4.2 y §7.2) · D-N40 (25/11/2026, «sí» del hogar): coherencia de la cifra protagonista de deuda en
+// toda la app. Es la prueba que habría cazado el §1.1 (cuatro fechas de «libre de deuda» en una pantalla, una quinta en la tira) y el
+// §1.2 («Sin deuda pendiente» con deuda viva). Con el arranque en caliente (contratos y movimientos FICTICIOS), en cada ruta del menú:
+//  1. con deuda viva, ninguna pantalla dice «Sin deuda pendiente» ni «Ya sin deuda», y la tira no dice «Sin deuda»;
+//  2. la tira, Hoy, el titular de Deuda › Plan y el héroe del plan dan el mismo mes que homeDebtOutlook (la fecha única);
+//  3. cualquier otra frase con una fecha de «libre(s)» da ese mes o dice con qué se compara (solo las cuotas, los plazos firmados,
+//     si aplicáis una ruta…). Una fecha nueva sin nombre en cualquier pantalla rompe la prueba.
+test.describe("TRE-07 · Una sola fecha de libre de deuda en toda la app (D-N40)", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  const MESES = { ene: 1, feb: 2, mar: 3, abr: 4, may: 5, jun: 6, jul: 7, ago: 8, sep: 9, oct: 10, nov: 11, dic: 12 };
+  const FECHA = /\b(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)[a-záéíóú]*\.?(?: de)? ((?:20)?\d{2})\b/gi;
+  const COMPARACION = /solo las cuotas|plazos firmados|si aplicáis|con esta ruta|con estos ajustes|sin extra|importe fijo|vuestro plan guardado|sin poner nada|con los saldos de hoy/i;
+  const mesesDe = (texto) => [...String(texto).matchAll(FECHA)].map((m) => `20${m[2].slice(-2)}-${String(MESES[m[1].toLowerCase().slice(0, 3)]).padStart(2, "0")}`);
+
+  async function leerPantalla(page) {
+    return page.evaluate(() => {
+      const visible = (el) => Boolean(el && el.offsetParent !== null && el.getClientRects().length);
+      const zonas = [...document.querySelectorAll("main section.view-section:not([hidden]), main .view.active, #hoyV2:not([hidden])")].filter(visible);
+      const lineas = zonas.flatMap((z) => z.innerText.split("\n")).map((l) => l.trim()).filter(Boolean);
+      const tira = [...document.querySelectorAll(".topbar-status-figure")].filter(visible)
+        .find((f) => /libre de deuda/i.test(f.querySelector("small")?.textContent || ""));
+      return {
+        lineas,
+        tira: tira ? { valor: tira.querySelector("strong")?.textContent.trim() || "", sub: tira.querySelector("em")?.textContent.trim() || "" } : null,
+        // Del héroe del plan, solo su cifra (la etiqueta y la nota van pegadas en el texto y la nota trae la comparación).
+        unicas: [...document.querySelectorAll('[data-fecha-libre="unica"]')].filter(visible).map((el) => (el.querySelector(".cam-hero-value") || el).textContent.replace(/\s+/g, " ").trim()),
+      };
+    });
+  }
+
+  function comprobar(ruta, leido, esperado) {
+    const todo = leido.lineas.join("\n");
+    expect(todo, `${ruta}: «Sin deuda pendiente» con deuda viva`).not.toMatch(/sin deuda pendiente|ya sin deuda/i);
+    if (leido.tira) {
+      expect(leido.tira.valor, `${ruta}: la tira dice «Sin deuda» con deuda viva`).not.toBe("Sin deuda");
+      expect(mesesDe(leido.tira.valor), `${ruta}: la fecha de la tira`).toEqual([esperado]);
+      expect(leido.tira.sub, `${ruta}: la tira dice de dónde sale la fecha`).toMatch(/^según /);
+    }
+    for (const texto of leido.unicas) expect(mesesDe(texto)[0], `${ruta}: fecha protagonista «${texto}»`).toBe(esperado);
+    for (const linea of leido.lineas.filter((l) => /\blibres?\b|sin deuda en/i.test(l))) {
+      const otras = mesesDe(linea).filter((mes) => mes !== esperado);
+      if (otras.length) expect(linea, `${ruta}: otra fecha de libre de deuda sin decir con qué se compara`).toMatch(COMPARACION);
+    }
+  }
+
+  test("en las rutas del menú, a 1280 px", async ({ page }) => {
+    test.setTimeout(240000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await arrancarEnCaliente(page);
+    await page.evaluate(() => { location.hash = "deuda-ruta"; });
+    await expect(page.locator("#deudaRutaTitle")).toHaveAttribute("data-fecha-libre", "unica");
+    const { esperado, viva, fuente } = await page.evaluate(() => {
+      const o = homeDebtOutlook();
+      return { esperado: String(o.libreDeDeuda).slice(0, 7), viva: o.pendingPrincipal, fuente: o.fuente };
+    });
+    expect(viva, "el arranque en caliente deja deuda viva").toBeGreaterThan(0);
+    expect(fuente, "con contratos con TAE y cuota, la fecha es la del plan óptimo").toBe("plan-optimo");
+    expect(esperado).toMatch(/^\d{4}-\d{2}$/);
+    // La de Deuda › Plan, la primera: titular y héroe del plan, el mismo mes.
+    await expect(page.locator("#deudaRutaTitle")).toContainText(/\d{4}/);
+    await expect(page.locator('#planOptimoResultado [data-fecha-libre="unica"]')).toHaveCount(1);
+    const rutas = await page.evaluate(() => [...new Set([...document.querySelectorAll('#primarySidebar a[href^="#"]')].map((a) => a.getAttribute("href").slice(1)).filter(Boolean))]);
+    expect(rutas.length).toBeGreaterThan(30);
+    for (const ruta of rutas) {
+      await test.step(ruta, async () => {
+        await page.evaluate((h) => { location.hash = h; }, ruta);
+        await page.waitForTimeout(500);
+        comprobar(ruta, await leerPantalla(page), esperado);
+      });
+    }
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("Hoy y Deuda › Plan, a 390 px @safari", async ({ page }) => {
+    test.setTimeout(120000);
+    await arrancarEnCaliente(page, { viewport: { width: 390, height: 844 } });
+    const esperado = await page.evaluate(() => String(homeDebtOutlook().libreDeDeuda).slice(0, 7));
+    for (const ruta of ["home", "deuda-ruta", "deuda-comparar"]) {
+      await page.evaluate((h) => { location.hash = h; }, ruta);
+      await page.waitForTimeout(700);
+      comprobar(ruta, await leerPantalla(page), esperado);
+    }
+    await page.evaluate(() => { location.hash = "deuda-ruta"; });
+    await expect(page.locator("#deudaRutaTitle")).not.toContainText(/sin deuda pendiente/i);
+    await expect(page.locator("#deudaRutaAttackNote")).toContainText("Si aplicáis esta ruta:");
+  });
+
+  test("con un plan guardado, manda su fecha; el plan óptimo con otros ajustes queda como comparación con nombre", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await arrancarEnCaliente(page);
+    await page.evaluate(() => { location.hash = "deuda-ruta"; });
+    const seg = page.locator("#planSeguimiento");
+    await expect(seg.locator("[data-seg-guardar]")).toHaveText("Este es nuestro plan", { timeout: 20000 });
+    await page.fill("#planOptimoMensual", "300");
+    await expect(page.locator("#planOptimoResultado .plan-optimo-tramos li").first()).toContainText("300 € al mes de más");
+    await seg.locator("[data-seg-guardar]").click();
+    await expect(seg).toContainText("Vuestro plan", { timeout: 10000 });
+    const guardada = await page.evaluate(() => JSON.parse(storageGet(storageKey("plan-deuda-compromiso"), "null")).fechaLibre);
+    // Otros ajustes (más al mes): el plan óptimo da otra fecha, pero manda la del plan guardado.
+    await page.fill("#planOptimoMensual", "900");
+    await expect(page.locator("#planOptimoResultado .plan-optimo-tramos li").first()).toContainText("900 € al mes de más");
+    await expect(page.locator('#planOptimoResultado [data-fecha-libre="comparacion"]')).toContainText("Con estos ajustes");
+    expect(await page.evaluate(() => homeDebtOutlook().fuente)).toBe("plan-guardado");
+    // Sin repintar la pantalla entera: el titular y la tira siguen solos a los controles y al plan guardado.
+    await expect(page.locator("#deudaRutaSubtitle")).toContainText("Según vuestro plan");
+    const leido = await leerPantalla(page);
+    expect(leido.tira?.sub).toBe("según vuestro plan");
+    comprobar("deuda-ruta (plan guardado)", leido, guardada);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+});

@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-25-una-sola-fecha-deuda",
+      fecha: "2026-11-25",
+      texto: "Deuda: una sola fecha de «libres de deuda» en toda la app, la de vuestro plan; las demás dicen con qué se comparan.",
+      href: "#deuda-ruta",
+    },
+    {
       id: "2026-11-23-escenario-ajustes",
       fecha: "2026-11-23",
       texto: "El escenario (Base, Prudente, Ahorro alto) se elige en Ajustes › Plan y ahora sí cambia las cifras; fuera de Base, la cabecera lo avisa.",

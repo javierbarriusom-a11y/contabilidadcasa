@@ -695,13 +695,17 @@ function deudaFechaUnicaLeerCompromiso() {
   }, null);
 }
 
-function deudaFechaUnicaClave(contracts, todayKey, compromiso) {
+function deudaFechaUnicaClave(contracts, todayKey, compromiso, refs = {}) {
   const guardado = (key) => planOptimoGuard(() => storageGet(storageKey(key), ""), "");
   const firma = planOptimoGuard(() => (typeof simulationSignature !== "undefined" && simulationSignature) || (typeof modelComputationSignature === "function" ? modelComputationSignature() : ""), "");
   return JSON.stringify([
     firma, todayKey, contracts.map((c) => [c.id, c.paymentStatus, c.currentPrincipal, c.currentPayment, c.apr, c.remainingInstallments]),
     compromiso ? [compromiso.fechaLibre, compromiso.guardadoEl] : null, planOptimoModo, planOptimoMensual, planOptimoPago,
     guardado(PLAN_OPTIMO_ORDEN_KEY), guardado(PLAN_OPTIMO_MARGEN_KEY), guardado(PLAN_OPTIMO_QUITAS_KEY), guardado(PLAN_OPTIMO_COMISIONES_KEY),
+    // La previsión, la capacidad y el suelo cambian el plan sin cambiar la firma del modelo (al arrancar, la previsión llega después):
+    // sin ellos en la clave, Hoy se quedaba con la fecha de antes de tener previsión.
+    refs.capacity ?? null, refs.available ?? null, refs.floor ?? null,
+    (Array.isArray(refs.rows) ? refs.rows : []).map((row) => [row?.monthKey, Math.round(Number(row?.totalLiquidity) || 0), Math.round(Number(row?.startLiquidity) || 0)]),
   ]);
 }
 
@@ -723,9 +727,10 @@ function deudaFechaUnica() {
     if (!contracts.some((c) => Number(c?.currentPrincipal) > 0)) return null;
     const todayKey = isoLocalDate(new Date()).slice(0, 7);
     const compromiso = deudaFechaUnicaLeerCompromiso();
-    const key = deudaFechaUnicaClave(contracts, todayKey, compromiso);
+    const refs = planOptimoReferencias();
+    const key = deudaFechaUnicaClave(contracts, todayKey, compromiso, refs);
     if (deudaFechaUnicaCache.key === key) return deudaFechaUnicaCache.value;
-    const { r } = planOptimoCalcular(engine, contracts, todayKey, planOptimoReferencias(), Plan);
+    const { r } = planOptimoCalcular(engine, contracts, todayKey, refs, Plan);
     let value = null;
     if (r?.ok && !r.nothing && !r.sinDatos) {
       const vivo = r.recommended?.summary?.debtFreeMonthKey || null;
@@ -807,6 +812,7 @@ function renderPlanOptimo(engine, contracts, Plan) {
     }
     globalThis.renderSeguimientoPlan?.(planOptimoResultadoUltimo, contracts || []); // DUO-D1 (seguimiento-plan-ui.js)
     globalThis.renderHitosDeuda?.(); // DUO-D2 (hitos-deuda-ui.js)
+    globalThis.deudaRutaPintarFechaUnica?.(contracts || []); // D-N40: el titular y la tira siguen a los controles del plan (views/deuda.js)
   } catch (error) {
     console.error(`renderPlanOptimo: ${error.message}`);
   }

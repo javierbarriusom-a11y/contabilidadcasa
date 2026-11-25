@@ -462,6 +462,9 @@ coincidan (o que lleven nombre de comparación). Es la prueba que habría detect
 
 - **D-N40** · ¿Una sola fecha de «libre de deuda» en toda la app, la del plan guardado (o el óptimo si no hay), y las demás como
   comparaciones con nombre? Recomendación: **sí**. Sin esto, cualquier rediseño visual seguirá enseñando cuatro respuestas.
+  **Decidida: «sí» del hogar (25/11/2026), con TRE-D0 y TRE-07 hechos el mismo día** (PROJECT_STATE 543, ESTADO §2). Al hacerlo
+  salió un sexto origen de fechas: un contrato sin plazo declarado contaba como saldado este mes (la «nov 2026» de la tira y de
+  Hoy con deuda viva), corregido en el mismo cambio.
 - **D-N41** · Contratos: ¿retirar (redirigiendo) las dos listas de orden y el simulador de consolidación de esa pantalla, porque
   viven en Plan y en Ofertas › Préstamo? Recomendación: sí, tras dos semanas de TRE-D4 y con el medidor.
 - **D-N42** · ¿El plan propone por defecto «colchón primero» cuando la liquidez está bajo la reserva, salvo deudas por encima de
@@ -562,7 +565,8 @@ siempre. Es la pantalla más vista y la única que se mira de pie.
   (`\((?:[A-Z]{1,4}-?\d{1,3})\)`), fechas ISO, decimales con punto seguidos de «meses», «%» o «€», y «NaN», «undefined» o
   «Infinity». Es el mismo patrón que la prueba de privacidad, aplicado al lenguaje.
 
-**TRE-11 · La tira heredada de cinco cifras, con la fecha única (P0, con D-N40 · S).** La tira sigue arriba en las pantallas sin
+**TRE-11 · La tira heredada de cinco cifras, con la fecha única (P0, con D-N40 · S). Hecho con TRE-D0 el 25/11: la tira dice la fecha
+del plan y «según…»; TRE-07 recorre las 53 rutas del menú.** La tira sigue arriba en las pantallas sin
 rediseñar y lee `homeDebtOutlook`, que cuenta los plazos declarados. Con D-N40 «sí», enseña la fecha del plan o, si no hay plan,
 nombra la que da: «según los plazos firmados». **TRE-07 debe recorrer todas las rutas**, no solo Deuda y Hoy: sin esto, el arreglo de
 TRE-D0 deja una quinta fecha en Inversión y en Patrimonio.
@@ -696,7 +700,8 @@ revisión a mano del título de cada uno de los que no aparecen. Puede haber alg
 
 1. **Ya, sin decisión pendiente:** TRE-08 (menú) y TRE-10 (texto de ingeniero y su prueba). Son correcciones pequeñas y visibles en
    todas las pantallas.
-2. **Con D-N40 «sí»:** TRE-D0 + TRE-07 (sobre todas las rutas) + TRE-11. Después, TRE-09 (la primera pantalla de Hoy).
+2. **Con D-N40 «sí»:** TRE-D0 + TRE-07 (sobre todas las rutas) + TRE-11 (**hechos el 25/11**). Después, TRE-09 (la primera pantalla de
+   Hoy).
 3. **Antes del 31/12:** TRE-12 (Plan 2027), si D-N46 es «sí», y TRE-17 (recibos que suben), que alimenta TRE-12. **TRE-23 antes de
    TRE-D4.**
 4. **Semana del 14/12 (revisión trimestral):** D-N45 (Versiones anteriores fuera del menú) con los datos de la revisión; TRE-21.

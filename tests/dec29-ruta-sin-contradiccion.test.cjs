@@ -52,7 +52,7 @@ test("DEC-29 · el subtítulo no dice «0 € de coste»; con coste, sí", () =>
 // (homeDebtOutlook ← deudaFechaUnica) y la frase de la ruta baja, en condicional, a «Orden de ataque». Lo comprueba más a fondo
 // tests/tre-d0-fecha-unica.test.cjs.
 test("DEC-29 · renderDeudaRuta usa las dos funciones, cada una en su sitio (D-N40)", () => {
-  assert.match(deuda, /titleEl\.textContent = deudaRutaTitulo\(outlook\.libreDeDeuda, contracts\);/);
+  assert.match(deuda, /titleEl\.textContent = deudaRutaTitulo\(outlook\.libreDeDeuda, contracts, /);
   assert.doesNotMatch(deuda, /titleEl\.textContent = deudaRutaTitulo\(summary\./, "el titular nunca sale de la ruta ejecutada");
   assert.match(deuda, /subtitleEl\.textContent = deudaRutaSubtituloFuente\(outlook\);/);
   assert.match(deuda, /Si aplicáis esta ruta: \$\{deudaRutaSubtitulo\(def, /);
