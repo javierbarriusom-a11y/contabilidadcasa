@@ -84,6 +84,8 @@
     { id: "deuda-comparar", nombre: "Comparar con otras formas", accion: ["ida a una forma o escenario guardado", "idas a una forma o escenarios guardados"], descarte: null, deshecho: null },
     // TRE-D4: Deuda › Contratos nuevo. Acción: un contrato guardado desde su ficha; descarte: «Ver todo el detalle».
     { id: "deuda-contratos-v2", nombre: "Contratos nuevos", accion: ["contrato guardado desde su ficha", "contratos guardados desde su ficha"], descarte: ["vez «Ver todo el detalle»", "veces «Ver todo el detalle»"], deshecho: null },
+    // TRE-D5a: la bandeja de Ofertas. Acción: una oferta añadida, metida en el plan, guardada como escenario o al historial.
+    { id: "deuda-ofertas-v2", nombre: "Ofertas nuevas", accion: ["oferta añadida o decidida", "ofertas añadidas o decididas"], descarte: ["vez «Ver todo el detalle»", "veces «Ver todo el detalle»"], deshecho: null },
     { id: "simulador-v2", nombre: "Simulador de deuda nuevo", accion: ["estrategia guardada o acuerdo marcado", "estrategias guardadas o acuerdos marcados"], descarte: ["vez «Ver el simulador anterior»", "veces «Ver el simulador anterior»"], deshecho: null },
     { id: "huella-extracto", nombre: "Huella anónima del extracto", accion: ["huella copiada", "huellas copiadas"], descarte: null, deshecho: null },
     { id: "copia-aviso", nombre: "Aviso de la copia de seguridad", accion: ["copia descargada desde el aviso", "copias descargadas desde el aviso"], descarte: null, deshecho: null },

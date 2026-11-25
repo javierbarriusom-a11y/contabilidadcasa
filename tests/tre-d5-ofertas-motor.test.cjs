@@ -28,6 +28,10 @@ test("TRE-D5a · traspaso al 0 %: la comisión se suma, la promoción y la TAE d
   assert.equal(v.tono, "compensa");
   assert.ok(v.diferencia > 100);
   assert.match(O.titular(v), /^Os compensa: \d+ € menos$/);
+  // Con 600 € al mes la tarjeta se salda dentro de los 12 meses al 0 %: la TAE de después no cuenta, y se dice.
+  const rapido = O.veredicto({ tipo: "traspaso", contratoId: "t", meses: 12, taeDespues: 18, comisionPct: 3 }, { ...e, opciones: { ...opciones, monthly: 600 } });
+  assert.equal(rapido.promoSaldada, true);
+  assert.equal(O.veredicto({ tipo: "traspaso", contratoId: "t", meses: 3, taeDespues: 18, comisionPct: 3 }, e).promoSaldada, false, "con 3 meses al 0 % no da tiempo");
 });
 
 test("TRE-D5a · reunificación: la misma salida al mes (lo que baja la cuota se pone de más); a 7,9 % y 48 meses compensa, a 12 % y 96 no", () => {

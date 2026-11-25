@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-25-ofertas-nuevas",
+      fecha: "2026-11-25",
+      texto: "Deuda › Ofertas, nueva: cada oferta del banco con su veredicto frente a vuestro plan (os compensa o no y cuánto), y qué podéis pedir.",
+      href: "#deuda-comparar",
+    },
+    {
       id: "2026-11-25-contratos-nuevos",
       fecha: "2026-11-25",
       texto: "Deuda › Contratos, nueva: una tarjeta por contrato con su % pagado y cuándo acaba, lo que falta y una ficha para editarlo.",

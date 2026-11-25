@@ -6809,4 +6809,240 @@
 :root[data-tema="v2"] .cv2-plegado-entrada small,
 :root[data-tema="v2"] .cv2-plegado > summary {
   overflow-wrap: anywhere;
+/* ---------- TRE-D5a · Deuda › Ofertas como bandeja (25/11/2026; views/deuda-ofertas-v2.js) ----------
+   De DeudaTREOfertasDesktop: la línea de lo abierto, una tarjeta por oferta con su veredicto frente al plan (verde si compensa, ámbar si
+   no, neutro si casi igual; siempre con su frase), «Qué podéis pedir» y los accesos plegados. Con la bandeja pintada (y no en «Ver
+   todo el detalle»), lo de siempre de Ofertas › Comparar se oculta. */
+:root[data-tema="v2"] #deuda-comparar:has(> #deudaOfertasV2:not([hidden]):not([data-modo="anterior"])) > :not(#deudaOfertasV2):not(#deudaCompararScreenTabs):not(#deudaCompararOfertasTabs) {
+  display: none;
+}
+
+:root[data-tema="v2"] .dov2 {
+  display: grid;
+  gap: 16px;
+  margin: 8px 0 24px;
+}
+
+:root[data-tema="v2"] .dov2-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+:root[data-tema="v2"] .dov2-cabeza .e19-btn {
+  min-height: 44px;
+}
+
+:root[data-tema="v2"] .dov2-resumen,
+:root[data-tema="v2"] .dov2-vacio {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--e19-accent-soft);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .dov2-ofertas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .dov2-oferta {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-width: 0;
+  padding: 18px 20px;
+  border: 1px solid var(--e19-border);
+  border-radius: 16px;
+  background: var(--e19-surface);
+}
+
+:root[data-tema="v2"] .dov2-oferta h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 650;
+  color: var(--e19-heading);
+  overflow-wrap: anywhere;
+}
+
+:root[data-tema="v2"] .dov2-oferta .dpv2-nota {
+  margin: 0;
+}
+
+:root[data-tema="v2"] .dov2-condiciones {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .dov2-veredicto {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--e19-border);
+  background: var(--e19-surface-soft);
+}
+
+:root[data-tema="v2"] .dov2-veredicto[data-tono="compensa"],
+:root[data-tema="v2"] .dpv2-aj-vista[data-tono="compensa"] {
+  background: var(--e19-accent-soft);
+  border-color: var(--e19-accent);
+}
+
+:root[data-tema="v2"] .dov2-veredicto[data-tono="no"],
+:root[data-tema="v2"] .dpv2-aj-vista[data-tono="no"] {
+  background: var(--e19-warning-soft);
+  border-color: var(--e19-warning-soft-border);
+}
+
+:root[data-tema="v2"] .dov2-titular {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--e19-heading);
+}
+
+:root[data-tema="v2"] .dov2-veredicto dl {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+:root[data-tema="v2"] .dov2-veredicto dl > div {
+  display: grid;
+  grid-template-columns: 7.5em minmax(0, 1fr);
+  gap: 8px;
+  font-size: 13.5px;
+}
+
+:root[data-tema="v2"] .dov2-veredicto dt {
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .dov2-veredicto dd {
+  margin: 0;
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .dov2-letra > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--e19-heading);
+  cursor: pointer;
+}
+
+:root[data-tema="v2"] .dov2-letra > summary::before {
+  content: "›";
+  display: inline-block;
+  width: 1em;
+  font-size: 20px;
+  line-height: 1;
+  text-align: center;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .dov2-letra[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+:root[data-tema="v2"] .dov2-veredicto dl > div {
+  grid-template-columns: 9.5em minmax(0, 1fr);
+}
+
+:root[data-tema="v2"] .dov2-letra p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .dov2-pedir ul {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .dov2-pedir li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .dov2-pedir li > div {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .dov2-pedir li p {
+  margin: 2px 0 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--e19-muted);
+}
+
+:root[data-tema="v2"] .dov2-pedir .e19-btn {
+  min-height: 44px;
+}
+
+:root[data-tema="v2"] .dov2-historial {
+  margin: 0;
+  padding: 12px 16px 12px 32px;
+  border-radius: 12px;
+  background: var(--e19-surface-soft);
+  font-size: 14px;
+  color: var(--e19-ink);
+}
+
+:root[data-tema="v2"] .dov2-tipos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+:root[data-tema="v2"] .dov2-tipos legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--e19-heading);
+}
+
+:root[data-tema="v2"] .dov2-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--e19-border);
+  border-radius: 999px;
+  background: var(--e19-surface);
+  font-size: 14px;
+  color: var(--e19-ink);
+  cursor: pointer;
+}
+
+:root[data-tema="v2"] .dov2-chip:has(input:checked) {
+  border-color: var(--e19-accent);
+  background: var(--e19-accent-soft);
+  font-weight: 600;
 }

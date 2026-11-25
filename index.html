@@ -76,7 +76,7 @@
     <link rel="stylesheet" href="patrimonio.css?v=20261014wp46b2" />
     <link rel="stylesheet" href="cierre-a11y.css?v=20261015d1" />
     <!-- Rediseño fase A: tema v2 detrás de bandera (?tema=v2). Va el último para poder redefinir tokens. -->
-    <link rel="stylesheet" href="tema-v2.css?v=20261125tred4b" />
+    <link rel="stylesheet" href="tema-v2.css?v=20261125tred5" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -2098,6 +2098,7 @@
             <nav class="deuda-ofertas-tabs" id="deudaCompararOfertasTabs" aria-label="Ofertas"></nav>
             <!-- D10: navegación de flujo (Anterior/Siguiente) entre las pantallas de Deuda; D-N28: Plan, Contratos y Ofertas (Comparar, Préstamo, Simulador visual). -->
             <nav class="deuda-flow-nav" id="deudaCompararFlowNav" aria-label="Paso anterior o siguiente en Deuda"></nav>
+            <div class="dov2" id="deudaOfertasV2" hidden></div>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow">Deuda · Ofertas · Comparar</p>
@@ -8144,6 +8145,9 @@
           <!-- TRE-D4 (views/deuda-contratos-v2.js), solo con el tema v2: la ficha de un contrato (lo básico, plazo y progreso, costes y estado), con vista previa
                y «Guardar» explícito con deshacer. Escribe por handleDeudaContratosFieldChange, como la tabla de siempre. -->
           <dialog class="dpv2-ajustar dcv2-ficha" id="deudaContratoFicha" aria-labelledby="dcv2FichaTitulo"></dialog>
+          <!-- TRE-D5a (views/deuda-ofertas-v2.js), solo con el tema v2: la bandeja de ofertas va en #deudaOfertasV2, dentro de #deuda-comparar (sin comentario allí:
+               NAV-4 quiere el eyebrow a menos de 800 caracteres de la apertura), y este es «Añadir una oferta», con el veredicto en vivo mientras se escribe. -->
+          <dialog class="dpv2-ajustar dov2-anadir" id="deudaOfertaAnadir" aria-labelledby="dov2AnadirTitulo"></dialog>
           <!-- UND-08 (me-lo-puedo-permitir.js): «¿Me lo puedo permitir?» desde Hoy. Importe y fecha → una frase y el gráfico de Hoy con el gasto. No guarda nada. -->
           <dialog class="action-review-dialog permitir-dialog" id="permitirDialog" aria-labelledby="permitirTitulo">
             <button class="action-review-close" type="button" data-permitir-cerrar aria-label="Cerrar">×</button>
@@ -8169,10 +8173,10 @@
 
     <script defer src="tema-v2.js?v=20261019v2defecto"></script>
     <script defer src="household-members.js?v=20261119priv4"></script>
-    <script defer src="medidor-utilidad.js?v=20261125tred4"></script>
+    <script defer src="medidor-utilidad.js?v=20261125tred5"></script>
     <script defer src="ocultar-cifras.js?v=20261122und17"></script>
     <script defer src="views/plegados-medidor.js?v=20261118dec40"></script>
-    <script defer src="funciones-en-prueba.js?v=20261125tred4"></script>
+    <script defer src="funciones-en-prueba.js?v=20261125tred5"></script>
     <script defer src="vendor/supabase-js-2.117.2.umd.js"></script>
     <script defer src="xlsx-loader.js?v=20260929p2a1"></script>
     <script defer src="supabase-config.js?v=20260602a"></script>
@@ -8460,7 +8464,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20261119priv4"></script>
-    <script defer src="novedades.js?v=20261125tred4"></script>
+    <script defer src="novedades.js?v=20261125tred5"></script>
     <script defer src="ux-shell.js?v=20261121dec45"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -8577,6 +8581,8 @@
     <script defer src="views/deuda-plan-v2.js?v=20261125tre3c"></script>
     <script defer src="views/componentes-v2.js?v=20261125tred4"></script>
     <script defer src="views/deuda-contratos-v2.js?v=20261125tred4"></script>
+    <script defer src="canonical-debt-offers.js?v=20261125tred5"></script>
+    <script defer src="views/deuda-ofertas-v2.js?v=20261125tred5"></script>
     <script defer src="views/movimientos-v2.js?v=20261119dat07"></script>
     <script defer src="views/importar-v2.js?v=20261116xda04b"></script>
     <script defer src="views/clasificar-v2.js?v=20261120dec14"></script>

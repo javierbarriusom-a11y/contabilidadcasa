@@ -45,7 +45,7 @@
 
   /**
    * Lo que cambia en el plan con la oferta. `contratos`: los del motor (escenarioMotorDebtOptions).
-   * @returns {{ok:boolean, motivo?:string, contratos?:Array, settlements?:Array, promotions?:Array, extra?:number, comision?:number, quitaId?:string, resumen?:string[]}}
+   * @returns {{ok:boolean, motivo?:string, contratos?:Array, settlements?:Array, promotions?:Array, extra?:number, comision?:number, quitaId?:string, cuota?:number, cuotasHoy?:number, saldos?:number}}
    */
   function aplicar(oferta, contratos = [], startMonthKey) {
     const vivos = contratos.filter((c) => n(c.currentPrincipal) > 0);
@@ -99,6 +99,10 @@
    * @param {Array} e.contratos los del motor
    * @param {object} e.opciones las del plan de ahora (planOptimoCalcular().opciones)
    */
+  /**
+   * @param {any} oferta
+   * @param {{Plan:any, Path:any, contratos?:Array<any>, opciones?:any, disponible?:number|null}} e
+   */
   function veredicto(oferta, { Plan, Path, contratos = [], opciones = {}, disponible = null }) {
     const v = comparar(oferta, { Plan, Path, contratos, opciones });
     if (!v.ok || oferta?.tipo !== "quita") return v;
@@ -109,6 +113,11 @@
     return { ...v, deGolpe: golpe.ok ? { ...golpe, alcanza: disponible === null ? null : n(disponible) >= n(oferta.importe), disponible } : null };
   }
 
+  /**
+   * La comparación de una oferta con el plan sin ella, con las opciones dadas.
+   * @param {any} oferta
+   * @param {{Plan:any, Path:any, contratos?:Array<any>, opciones?:any}} e
+   */
   function comparar(oferta, { Plan, Path, contratos = [], opciones = {} }) {
     const start = opciones.startMonthKey;
     const a = aplicar(oferta, contratos, start);
@@ -136,10 +145,13 @@
     if (costeBase === null || costeOferta === null) return { ok: false, motivo: "Alguna deuda no acaba dentro del horizonte: no hay coste total que comparar." };
     const diferencia = r2(costeBase - costeOferta);
     const tono = Math.abs(diferencia) < CASI_IGUAL ? "igual" : diferencia > 0 ? "compensa" : "no";
+    // Un traspaso que el plan salda antes de que acabe el 0 %: la TAE de después no llega a aplicarse (y cambiarla no mueve nada).
+    const promoSaldada = oferta.tipo === "traspaso" && (conOferta.warnings || []).some((w) => w.id === "promocion" && w.saldada && String(w.deuda) === String(oferta.contratoId));
     return {
       ok: true,
       tono,
       diferencia,
+      promoSaldada,
       libresBase: sb.debtFreeMonthKey || null,
       libresOferta: so.debtFreeMonthKey || null,
       costeBase,

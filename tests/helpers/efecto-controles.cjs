@@ -61,7 +61,7 @@ async function actuar(page, efecto) {
   } else if (tipo === "alternar") {
     await control.click();
   } else if (tipo === "elegir") {
-    await control.selectOption(String(valor));
+    await control.selectOption(valor && typeof valor === "object" ? { index: valor.indice } : String(valor));
   } else {
     throw new Error(`acción desconocida: ${tipo}`);
   }
@@ -153,6 +153,15 @@ const PANTALLAS = [
     },
   },
   {
+    // TRE-D5a: «Añadir una oferta» (Deuda › Ofertas). Cada campo mueve la vista previa con el veredicto frente al plan.
+    nombre: "Deuda › Añadir una oferta", hash: "#deuda-comparar", raiz: "#deudaOfertaAnadir",
+    entrar: async (page) => {
+      await require("./deuda-plan-nueva.cjs").deudaOfertasNueva(page);
+      await page.locator('#deudaOfertasV2 [data-dov2="anadir"]').click();
+      await expect(page.locator("#deudaOfertaAnadir #dov2AnadirVista")).not.toBeEmpty({ timeout: 15000 });
+    },
+  },
+  {
     nombre: "Deuda › Ofertas › Simulador visual", hash: "#deuda-simulador", raiz: "#deudaSimuladorV2",
     entrar: async (page) => expect(page.locator("#deudaSimuladorV2")).toContainText("Banco FICTICIO", { timeout: 20000 }),
   },
@@ -183,6 +192,7 @@ const PLAN = "#planOptimoResultado";
 const CAMINO = "#caminoDeudaResultado";
 const COINCIDEN = /los dos órdenes coinciden/;
 const FICHA = "#deudaContratoFicha #dcv2Previa"; // TRE-D4: la vista previa de la ficha de un contrato
+const OFERTA = "#deudaOfertaAnadir #dov2AnadirVista"; // TRE-D5a: el veredicto en vivo de «Añadir una oferta»
 // TRE-D2: lo que el hogar ve en el panel al tocar (la vista previa y las notas del orden y del coste). La nota de «Cuánto al mes» no
 // cuenta: repite el importe escrito, y eso no es un efecto.
 const AJUSTAR = '#dpv2AjustarVista, #deudaPlanV2Ajustar [data-dpv2-aj-nota="orden"], #deudaPlanV2Ajustar [data-dpv2-aj-nota="coste"]';
@@ -237,6 +247,17 @@ const EFECTOS = [
   { pantalla: "Deuda › Ficha de contrato", nombre: "Ficha: plazos que quedan", clave: "#dcv2-remainingInstallments", control: "#dcv2-remainingInstallments", accion: { tipo: "rellenar", valor: 30 }, observa: FICHA },
   { pantalla: "Deuda › Ficha de contrato", nombre: "Ficha: deducción fiscal", clave: "#dcv2-fiscalDeductionPct", control: "#dcv2-fiscalDeductionPct", accion: { tipo: "rellenar", valor: 15 }, observa: FICHA },
   { pantalla: "Deuda › Ficha de contrato", nombre: "Ficha: estado", clave: "#dcv2-paymentStatus", control: "#dcv2-paymentStatus", accion: { tipo: "elegir", valor: "suspended" }, observa: FICHA, modo: "texto" },
+  // TRE-D5a · «Añadir una oferta» (abre en «Traspaso al 0 %»): los campos de texto mueven la cabecera de la vista previa; los de cifras,
+  // el veredicto; el tipo cambia los campos y la vista previa (al final, para no perder lo escrito).
+  { pantalla: "Deuda › Añadir una oferta", nombre: "Oferta: meses al 0 %", clave: "#dov2-meses", control: "#dov2-meses", accion: { tipo: "rellenar", valor: 12 }, observa: OFERTA, modo: "texto" },
+  { pantalla: "Deuda › Añadir una oferta", nombre: "Oferta: TAE después", clave: "#dov2-taeDespues", control: "#dov2-taeDespues", accion: { tipo: "rellenar", valor: 18 }, observa: OFERTA, modo: "texto", oExplica: /antes de que acabe el 0 %/ },
+  { pantalla: "Deuda › Añadir una oferta", nombre: "Oferta: comisión del traspaso", clave: "#dov2-comisionPct", control: "#dov2-comisionPct", accion: { tipo: "rellenar", valor: 3 }, observa: OFERTA },
+  { pantalla: "Deuda › Añadir una oferta", nombre: "Oferta: entidad", clave: "#dov2-entidad", control: "#dov2-entidad", accion: { tipo: "rellenar", valor: "Entidad FICTICIA" }, observa: OFERTA, modo: "texto" },
+  { pantalla: "Deuda › Añadir una oferta", nombre: "Oferta: vence el", clave: "#dov2-vence", control: "#dov2-vence", accion: { tipo: "rellenar", valor: "2026-12-31" }, observa: OFERTA, modo: "texto" },
+  { pantalla: "Deuda › Añadir una oferta", nombre: "Oferta: la deuda", clave: "#dov2-contratoId", control: "#dov2-contratoId", accion: { tipo: "elegir", valor: { indice: 1 } }, observa: OFERTA, modo: "texto" },
+  { pantalla: "Deuda › Añadir una oferta", nombre: "Oferta: tipo reunificación", clave: "radio:dov2Tipo=reunificacion", control: 'input[name="dov2Tipo"][value="reunificacion"]', accion: { tipo: "marcar" }, observa: OFERTA, modo: "texto" },
+  { pantalla: "Deuda › Añadir una oferta", nombre: "Oferta: tipo quita", clave: "radio:dov2Tipo=quita", control: 'input[name="dov2Tipo"][value="quita"]', accion: { tipo: "marcar" }, observa: OFERTA, modo: "texto" },
+  { pantalla: "Deuda › Añadir una oferta", nombre: "Oferta: tipo traspaso", clave: "radio:dov2Tipo=traspaso", control: 'input[name="dov2Tipo"][value="traspaso"]', accion: { tipo: "marcar" }, observa: OFERTA, modo: "texto" },
   { pantalla: "Ajustes › Escenario de supuestos", nombre: "Escenario Prudente", clave: "button[data-escenario-elegir]", control: '[data-escenario-elegir="prudente"]', accion: { tipo: "alternar" }, observa: "#escenarioAjustesCard .escenario-cifras" },
   { pantalla: "Ajustes › Escenario de supuestos", nombre: "Escenario Ahorro alto", clave: "button[data-escenario-elegir]", control: '[data-escenario-elegir="ahorro"]', accion: { tipo: "alternar" }, observa: "#escenarioAjustesCard .escenario-cifras" },
   { pantalla: "Ajustes › Escenario de supuestos", nombre: "Volver a Base", clave: "button[data-escenario-elegir]", control: '[data-escenario-elegir="base"]', accion: { tipo: "alternar" }, observa: "#escenarioAjustesCard .escenario-cifras" },

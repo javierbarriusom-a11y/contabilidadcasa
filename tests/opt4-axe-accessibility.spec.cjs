@@ -1,7 +1,7 @@
 const { test, expect } = require("./helpers/navegador-resiliente.cjs"); // relanza el navegador si se cayó solo entre pruebas
 const { AxeBuilder } = require("@axe-core/playwright");
 // TRE-D1: lo de siempre de Deuda › Plan, en «todo el detalle»; la vista nueva tiene su propia prueba (deudaPlanNueva).
-const { deudaDeSiempre, deudaPlanNueva, deudaContratosNueva } = require("./helpers/deuda-plan-nueva.cjs");
+const { deudaDeSiempre, deudaPlanNueva, deudaContratosNueva, deudaOfertasNueva } = require("./helpers/deuda-plan-nueva.cjs");
 test.beforeEach(async ({ page }) => { await deudaDeSiempre(page); });
 
 // Rediseño A4 (PR-2): con el tema v2, Registrar › Importar extracto enseña Importar v2 y el asistente de cuatro pasos
@@ -2643,6 +2643,40 @@ for (const scheme of ["light", "dark"]) {
         await expect(page.locator("#deudaContratoFicha #dcv2Previa")).not.toBeEmpty();
         const ficha = await new AxeBuilder({ page }).include("#deudaContratoFicha").analyze();
         expect(fmt(ficha), fmt(ficha).slice(0, 5).join("\n")).toEqual([]);
+      });
+    }
+  });
+}
+
+// TRE-D5a (25/11/2026): la bandeja de Ofertas (con una oferta de cada tono) y «Añadir una oferta», en claro y en oscuro, a 1440 y a 390 px.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`TRE-D5a · Deuda › Ofertas en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+      test(`#deudaOfertasV2 y «Añadir una oferta» a ${viewport.width} px: sin fallos de contraste ni de accesibilidad`, async ({ page }) => {
+        test.setTimeout(120000);
+        const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+        await arrancarEnCaliente(page, { viewport });
+        await page.evaluate(() => {
+          const t = escenarioMotorDebtOptions().find((c) => /FICTICIO/.test(c.entity));
+          storageSet(storageKey("deuda-ofertas"), JSON.stringify([
+            { id: "o1", tipo: "traspaso", contratoId: t.id, entidad: "Entidad FICTICIA", meses: 12, taeDespues: 18, comisionPct: 3, vence: "2099-12-15", estado: "abierta" },
+            { id: "o2", tipo: "reunificacion", entidad: "Banco FICTICIO", tin: 14, plazo: 96, comision: 300, estado: "abierta" },
+            { id: "o3", tipo: "quita", contratoId: t.id, importe: 1900, estado: "abierta" },
+          ]));
+          location.hash = "deuda-comparar";
+        });
+        await deudaOfertasNueva(page);
+        await expect(page.locator("#deudaOfertasV2 .dov2-oferta")).toHaveCount(3, { timeout: 20000 });
+        for (const d of await page.locator("#deudaOfertasV2 .dov2-letra").all()) await d.locator("summary").click();
+        const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+        const bandeja = await new AxeBuilder({ page }).include("#deudaOfertasV2").analyze();
+        expect(fmt(bandeja), fmt(bandeja).slice(0, 5).join("\n")).toEqual([]);
+        await page.locator('#deudaOfertasV2 [data-dov2="anadir"]').click();
+        await page.locator("#dov2-meses").fill("12");
+        await expect(page.locator("#dov2AnadirVista")).not.toBeEmpty();
+        const anadir = await new AxeBuilder({ page }).include("#deudaOfertaAnadir").analyze();
+        expect(fmt(anadir), fmt(anadir).slice(0, 5).join("\n")).toEqual([]);
       });
     }
   });

@@ -231,11 +231,11 @@ const HEAVY_RENDER_VIEWS = new Set([
 const VIEW_CHUNKS = {
   "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20261105pulido1", rootId: "presupuestoMesRoot" },
   "estado-semana": { src: "views/estado-semana.js?v=20261125tre10", rootId: "estadoSemanaRoot" },
-  "deuda-comparar": { src: "views/deuda.js?v=20261125tred4", rootId: "deuda-comparar" },
-  "deuda-ruta": { src: "views/deuda.js?v=20261125tred4", rootId: "deuda-ruta" },
-  "deuda-prestamo": { src: "views/deuda.js?v=20261125tred4", rootId: "deuda-prestamo" },
-  "deuda-contratos": { src: "views/deuda.js?v=20261125tred4", rootId: "deuda-contratos" },
-  "deuda-simulador": { src: "views/deuda.js?v=20261125tred4", rootId: "deuda-simulador" },
+  "deuda-comparar": { src: "views/deuda.js?v=20261125tred5", rootId: "deuda-comparar" },
+  "deuda-ruta": { src: "views/deuda.js?v=20261125tred5", rootId: "deuda-ruta" },
+  "deuda-prestamo": { src: "views/deuda.js?v=20261125tred5", rootId: "deuda-prestamo" },
+  "deuda-contratos": { src: "views/deuda.js?v=20261125tred5", rootId: "deuda-contratos" },
+  "deuda-simulador": { src: "views/deuda.js?v=20261125tred5", rootId: "deuda-simulador" },
   "inversion-cartera": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-cartera" },
   "inversion-rebalanceo": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-rebalanceo" },
   "inversion-fiscal": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-fiscal" },
@@ -1350,6 +1350,7 @@ const BACKUP_LOCAL_STORES = [
   "plan-optimo-quitas", // UND-11: las ofertas de quita que el hogar escribe en el plan óptimo, por contrato
   "plan-optimo-comisiones", // DUO-D3: la comisión por amortizar antes de cada contrato (y, si baja, a cuánto y desde qué mes)
   "plan-optimo-colchon", // TRE-D3 · D-N42: «colchón primero» bajo la reserva protegida (activo y umbral de TAE)
+  "deuda-ofertas", // TRE-D5a: las ofertas que el hogar añade en Deuda › Ofertas (traspaso, reunificación, quita), con su estado
   "plan-deuda-compromiso", // DUO-D1: la foto del plan de deuda que el hogar decidió seguir («Este es nuestro plan»)
   "plan-deuda-respuestas", // DUO-D1: lo que el hogar contestó de cada mes (sí, otra cantidad, este mes no, no era esto)
   "deuda-hitos", // DUO-D2: el primer día en que la app vio cada deuda saldada (y cuáles ya lo estaban al empezar)
