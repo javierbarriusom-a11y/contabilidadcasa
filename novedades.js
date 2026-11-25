@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-25-deuda-nueva",
+      fecha: "2026-11-25",
+      texto: "Deuda › Plan, nueva: cuándo acabáis, lo de este mes con «Ya lo he pagado» y el orden; bajo la reserva, primero el colchón.",
+      href: "#deuda-ruta",
+    },
+    {
       id: "2026-11-25-una-sola-fecha-deuda",
       fecha: "2026-11-25",
       texto: "Deuda: una sola fecha de «libres de deuda» en toda la app, la de vuestro plan; las demás dicen con qué se comparan.",
