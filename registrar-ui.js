@@ -1265,7 +1265,7 @@ function registrarMesCardHtml(meta, list, month, monthClosed) {
     : `<tr><td colspan="7" class="registrar-mes-empty">${escapeHtml(registrarMesEmptyMessage(filter, list.length))}</td></tr>`;
   const hasSections = baseData.monthlyPlanning.sections.some((section) => section.kind === kind);
   const footer = REGISTRAR_MES_LEGACY_READONLY
-    ? `<p class="e19-kpi-note">Solo lectura (R-11): añade, copia o borra partidas desde <button type="button" class="registrar-actuals-plan-link" data-home-nav="registrar">Registrar › Reales del mes</button>.</p>`
+    ? `<p class="e19-kpi-note">Solo lectura: añade, copia o borra partidas desde <button type="button" class="registrar-actuals-plan-link" data-home-nav="registrar">Registrar › Reales del mes</button>.</p>`
     : monthClosed
       ? `<p class="e19-kpi-note">El mes está cerrado: los reales quedan congelados tal y como se cerraron.</p>`
       : `<div class="registrar-mes-card-foot">

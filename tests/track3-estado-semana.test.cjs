@@ -245,7 +245,7 @@ test("TRACK-3 · renderEstadoSemana pinta las tres tarjetas dentro del elemento 
 // ============================================================================
 
 test("TRACK-3 · la nueva pantalla está registrada en VIEW_CHUNKS, HEAVY_RENDER_VIEWS y el dispatcher", () => {
-  assert.match(appSrc, /"estado-semana": \{ src: "views\/estado-semana\.js\?v=20260904a1", rootId: "estadoSemanaRoot" \}/);
+  assert.match(appSrc, /"estado-semana": \{ src: "views\/estado-semana\.js\?v=20261125tre10", rootId: "estadoSemanaRoot" \}/);
   // T14: no se fija a que sea la última entrada antes de `]);` — HEAVY_RENDER_VIEWS ganó más
   // entradas después de "estado-semana" (views/escenarios.js), el canario solo comprueba que
   // "estado-semana" sigue siendo miembro del Set, no su posición.
@@ -283,5 +283,5 @@ test("TRACK-3 · canario de publicación: toda vista en VIEW_CHUNKS está en la 
 });
 
 test("TRACK-3 · el chunk de estado-semana viaja versionado", () => {
-  assert.match(appSrc, /views\/estado-semana\.js\?v=20260904a1/);
+  assert.match(appSrc, /views\/estado-semana\.js\?v=20261125tre10/);
 });

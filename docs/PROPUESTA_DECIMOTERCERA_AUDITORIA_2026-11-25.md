@@ -468,11 +468,13 @@ coincidan (o que lleven nombre de comparación). Es la prueba que habría detect
 - **D-N41** · Contratos: ¿retirar (redirigiendo) las dos listas de orden y el simulador de consolidación de esa pantalla, porque
   viven en Plan y en Ofertas › Préstamo? Recomendación: sí, tras dos semanas de TRE-D4 y con el medidor.
 - **D-N42** · ¿El plan propone por defecto «colchón primero» cuando la liquidez está bajo la reserva, salvo deudas por encima de
-  un 15 % de TAE? Recomendación: **sí**; el umbral, editable.
+  un 15 % de TAE? Recomendación: **sí**; el umbral, editable. **Decidida: «sí» del hogar (25/11/2026).** Se construye como TRE-D3
+  (§3), detrás de TRE-08 y TRE-10.
 - **D-N43** · ¿El plan reparte por titular (TRE-D8)? Solo si las deudas tienen titulares distintos y queréis verlo así.
 - **D-N44** · Ofertas: ¿sacar de ella la escalera del próximo euro y «Dinero parado» (al Plan), «Repartir la nómina» (a Plan ›
   Mes) y la capacidad de endeudamiento (a Contratos), para que Ofertas sea solo ofertas con su veredicto? Recomendación: **sí**;
-  son pantallas en uso, por eso se consulta.
+  son pantallas en uso, por eso se consulta. **Decidida: «sí» del hogar (25/11/2026).** Se traslada redirigiendo (los hashes de
+  siempre siguen llevando a su sitio), junto con la bandeja de Ofertas del §2.5b.
 - **Pendientes de antes:** DUO-05 rehecha como barra que se esconde al bajar (recomendación: sí); DUO-02 (un solo «¿Y si…?»,
   retira una pantalla: recomendación, decidir en la revisión del 14/12 con datos); UND-21 sigue a D-N11.
 
@@ -529,16 +531,26 @@ ni dio errores de página. Fuera de las pantallas: **267 scripts** y `app.js` co
 
 ### 7.2 Correcciones (lo que se ve mal en todas partes)
 
-**TRE-08 · El menú lateral con desplazamiento propio (P0 visual · S).** Hoy, `.sidebar` es `position: sticky` con
+**TRE-08 · El menú lateral con desplazamiento propio (P0 visual · S).** **Hecho en parte el 25/11 (ver al final de este punto).** Hoy, `.sidebar` es `position: sticky` con
 `min-height: 100vh` y `overflow: visible`, en `styles.css:502`. Con su contenido más alto que la ventana, no se queda fijo y estira
 el documento. Además, `advancedNav` se abre al visitar una pantalla suya y no se vuelve a cerrar (`app.js:4377`).
 - En el escritorio (> 860 px): `height: 100dvh; overflow-y: auto; overscroll-behavior: contain`, con una sombra arriba y abajo que
   avisa de que hay más. El documento pasa a medir lo que la pantalla.
 - «Herramientas avanzadas» se abre al entrar en una pantalla suya y **se cierra al volver a una principal**, salvo si el hogar la
   abrió a mano (se recuerda por sesión).
-- «Cuadro de mandos» sale dos veces en el menú (en Análisis y en Versiones anteriores): se deja una.
+- ~~«Cuadro de mandos» sale dos veces en el menú~~ **Corrección (25/11, al construirlo):** no es un enlace repetido, son dos
+  pantallas con el mismo nombre (`#cuadro-mandos` y la versión anterior `#visual-detail`). Renombrar la segunda toca la revisión
+  trimestral (D-N38 usa el nombre del menú): se decide con D-N45.
 - Criterio de hecho: a 1280 × 900, alto del documento de Hoy igual al de `#home` ± 40 px. Una e2e lo mide también en Movimientos y
   Plan, y el axe sigue en verde (el menú con desplazamiento propio necesita `tabindex` y nombre si es una región desplazable).
+- **Lo hecho el 25/11 («sigue con TRE-08»):** «Herramientas avanzadas» se cierra al volver a una pantalla principal si se abrió
+  sola, y Plan › Previsión declara su familia (resalta «Plan» y ya no abre el grupo). Medido a 1280 px con el arranque en caliente:
+  el vacío bajo Hoy pasa de ~2.100 a ~150 px; bajo Deuda › Plan, Previsión y Ajustes desaparece. **Lo que no se ha hecho, y por qué:**
+  el desplazamiento propio del menú. Contradice una regla escrita en una prueba del 1/8/2026 (E7, `tests/e7-interface.test.cjs`:
+  «escritorio usa el scroll único de página»), sin motivo anotado. Sin él, una pantalla más baja que el menú cerrado (1.663 px)
+  sigue dejando vacío debajo: ~150 px en Hoy y ~500 px en Plan › Mes. **D-N48 (se consulta):** ¿el menú del escritorio pasa a tener
+  su propio desplazamiento (y se retira la regla del 1/8)? Recomendación: **sí**; es el patrón de cualquier aplicación de escritorio
+  con menú largo, y la regla de agosto es anterior a que el menú tuviera 380 entradas.
 - **D-N45 (se consulta):** sacar «Versiones anteriores» (10 entradas) del menú y dejarla como lista en Ajustes › Laboratorio, junto
   a la revisión trimestral (D-N38). Los enlaces y los hashes siguen funcionando: no se retira ninguna pantalla, solo su entrada en el
   menú. Recomendación: **sí**. Son pantallas que la revisión del 14/12 ya va a juzgar, y hoy ocupan ~360 px del menú.
@@ -557,7 +569,9 @@ siempre. Es la pantalla más vista y la única que se mira de pie.
 - «Ver todo el detalle» baja al final de la vista (es una salida, no una acción del día), y «+ Registrar gasto» se queda arriba.
 - Criterio de hecho: e2e a 390 × 844 (`@safari`) con la cifra y el gráfico por encima de 844 px, con y sin «Primeros pasos».
 
-**TRE-10 · Sin texto de ingeniero en pantalla, comprobado por el CI (P1 · S).** Ya hubo una limpieza de códigos («(T11)», ESTADO
+**TRE-10 · Sin texto de ingeniero en pantalla, comprobado por el CI (P1 · S). Hecho el 25/11:** la prueba recorre las 53 rutas del
+menú y encontró 13 fugas más que la primera pasada (que miraba 18): «(E15)», «(E16)», «(E12b)», «(R-11)» y fechas ISO en el Centro
+de alertas, el Asesor ejecutivo, la simulación de vida nueva y el widget. Corregidas todas. Ya hubo una limpieza de códigos («(T11)», ESTADO
 §2). Volvieron porque nada lo impide. Propuesta:
 - Arreglar las nueve fugas de §7.0.4: los ocho códigos y «1.8 meses» en Herramientas › Patrimonio. La fecha ISO del recuadro
   «Estado» pasa a «25 nov».
@@ -726,4 +740,6 @@ revisión a mano del título de cada uno de los que no aparecen. Puede haber alg
 - **D-N46:** la base del Plan 2027 y si se hace antes del 31/12.
 - **D-N47:** dividir movimientos, solo en meses sin firmar.
 
-**Siguiente número libre: D-N48.**
+- **D-N48:** el menú del escritorio con desplazamiento propio (§7.2, TRE-08).
+
+**Siguiente número libre: D-N49.**

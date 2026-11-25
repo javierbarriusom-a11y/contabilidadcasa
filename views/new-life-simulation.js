@@ -142,7 +142,7 @@ function renderNewLifeHero(ctx) {
       ${newLifeActionButton(decision)}
     </div>
     <div class="new-life-hero-metrics">
-      <div><span>CaixaBank protegido</span><strong>${money(ctx.immediateTransfer?.caixaAfter ?? ctx.balances.caixa, true)}</strong><small>${state.balanceDate || defaultBalanceDate()}</small></div>
+      <div><span>CaixaBank protegido</span><strong>${money(ctx.immediateTransfer?.caixaAfter ?? ctx.balances.caixa, true)}</strong><small>${escapeHtml(shortDate(state.balanceDate || defaultBalanceDate()) || state.balanceDate || defaultBalanceDate())}</small></div>
       <div><span>Mediolanum objetivo</span><strong>${money(ctx.immediateTransfer?.mediolanumAfter ?? ctx.balances.mediolanum, true)}</strong><small>ahorro + huchas</small></div>
       <div><span>Deuda en ruta</span><strong>${ctx.debtSummary ? money(ctx.debtSummary.total, true) : money(0, true)}</strong><small>${ctx.debtSummary?.active ? "simulada" : "sugerida"}</small></div>
     </div>`;

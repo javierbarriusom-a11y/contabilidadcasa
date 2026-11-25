@@ -13334,3 +13334,83 @@ test.describe("TRE-07 · Una sola fecha de libre de deuda en toda la app (D-N40)
     expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
   });
 });
+
+// TRE-08 (decimotercera auditoría, §7.2; «sigue con TRE-08» del hogar, 25/11/2026): «Herramientas avanzadas» se abre sola al entrar en
+// una pantalla suya y se cierra al volver a una principal (abierta, el menú pasaba de ~1.660 a ~3.600 px y el escritorio arrastraba
+// ~2.000 px de vacío bajo cada pantalla); si la abre el hogar, se queda abierta. Plan › Previsión resalta «Plan» (como sus hermanas) y no
+// abre el grupo. El escritorio mantiene el scroll único de página (E7, 1/8/2026): el menú no tiene desplazamiento propio.
+test.describe("TRE-08 · El menú lateral no estira el escritorio", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  test("abierta sola, se cierra al volver; abierta a mano, se queda; Previsión no la abre, a 1280 px", async ({ page }) => {
+    test.setTimeout(120000);
+    await arrancarEnCaliente(page);
+    const avanzadas = page.locator("#advancedNav");
+    const medir = () => page.evaluate(() => ({
+      menu: document.getElementById("primarySidebar").getBoundingClientRect().height,
+      doc: document.documentElement.scrollHeight,
+      main: document.querySelector("main").getBoundingClientRect().height,
+    }));
+    // Desde una pantalla que solo está en el grupo, y vuelta a Hoy.
+    const soloAvanzada = await page.evaluate(() => {
+      const nav = document.getElementById("advancedNav");
+      const fuera = new Set([...document.querySelectorAll(".side-nav a[href^='#']")].filter((a) => !nav.contains(a)).map((a) => a.getAttribute("href")));
+      // Una que no declare familia (las hermanas resaltan su entrada principal y no abren el grupo, Ola 1).
+      return [...nav.querySelectorAll("a[href^='#']")].map((a) => a.getAttribute("href"))
+        .find((href) => !fuera.has(href) && !document.querySelector(`${href}[data-nav-family]`)).slice(1);
+    });
+    await page.evaluate((h) => { location.hash = h; }, soloAvanzada);
+    await expect(avanzadas).toHaveJSProperty("open", true);
+    await page.evaluate(() => { location.hash = "home"; });
+    await expect(page.locator("#hoyV2")).toBeVisible();
+    await expect(avanzadas).toHaveJSProperty("open", false);
+    const hoy = await medir();
+    expect(hoy.menu, "el menú con el grupo cerrado").toBeLessThan(2000);
+    expect(hoy.doc, "el documento lo mide la pantalla o el menú cerrado, no el grupo abierto").toBeLessThanOrEqual(Math.max(hoy.main, hoy.menu) + 40);
+    // Previsión, pestaña de Plan: resalta «Plan» y no abre el grupo.
+    await page.evaluate(() => { location.hash = "prevision"; });
+    await expect(page.locator('.side-nav a.nav-primary-link[href="#plan"]')).toHaveAttribute("aria-current", "page");
+    await expect(avanzadas).toHaveJSProperty("open", false);
+    // Abierta a mano, se queda al cambiar de pantalla.
+    await avanzadas.locator("summary").click();
+    await expect(avanzadas).toHaveJSProperty("open", true);
+    await page.evaluate(() => { location.hash = "home"; });
+    await expect(page.locator("#hoyV2")).toBeVisible();
+    await expect(avanzadas).toHaveJSProperty("open", true);
+  });
+});
+
+// TRE-10 (decimotercera auditoría, §7.2; «sigue con TRE-10» del hogar, 25/11/2026): sin texto de ingeniero en pantalla. Ya hubo una
+// limpieza de códigos («(T11)») y volvieron porque nada lo impedía. Con el arranque en caliente, en cada ruta del menú, en lo visible de la
+// pantalla, la tira y el recuadro «Estado»: ningún código interno entre paréntesis («(I1)», «(WP-25)»), ninguna fecha ISO, ningún decimal
+// con punto delante de «meses», «años» o «%» (el separador decimal es la coma; «1.000» de miles no cuenta) y ningún NaN, undefined o
+// Infinity. Mismo patrón que la prueba de privacidad, aplicado al lenguaje.
+test.describe("TRE-10 · Sin texto de ingeniero en pantalla", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  const FUGAS = [
+    ["código interno", /\((?:[A-Z]{1,4}-?\d{1,3}[a-z]?)(?:[/,] ?[A-Z]{1,4}-?\d{1,3}[a-z]?)*\)/],
+    ["fecha ISO", /\b20\d\d-\d\d-\d\d\b/],
+    ["decimal con punto", /\b\d+\.\d{1,2} (?:meses|años|%)/],
+    ["valor roto", /\b(?:NaN|undefined|Infinity)\b/],
+  ];
+  test("en las rutas del menú, a 1280 px", async ({ page }) => {
+    test.setTimeout(240000);
+    await arrancarEnCaliente(page);
+    const rutas = await page.evaluate(() => [...new Set([...document.querySelectorAll('#primarySidebar a[href^="#"]')].map((a) => a.getAttribute("href").slice(1)).filter(Boolean))]);
+    expect(rutas.length).toBeGreaterThan(30);
+    const hallado = [];
+    for (const ruta of rutas) {
+      await page.evaluate((h) => { location.hash = h; }, ruta);
+      await page.waitForTimeout(500);
+      const texto = await page.evaluate(() => {
+        const visible = (el) => Boolean(el && el.offsetParent !== null && el.getClientRects().length);
+        const zonas = [...document.querySelectorAll("main section.view-section:not([hidden]), main .view.active, #topbarStatusStrip, .e17-guide-details")].filter(visible);
+        return zonas.map((z) => z.innerText).join("\n");
+      });
+      for (const [nombre, patron] of FUGAS) {
+        const m = texto.match(patron);
+        if (m) hallado.push(`${ruta}: ${nombre} «${m[0]}» en «${texto.slice(Math.max(0, m.index - 50), m.index + 40).replace(/\s+/g, " ")}»`);
+      }
+    }
+    expect(hallado, hallado.join("\n")).toEqual([]);
+  });
+});

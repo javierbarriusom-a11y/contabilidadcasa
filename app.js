@@ -230,7 +230,7 @@ const HEAVY_RENDER_VIEWS = new Set([
 // mientras tanto, así que la espera de red se ve exactamente igual que una espera de cómputo.
 const VIEW_CHUNKS = {
   "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20261105pulido1", rootId: "presupuestoMesRoot" },
-  "estado-semana": { src: "views/estado-semana.js?v=20260904a1", rootId: "estadoSemanaRoot" },
+  "estado-semana": { src: "views/estado-semana.js?v=20261125tre10", rootId: "estadoSemanaRoot" },
   "deuda-comparar": { src: "views/deuda.js?v=20261125dn40", rootId: "deuda-comparar" },
   "deuda-ruta": { src: "views/deuda.js?v=20261125dn40", rootId: "deuda-ruta" },
   "deuda-prestamo": { src: "views/deuda.js?v=20261125dn40", rootId: "deuda-prestamo" },
@@ -250,12 +250,12 @@ const VIEW_CHUNKS = {
   "escenario-comparar": { src: "views/escenarios.js?v=20261116xda10", rootId: "escenario-comparar" },
   "debt-liquidation-plan": { src: "views/debt-liquidation-plan.js?v=20260922i5a1", rootId: "debt-liquidation-plan" },
   "virtual-advisor": { src: "views/virtual-advisor.js?v=20260918t14d1", rootId: "virtual-advisor" },
-  "executive-advisor": { src: "views/executive-advisor.js?v=20261119priv4", rootId: "executive-advisor" },
+  "executive-advisor": { src: "views/executive-advisor.js?v=20261125tre10", rootId: "executive-advisor" },
   "new-life-definitive": { src: "views/new-life-definitive.js?v=20261119priv4", rootId: "new-life-definitive" },
   "debt-control": { src: "views/debt-control.js?v=20261121dn23", rootId: "debt-control" },
   "asesor-decision": { src: "views/asesor-decision.js?v=20260919t14h1", rootId: "asesor-decision" },
   reconciliation: { src: "views/reconciliation.js?v=20260924arq4a1", rootId: "reconciliation" },
-  "new-life-simulation": { src: "views/new-life-simulation.js?v=20261119priv4", rootId: "new-life-simulation" },
+  "new-life-simulation": { src: "views/new-life-simulation.js?v=20261125tre10", rootId: "new-life-simulation" },
   "savings-agent": { src: "views/savings-agent.js?v=20260924arq4c1", rootId: "savings-agent" },
 };
 // Varias vistas pueden compartir un mismo fichero (p. ej. las 4 de Deuda viven en views/deuda.js):
@@ -772,7 +772,7 @@ function renderE17ViewGuide(viewId = viewFromHash()) {
   const example = Number.isFinite(Number(nextLiquidity))
     ? `Ejemplo con tus datos: la liquidez del primer mes previsto es ${money(nextLiquidity, true)}.`
     : "Ejemplo: los importes mostrados siempre se calculan con la copia actual.";
-  target.innerHTML = `<details class="e17-guide-details"><summary><strong>Estado</strong><span>${escapeHtml(guide[2])} · datos con fecha de análisis ${escapeHtml(balanceDate)}.</span></summary><div><strong>${escapeHtml(guide[0])}</strong><span>${escapeHtml(guide[1])}</span></div><div><strong>Siguiente paso</strong><span>${escapeHtml(guide[3])}</span></div></details><button type="button" class="secondary" data-e17-open="guide">Guía de este flujo</button><p class="sr-only" id="e17CurrentExample">${escapeHtml(example)}</p>`;
+  target.innerHTML = `<details class="e17-guide-details"><summary><strong>Estado</strong><span>${escapeHtml(guide[2])} · datos con fecha de análisis ${escapeHtml(shortDate(balanceDate) || balanceDate)}.</span></summary><div><strong>${escapeHtml(guide[0])}</strong><span>${escapeHtml(guide[1])}</span></div><div><strong>Siguiente paso</strong><span>${escapeHtml(guide[3])}</span></div></details><button type="button" class="secondary" data-e17-open="guide">Guía de este flujo</button><p class="sr-only" id="e17CurrentExample">${escapeHtml(example)}</p>`;
 }
 
 function navigateE17(target) {
@@ -4372,9 +4372,23 @@ function setActiveView(viewId = viewFromHash(), { focus = false, announce = true
   });
   const advancedNav = qs("advancedNav");
   if (advancedNav) {
-    const containsActiveView = Boolean(advancedNav.querySelector("a.active"));
+    // Solo cuenta si la pantalla no tiene también entrada fuera del grupo (Previsión, Deuda o Ajustes la tienen en los dos sitios).
+    const activeOutside = [...document.querySelectorAll(".side-nav a.active")].some((link) => !advancedNav.contains(link));
+    const containsActiveView = Boolean(advancedNav.querySelector("a.active")) && !activeOutside;
     advancedNav.classList.toggle("contains-active", containsActiveView);
-    if (containsActiveView) advancedNav.open = true;
+    // TRE-08 (25/11/2026): abierta sola al entrar en una pantalla suya, se cierra al volver a una principal (abierta, el menú pasaba
+    // de ~1.660 a ~3.600 px y el escritorio arrastraba ~2.000 px de vacío bajo cada pantalla); si la abrió el hogar, se queda.
+    if (!advancedNav.dataset.escucha) {
+      advancedNav.dataset.escucha = "1";
+      advancedNav.querySelector("summary")?.addEventListener("click", () => delete advancedNav.dataset.autoAbierto);
+    }
+    if (containsActiveView && !advancedNav.open) {
+      advancedNav.open = true;
+      advancedNav.dataset.autoAbierto = "1";
+    } else if (!containsActiveView && advancedNav.dataset.autoAbierto) {
+      advancedNav.open = false;
+      delete advancedNav.dataset.autoAbierto;
+    }
   }
   const copy = viewTitles[viewId] || viewTitles.home;
   // Hoy.pdf «Hoy, alineada», Registrar.pdf «Registrar, alineada» y Movimientos.pdf «Movimientos, alineada»: sin cabecera genérica
@@ -6419,7 +6433,7 @@ function renderAccountBalancePanels() {
   if (qs("balanceDateLabel")) qs("balanceDateLabel").textContent = mode === "manual" ? "Fecha del saldo real" : "Fecha de cálculo";
   if (qs("visualBalanceDateHint")) {
     qs("visualBalanceDateHint").innerHTML = VISUAL_DETAIL_BALANCE_LEGACY_READONLY
-      ? `Solo lectura (R-11): cambia el saldo o el modo desde <button type="button" class="registrar-actuals-plan-link" data-home-nav="registrar">Registrar › Saldo de cuentas</button>.`
+      ? `Solo lectura: cambia el saldo o el modo desde <button type="button" class="registrar-actuals-plan-link" data-home-nav="registrar">Registrar › Saldo de cuentas</button>.`
       : mode === "manual"
         ? "La fecha se registra automáticamente al actualizar el saldo. Los reales ya ocurridos quedan en el histórico y no se suman otra vez."
         : "La fecha calcula el saldo estimado y determina desde cuándo comienza la previsión.";
@@ -17325,7 +17339,7 @@ function renderGob9ResiliencePanel() {
     note.innerHTML = `<p>Sin gasto mensual medio calculable todavía.</p>`;
     return;
   }
-  note.innerHTML = `<p><strong>${result.months} ${result.months === 1 ? "mes" : "meses"} de aguante</strong> con ${money(result.liquidity, true)} de liquidez real, frente a ${money(result.stressedBurn, true)}/mes de gasto bajo tensión${result.monthlyDebtService > 0 ? ` + ${money(result.monthlyDebtService, true)}/mes de cuotas de deuda` : ""} = ${money(result.totalMonthlyOutflow, true)}/mes en total.</p>`;
+  note.innerHTML = `<p><strong>${Number(result.months).toLocaleString("es-ES", { maximumFractionDigits: 1 })} ${result.months === 1 ? "mes" : "meses"} de aguante</strong> con ${money(result.liquidity, true)} de liquidez real, frente a ${money(result.stressedBurn, true)}/mes de gasto bajo tensión${result.monthlyDebtService > 0 ? ` + ${money(result.monthlyDebtService, true)}/mes de cuotas de deuda` : ""} = ${money(result.totalMonthlyOutflow, true)}/mes en total.</p>`;
 }
 
 // RGX1: simulacro guiado de pérdida de acceso — combina la copia de emergencia (A0-9, ya real) y el
@@ -24053,7 +24067,7 @@ function ajustesFinancialCalendarInput() {
 function handleAjustesExportIcs() {
   const input = ajustesFinancialCalendarInput();
   if (!input) {
-    announceStatus("El calendario financiero (E15) no está disponible todavía.");
+    announceStatus("El calendario financiero no está disponible todavía.");
     return;
   }
   const calendar = input.calendar;
@@ -24088,7 +24102,7 @@ function renderAjustesFinancialCalendar() {
   if (!container) return;
   const input = ajustesFinancialCalendarInput();
   if (!input) {
-    container.innerHTML = `<p class="e19-kpi-note">El calendario financiero (E15) no está disponible todavía.</p>`;
+    container.innerHTML = `<p class="e19-kpi-note">El calendario financiero no está disponible todavía.</p>`;
     return;
   }
   const rows = input.calendar.rows
@@ -25444,7 +25458,7 @@ window.FinanceP2Bridge = {
     // Ambas ya tienen una fuente real en el repo, reutilizada tal cual: el aprendizaje de previsión
     // de E12b (mismo learnFromHistory() que PV2/PV3) y el registro de supuestos versionado (A7-2).
     const learning = window.FinanceCanonicalForecast?.learnFromHistory(reconciledMonthlyNetHistory());
-    const deviations = (learning?.deviations || []).map((item) => ({ label: item.label, delta: item.averageDelta, source: "aprendizaje de previsión (E12b)" }));
+    const deviations = (learning?.deviations || []).map((item) => ({ label: item.label, delta: item.averageDelta, source: "aprendizaje de previsión" }));
     const assumptions = (scenarioSettings.assumptionRegistry?.items || []).map((item) => ({ label: item.label, updatedAt: item.updatedAt, source: item.source }));
     return {
       ...planning,
@@ -25591,7 +25605,7 @@ function renderWidgetView() {
   const snapshot = widgetSnapshot();
 
   qs("widgetBalance").textContent = money(snapshot.balanceTotal, true);
-  qs("widgetBalanceNote").textContent = snapshot.balanceAsOf ? `A ${snapshot.balanceAsOf}.` : "";
+  qs("widgetBalanceNote").textContent = snapshot.balanceAsOf ? `A ${(typeof shortDate === "function" && shortDate(snapshot.balanceAsOf)) || snapshot.balanceAsOf}.` : ""; // TRE-10: sin fecha ISO
 
   const debtEl = qs("widgetPriciestDebt");
   const debtNoteEl = qs("widgetPriciestDebtNote");
@@ -25669,7 +25683,7 @@ function renderAlertsCenter() {
   if (kpis) {
     kpis.innerHTML = `<article><span>Reglas activas</span><strong>${active.length}</strong><small>${alerts.length - active.length} ${(alerts.length - active.length) === 1 ? "pausada" : "pausadas"}</small></article>
       <article class="${attention.length ? "warn" : "good"}"><span>Requieren atención</span><strong>${attention.length}</strong><small>Umbral o revisión</small></article>
-      <article><span>Próxima revisión</span><strong>${nextReview ? escapeHtml(nextReview.reviewDate) : "Sin fecha"}</strong><small>${nextReview ? escapeHtml(nextReview.name) : "Añade una fecha a una regla"}</small></article>`;
+      <article><span>Próxima revisión</span><strong>${nextReview ? escapeHtml(shortDate(nextReview.reviewDate) || nextReview.reviewDate) : "Sin fecha"}</strong><small>${nextReview ? escapeHtml(nextReview.name) : "Añade una fecha a una regla"}</small></article>`;
   }
   target.innerHTML = alerts.length
     ? alerts.map(renderAlertRule).join("")

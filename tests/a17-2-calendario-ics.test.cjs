@@ -134,7 +134,8 @@ test("handleAjustesExportIcs avisa si el calendario financiero (E15) no está di
     announceStatus: (text) => announcements.push(text),
   });
   context.handleAjustesExportIcs();
-  assert.match(announcements[0], /calendario financiero \(E15\) no está disponible/);
+  // TRE-10 (25/11/2026): el aviso sigue, sin el código interno «(E15)».
+  assert.match(announcements[0], /calendario financiero no está disponible/);
 });
 
 test("handleAjustesExportIcs avisa si el calendario no tiene meses todavía", () => {
