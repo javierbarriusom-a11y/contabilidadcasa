@@ -29,7 +29,7 @@ const cierreDeSiempre = (page) => page.addInitScript(() => { try { localStorage.
 const { pulsar, registrarEventos } = require("./helpers/pulsar-o-explicar.cjs");
 const { cronometro, informarSiFalla } = require("./helpers/cronometro-pasos.cjs");
 // TRE-D1: las pruebas de los controles de siempre de Deuda › Plan entran en «todo el detalle»; las de la vista nueva lo desactivan.
-const { deudaDeSiempre, deudaPlanNueva, deudaContratosNueva } = require("./helpers/deuda-plan-nueva.cjs");
+const { deudaDeSiempre, deudaPlanNueva, deudaContratosNueva, deudaOfertasNueva } = require("./helpers/deuda-plan-nueva.cjs");
 test.beforeEach(async ({ page }) => { await deudaDeSiempre(page); });
 
 // Funciones en prueba con interruptor propio: desde el 29/10/2026 nacen encendidas. Las pruebas que recorren «apagada» y «encendida»
@@ -13732,9 +13732,92 @@ test.describe("TRE-D4 · Deuda › Contratos nuevo", () => {
     // A 195 px (DEC-38) y con el texto más ancho que en local (las fuentes del CI lo ensanchaban y el CI de #688 lo vio: 204 px), nada se sale.
     await page.keyboard.press("Escape");
     await page.setViewportSize({ width: 195, height: 800 });
-    await page.addStyleTag({ content: "body, button { letter-spacing: 0.6px !important; }" });
+    await page.addStyleTag({ content: "body, button, input, select { letter-spacing: 0.6px !important; }" });
     await page.locator("#deudaContratosV2 [data-dcv2-herramientas] > summary").click();
     const fuera = await page.evaluate(() => [...document.querySelectorAll("#deudaContratosV2 *")].filter((e) => e.getClientRects().length && e.getBoundingClientRect().right > window.innerWidth + 1).map((e) => `${e.tagName}.${e.className}`));
     expect(fuera).toEqual([]);
+    // La ficha también: sus casillas no se encogen solas (la de fecha tiene un ancho mínimo propio, el CI de #689 lo vio en Ofertas).
+    await page.locator("#deudaContratosV2 [data-dcv2-editar]").first().click();
+    await expect(ficha.locator("#dcv2Previa")).not.toBeEmpty();
+    const fueraFicha = await page.evaluate(() => [...document.querySelectorAll("#deudaContratoFicha *")].filter((e) => e.getClientRects().length && e.getBoundingClientRect().right > window.innerWidth + 1).map((e) => `${e.tagName}.${e.className}#${e.id}`));
+    expect(fueraFicha).toEqual([]);
+  });
+});
+
+// TRE-D5a (decimotercera §2.5b; auditoría de diseño §5.2, PR 5): Deuda › Ofertas como bandeja. Cada oferta con su veredicto frente al plan;
+// añadir una con el veredicto en vivo; meter una quita en el plan (con deshacer); «No nos interesa» al historial; el kit y los accesos.
+// Arranque en caliente, contratos y ofertas FICTICIOS.
+test.describe("TRE-D5a · Deuda › Ofertas como bandeja", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+    const etiqueta = viewport.width === 390 ? " @safari" : "";
+    test(`el veredicto de cada oferta, añadir con el veredicto en vivo, meterla en el plan, el historial y los accesos, a ${viewport.width} px${etiqueta}`, async ({ page }) => {
+      test.setTimeout(150000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await arrancarEnCaliente(page, { viewport });
+      await page.evaluate(() => {
+        const t = escenarioMotorDebtOptions().find((c) => /FICTICIO/.test(c.entity));
+        storageSet(storageKey("deuda-ofertas"), JSON.stringify([{ id: "o1", tipo: "traspaso", contratoId: t.id, entidad: "Entidad FICTICIA", meses: 12, taeDespues: 18, comisionPct: 3, vence: "2099-12-15", estado: "abierta" }]));
+        location.hash = "deuda-comparar";
+      });
+      await deudaOfertasNueva(page);
+      const bandeja = page.locator("#deudaOfertasV2");
+      await expect(bandeja.locator(".dov2-oferta")).toHaveCount(1, { timeout: 20000 });
+      await expect(page.locator("#deudaCompararGrid")).toBeHidden();
+      await expect(bandeja.locator(".dov2-titular").first()).toHaveText(/^(Os compensa: [\d.]+\s€ menos|No os compensa: [\d.]+\s€ más|Casi igual: [\d.]+\s€ de diferencia)$/);
+      await expect(bandeja.locator(".dov2-oferta").first()).toContainText("Intereses y comisiones");
+      const medida = await page.evaluate(() => ({ alto: document.getElementById("deudaOfertasV2").getBoundingClientRect().height, desborda: document.documentElement.scrollWidth > window.innerWidth + 1 }));
+      expect(medida.desborda).toBe(false);
+      if (viewport.width === 1440) expect(medida.alto).toBeLessThanOrEqual(1400);
+      // Añadir una quita: el veredicto en vivo y, guardada, su tarjeta; meterla en el plan la escribe en las quitas del plan (con deshacer).
+      await bandeja.locator('[data-dov2="anadir"]').click();
+      const anadir = page.locator("#deudaOfertaAnadir");
+      await anadir.locator('input[name="dov2Tipo"][value="quita"]').check();
+      await anadir.locator("#dov2-importe").fill("1900");
+      await expect(anadir.locator("#dov2AnadirVista")).toContainText(/compensa|Casi igual/);
+      await anadir.locator('[data-dov2-anadir="guardar"]').click();
+      await expect(anadir).toBeHidden();
+      const quita = bandeja.locator('.dov2-oferta[data-tipo="quita"]');
+      await expect(quita).toHaveCount(1);
+      await expect(bandeja.locator(".dov2-resumen")).not.toContainText("de ,");
+      await quita.locator('[data-dov2-accion="plan"]').click();
+      await expect.poll(() => page.evaluate(() => Object.values(JSON.parse(storageGet(storageKey("plan-optimo-quitas"), "{}"))))).toContain(1900);
+      await expect(bandeja.locator('.dov2-oferta[data-tipo="quita"]')).toContainText("En vuestro plan");
+      await page.$eval("#undoToast button", (button) => button.click());
+      await expect.poll(() => page.evaluate(() => Object.values(JSON.parse(storageGet(storageKey("plan-optimo-quitas"), "{}"))).filter((v) => v > 0).length)).toBe(0);
+      // «No nos interesa» la pasa al historial.
+      await bandeja.locator('.dov2-oferta[data-tipo="traspaso"] [data-dov2-accion="rechazar"]').click();
+      await expect(bandeja.locator('.dov2-oferta[data-tipo="traspaso"]')).toHaveCount(0);
+      await bandeja.locator("[data-dov2-accesos] > summary").click();
+      await expect(bandeja.locator("[data-dov2-historial]")).toContainText("1 rechazada o vencida");
+      // El kit de UND-13 desde «Qué podéis pedir», y «Probar a mano» lleva al Simulador visual.
+      await bandeja.locator(".dov2-pedir [data-kit-entidad]").first().click();
+      await expect(page.locator("#kitEntidad")).toBeVisible();
+      await page.keyboard.press("Escape");
+      await bandeja.locator('[data-dov2-ir="deuda-simulador"]').click();
+      await expect(page.locator("#deuda-simulador")).toBeVisible();
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+  test("a 195 px (DEC-38) y con el texto más ancho que en local, ni la bandeja ni «Añadir una oferta» se salen", async ({ page }) => {
+    test.setTimeout(120000);
+    await arrancarEnCaliente(page, { viewport: { width: 390, height: 844 } });
+    await page.evaluate(() => {
+      const t = escenarioMotorDebtOptions().find((c) => /FICTICIO/.test(c.entity));
+      storageSet(storageKey("deuda-ofertas"), JSON.stringify([{ id: "o1", tipo: "traspaso", contratoId: t.id, entidad: "Entidad FICTICIA", meses: 12, taeDespues: 18, comisionPct: 3, vence: "2099-12-15", estado: "abierta" }, { id: "o2", tipo: "reunificacion", entidad: "Banco FICTICIO", tin: 7.9, plazo: 48, comision: 150, estado: "abierta" }]));
+      location.hash = "deuda-comparar";
+    });
+    await deudaOfertasNueva(page);
+    await expect(page.locator("#deudaOfertasV2 .dov2-oferta")).toHaveCount(2, { timeout: 20000 });
+    await page.setViewportSize({ width: 195, height: 800 });
+    await page.addStyleTag({ content: "body, button, input, select { letter-spacing: 0.6px !important; }" });
+    await page.locator("#deudaOfertasV2 [data-dov2-accesos] > summary").click();
+    for (const d of await page.locator("#deudaOfertasV2 .dov2-letra").all()) await d.locator("summary").click();
+    const fuera = (sel) => page.evaluate((s) => [...document.querySelectorAll(`${s} *`)].filter((e) => e.getClientRects().length && e.getBoundingClientRect().right > window.innerWidth + 1).map((e) => `${e.tagName}.${e.className}`), sel);
+    expect(await fuera("#deudaOfertasV2")).toEqual([]);
+    await page.locator('#deudaOfertasV2 [data-dov2="anadir"]').click();
+    await expect(page.locator("#dov2AnadirVista")).not.toBeEmpty();
+    expect(await fuera("#deudaOfertaAnadir")).toEqual([]);
   });
 });

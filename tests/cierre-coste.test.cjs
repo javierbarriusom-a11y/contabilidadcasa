@@ -168,7 +168,7 @@ test("lo enseñan «Lo que guarda la firma» del cierre nuevo y el informe de Us
   const html = read("index.html");
   // El medidor pasó a 20261114tipo con el tipo de los grupos sin propuesta de Clasificar (XDA-05) y a 20261118svd6 con el simulador
   // de deuda nuevo (SVD-6), a 20261118dec13 con la huella anónima del extracto (DEC-13) y a 20261118dec41 con el aviso de la copia (DEC-41) a 20261120dec22 con el repaso desde el calendario (DEC-22) y a 20261121dec45 con «¿te sirve?» en Novedades (DEC-45); el cierre sigue en la suya.
-  for (const [f, v] of [["medidor-utilidad.js", "20261125tred4"], ["views/cierre-v2.js", "20261104coste1"]]) assert.ok(html.includes(`src="${f}?v=${v}"`), f);
+  for (const [f, v] of [["medidor-utilidad.js", "20261125tred5"], ["views/cierre-v2.js", "20261104coste1"]]) assert.ok(html.includes(`src="${f}?v=${v}"`), f);
   assert.ok(require("../novedades.js").some((n) => n.id === "2026-11-04-coste-cierre"));
 });
 

@@ -44,6 +44,7 @@ const EXCLUDED = {
   "finance-e18-local-health": "métricas técnicas locales (E18)",
   "prevision-v2-vista": "preferencia de pantalla de este dispositivo (FX-13): si el gráfico de Plan › Previsión pinta el total o cada cuenta; como el horizonte, no es un dato del hogar",
   "prevision-v2-umbral": "preferencia de pantalla de este dispositivo (FX-12): desde qué importe enseña «Lo que viene» de Plan › Previsión; como el horizonte, no es un dato del hogar",
+  "deuda-ofertas-v2-modo": "preferencia de pantalla de este dispositivo (TRE-D5a): si Deuda › Ofertas abre la bandeja nueva o «todo el detalle»; como las de Plan y Contratos, no es un dato del hogar",
   "deuda-contratos-v2-modo": "preferencia de pantalla de este dispositivo (TRE-D4): si Deuda › Contratos abre la vista nueva o «todo el detalle»; como la de Deuda › Plan, no es un dato del hogar",
   "deuda-plan-v2-modo": "preferencia de pantalla de este dispositivo (TRE-D1): si Deuda › Plan abre la vista nueva o «todo el detalle»; como la de Cierre, no es un dato del hogar",
   "kit-entidad": "«lo hemos pedido» y «lo hemos recibido» del certificado de cada deuda (UND-13), un recordatorio de este dispositivo, como «lo he pedido» de XPR-11; lo que cuenta, el capital del certificado, se corrige en Contratos, que sí va en la copia",

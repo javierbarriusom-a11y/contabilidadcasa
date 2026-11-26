@@ -10,6 +10,9 @@ const MARCA = "dpv2-prueba-nueva";
 // `deudaContratosNueva`.
 const MODO_CONTRATOS = "deuda-contratos-v2-modo";
 const MARCA_CONTRATOS = "dcv2-prueba-nueva";
+// TRE-D5a: y con Deuda › Ofertas (views/deuda-ofertas-v2.js). Las pruebas de la bandeja lo desactivan con `deudaOfertasNueva`.
+const MODO_OFERTAS = "deuda-ofertas-v2-modo";
+const MARCA_OFERTAS = "dov2-prueba-nueva";
 
 /** En cada carga de la página, «todo el detalle» salvo que la prueba haya pedido la vista nueva (marca en sessionStorage). */
 function deudaDeSiempre(page) {
@@ -19,7 +22,7 @@ function deudaDeSiempre(page) {
     } catch {
       /* sin almacenamiento */
     }
-  }, { pares: [[MODO, MARCA], [MODO_CONTRATOS, MARCA_CONTRATOS]] });
+  }, { pares: [[MODO, MARCA], [MODO_CONTRATOS, MARCA_CONTRATOS], [MODO_OFERTAS, MARCA_OFERTAS]] });
 }
 
 /** La vista nueva de Deuda › Contratos para esta prueba (sobrevive a recargas) y la repinta si ya se está en ella. */
@@ -40,4 +43,13 @@ async function deudaPlanNueva(page) {
   }, { modo: MODO, marca: MARCA });
 }
 
-module.exports = { deudaDeSiempre, deudaPlanNueva, deudaContratosNueva, MODO, MODO_CONTRATOS };
+/** La bandeja nueva de Deuda › Ofertas para esta prueba (sobrevive a recargas) y la repinta si ya se está en ella. */
+async function deudaOfertasNueva(page) {
+  await page.evaluate(({ modo, marca }) => {
+    sessionStorage.setItem(marca, "1");
+    localStorage.removeItem(modo);
+    globalThis.renderDeudaOfertasV2?.();
+  }, { modo: MODO_OFERTAS, marca: MARCA_OFERTAS });
+}
+
+module.exports = { deudaDeSiempre, deudaPlanNueva, deudaContratosNueva, deudaOfertasNueva, MODO, MODO_CONTRATOS, MODO_OFERTAS };

@@ -293,6 +293,7 @@ function renderDeudaComparar() {
     })
     .join("");
 
+  globalThis.renderDeudaOfertasV2?.(); // TRE-D5a (views/deuda-ofertas-v2.js): la bandeja de ofertas, con lo que se acaba de pintar
   const insight = qs("deudaCompararInsight");
   const noTouch = summaries.find((entry) => entry.id === "no-tocar");
   const recommended = summaries.find((entry) => entry.id === recommendedId);

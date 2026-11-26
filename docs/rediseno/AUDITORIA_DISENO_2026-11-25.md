@@ -158,7 +158,7 @@ de D-N28.
 | 2 | **TRE-D2 · Ajustar el plan** (hecho el 25/11, ESTADO §2) | Panel lateral en el escritorio y hoja en el móvil con los controles del plan óptimo agrupados (cuánto al mes con − / +, orden, lo que cambia el coste, tipo variable) y su vista previa en el héroe | Un solo control de «al mes» en la vista; DUO-01 sin excepciones nuevas | M |
 | 3 | **TRE-D3c · Comparar con otras formas** (hecho el 25/11, ESTADO §2) | Una tabla: solo cuotas · plazos firmados · bola de nieve o avalancha · consolidar · liquidar con caja (con «Aplicar como escenario») · no tocar nada. Cada fila con su «Ver detalle» de siempre | Todas las piezas del inventario (§2.6) a dos toques como mucho | M |
 | 4 | **TRE-23 + TRE-D4 · Contratos** (hecho el 25/11, ESTADO §2) | Componentes comunes (ficha, lista de tarjetas, plegado con señal) y Contratos en tarjetas con su ficha y «Datos que faltan» | 0 desbordamiento a 320 px; ≤ 10 campos visibles | L |
-| 5 | **Ofertas (D-N44)** | Bandeja de ofertas con veredicto, «Añadir una oferta», «Qué podéis pedir»; salen a su sitio, redirigiendo, la escalera y «Dinero parado», «Repartir la nómina» y la capacidad | Los hashes de siempre llevan a su sitio; Ofertas ≤ 1.400 px a 1440 | M |
+| 5 | **Ofertas (D-N44)** (la bandeja, TRE-D5a, hecha el 25/11; sacar lo que no son ofertas, TRE-D5b, pendiente) | Bandeja de ofertas con veredicto, «Añadir una oferta», «Qué podéis pedir»; salen a su sitio, redirigiendo, la escalera y «Dinero parado», «Repartir la nómina» y la capacidad | Los hashes de siempre llevan a su sitio; Ofertas ≤ 1.400 px a 1440 | M |
 
 **Antes del PR 1, R1 en pequeño:** la cabecera común (H1 y control segmentado) se estrena en Deuda; el resto de pantallas la toman
 en R1.
