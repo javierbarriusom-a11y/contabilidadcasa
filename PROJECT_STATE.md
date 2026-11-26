@@ -113,6 +113,20 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 26 de noviembre de 2026 (552): CIE-01, cerrar los meses atrasados (agosto y septiembre) con los saldos de su extracto
+
+- **El hogar** (26/11): «incorpora al backlog el cerrar el mes de agosto, que sigue abierto»; después, «continúa con lo que sigue». CIE-01 es F0 en la Propuesta final.
+- **Por qué no se podía:** Cierre solo dejaba elegir el mes en curso o el anterior (`closeTarget`), y al firmar guardaba **los saldos de hoy** como saldos de cierre. El servidor (`close_finance_month`) sí admite cualquier mes no cerrado: no hacía falta tocarlo.
+- **Lo hecho:**
+  - `closeTarget` recibe los meses con movimientos y devuelve en `pending` los anteriores al mes anterior que siguen sin firmar, el más antiguo primero; se puede elegir uno (`late: true`). Por defecto, nada cambia.
+  - `balancesAtMonthEnd` (nuevo, en `canonical-month-close-balances.js`): por cuenta conciliable, el saldo tras el último movimiento del banco de ese mes; en el último día, el que cierra la cadena de saldos (el mismo criterio que la conciliación de Cierre); si el día no encadena, lo dice. Sin movimientos con saldo ese mes, la cuenta **falta**: ni el saldo de hoy ni el de otro mes.
+  - En Cierre, «Sin firmar de antes: Cerrar ago 26 · Cerrar sept 26…». Elegido uno, las cuentas se comprueban con el extracto a fin de ese mes; «Lo que guarda la firma» enseña esos saldos y «sin saldo en el extracto» donde falta; al firmar se guardan esos (`pendingMonthCloseBalances` nunca usa los de hoy para un mes atrasado). El efectivo no tiene extracto y no se guarda para un mes atrasado.
+  - Novedades, con su línea.
+- **Pruebas:** `tests/cie01-cerrar-meses-atrasados.test.cjs` (3); e2e «CIE-01 · Cerrar un mes atrasado» a 1280 y 390 px (`@safari`), con el arranque en caliente: elige el más antiguo, comprueba el saldo de CaixaBank del extracto (distinto del de hoy) y «sin saldo» en Mediolanum, y vuelve al mes por defecto. Firmar necesita la nube y no se prueba en el navegador. Versiones: `canonical-month-close-balances.js`, `views/cierre.js` y `views/cierre-v2.js` a `20261126cie01` (dos listas de pruebas, ampliadas).
+- **Validación:** `npm test` **7.033/7.033**; `npm run verify` en verde (el tipo JSDoc de `closeTarget` gana `pastMonths`); e2e + axe de Cierre en Chromium (el cierre nuevo, la guía, el mes anterior sin firmar, el ensayo de octubre y CIE-01) **47/47**; `test:mobile-overflow` **415 visitas sin nada cortado**.
+- **Operativo:** rama `claude/cerrar-meses-atrasados`, encima de CAT-14 (`claude/cat14-oyentes-al-cargar`) y de #692; los PR salen en cadena, cada uno cuando el anterior esté en `main`.
+- **Tarea del hogar:** firmar agosto y septiembre desde Cierre cuando esté publicado, con sus extractos importados (si falta el de una cuenta, Cierre lo dice antes de firmar).
+
 ## Cierre de sesión — 26 de noviembre de 2026 (551): CAT-14, los oyentes de los campos de index.html se enganchan al cargar
 
 - **El hogar** (26/11, noche): «continúa con lo que sigue si puedes». Siguiente de F0 (`docs/PROPUESTA_FINAL_NOVIEMBRE_2026.md`): **CAT-14**, buscar el patrón del fallo de DUO-D3 en toda la app.

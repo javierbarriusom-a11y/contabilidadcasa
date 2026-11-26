@@ -153,7 +153,7 @@ function cierreV2AciertoTexto() {
 function cierreV2GuardaHtml(ctx) {
   const dia = cierreV2UltimoDia(ctx.monthKey);
   const filas = [[`Reales de ${cierreV2MesNombre(ctx.monthKey)}`, "se congelan"]];
-  ctx.accountRows.forEach((row) => filas.push([`${row.label} a ${dia}`, money(row.declared, true)]));
+  ctx.accountRows.forEach((row) => filas.push([`${row.label} a ${dia}`, row.declared === null ? "sin saldo en el extracto" : money(row.declared, true)])); // CIE-01: un mes atrasado sin extracto
   const acierto = cierreV2AciertoTexto();
   if (acierto) filas.push(["Acierto de la previsión", acierto]);
   const medidor = globalThis.FinanceMedidor;

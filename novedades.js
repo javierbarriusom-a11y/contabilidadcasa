@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-26-cerrar-meses-atrasados",
+      fecha: "2026-11-26",
+      texto: "Cierre: los meses atrasados sin firmar se pueden cerrar ya, con los saldos de su extracto y no con los de hoy.",
+      href: "#cierre",
+    },
+    {
       id: "2026-11-26-comparar-dos-prestamos",
       fecha: "2026-11-26",
       texto: "Préstamo para saldar: comparad dos ofertas, con seguros incluidos, y ved cuánto os ahorra o cuesta cada una frente a no pedir nada.",

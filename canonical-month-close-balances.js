@@ -73,15 +73,24 @@
    * Cierre pasó solo a noviembre, sin extracto, con octubre aún abierto. Si no, el mes en curso. La otra
    * opción se ofrece si aún no está firmada, para no perder la posibilidad de cerrar el mes de hoy ni
    * la de cerrar tarde el anterior.
-   * @param {{ today: string, isSigned?: (monthKey: string) => boolean, hasActivity?: (monthKey: string) => boolean, choice?: string }} input
+   * @param {{ today: string, isSigned?: (monthKey: string) => boolean, hasActivity?: (monthKey: string) => boolean, choice?: string, pastMonths?: Array<string> }} input
    */
-  function closeTarget({ today, isSigned = () => false, hasActivity = () => true, choice = "" }) {
+  // CIE-01 (26/11/2026, petición del hogar: «cerrar el mes de agosto, que sigue abierto»): `pastMonths` son los meses con movimientos;
+  // los anteriores al mes anterior que siguen sin firmar se ofrecen en `pending` (el más antiguo primero) y se pueden elegir. Por
+  // defecto no cambia nada: se sigue proponiendo el mes en curso o el anterior.
+  function closeTarget({ today, isSigned = () => false, hasActivity = () => true, choice = "", pastMonths = [] }) {
     if (!validIsoDate(today)) throw new Error("La fecha de hoy no es válida.");
     const current = today.slice(0, 7);
     const previous = previousMonthKey(current);
     const inGrace = Number(today.slice(8, 10)) <= GRACE_DAYS;
     const previousPending = !inGrace && !isSigned(previous) && Boolean(hasActivity(previous));
     const byDefault = inGrace || previousPending ? previous : current;
+    const pending = [...new Set((Array.isArray(pastMonths) ? pastMonths : []).map(text))]
+      .filter((key) => validMonthKey(key) && key < previous && !isSigned(key) && Boolean(hasActivity(key)))
+      .sort();
+    if (pending.includes(choice)) {
+      return { monthKey: choice, isDefault: false, alternative: byDefault, reason: "elegido: cerrar tarde un mes atrasado", late: true, pending };
+    }
     const monthKey = (choice === current || choice === previous) ? choice : byDefault;
     const other = monthKey === current ? previous : current;
     return {
@@ -92,7 +101,48 @@
       reason: monthKey === previous
         ? (inGrace ? `del 1 al ${GRACE_DAYS} se cierra el mes que acaba` : previousPending ? "sigue sin firmar: se cierra antes que el mes en curso" : "elegido: cerrar tarde el mes anterior")
         : (inGrace || previousPending ? "elegido: cerrar el mes en curso" : "mes en curso"),
+      late: false,
+      pending,
     };
+  }
+
+  /**
+   * CIE-01: los saldos de cierre de un mes PASADO salen del extracto, no de los saldos de hoy. Por cuenta conciliable, el saldo tras el
+   * último movimiento del banco de ese mes (`balanceAfter`). Dentro del último día, el que cierra la cadena de saldos (ninguno de ese
+   * día continúa desde él); si el día no encadena, se dice (`ambiguous`) y se toma el último del fichero. Sin movimientos con saldo en el
+   * mes, la cuenta va a `missing`: no se inventa ni se usa el saldo de hoy.
+   * @param {{ monthKey: string, entries: Array<any> }} input entradas del libro (canonical-ledger)
+   */
+  function balancesAtMonthEnd({ monthKey, entries = [] }) {
+    if (!validMonthKey(monthKey)) throw new Error("El mes no es válido.");
+    const first = `${monthKey}-01`;
+    const last = lastDayOfMonth(monthKey);
+    const accounts = {};
+    const dates = {};
+    const missing = [];
+    const ambiguous = [];
+    RECONCILABLE.forEach((accountId) => {
+      const rows = (Array.isArray(entries) ? entries : []).filter((row) => text(row.accountId || "caixabank") === accountId && !row.duplicateOf
+        && !NON_BANK_SOURCES.includes(text(row.source)) && row.balanceAfter !== null && row.balanceAfter !== undefined && Number.isFinite(Number(row.balanceAfter))
+        && text(row.date).slice(0, 10) >= first && text(row.date).slice(0, 10) <= last);
+      if (!rows.length) {
+        missing.push(accountId);
+        return;
+      }
+      const day = rows.map((row) => text(row.date).slice(0, 10)).sort().pop();
+      const sameDay = rows.filter((row) => text(row.date).slice(0, 10) === day);
+      const continues = (from, to) => Math.abs(round2(Number(from.balanceAfter) + Number(to.signedAmount ?? to.amount ?? 0) - Number(to.balanceAfter))) <= TOLERANCE;
+      const ends = sameDay.filter((row) => !sameDay.some((other) => other !== row && continues(row, other)));
+      let pick = ends.length === 1 ? ends[0] : null;
+      if (!pick) {
+        if (sameDay.length > 1) ambiguous.push(accountId);
+        pick = sameDay.slice().sort((a, b) => Number(a.sourceRow ?? 0) - Number(b.sourceRow ?? 0)).pop();
+      }
+      accounts[accountId] = round2(Number(pick.balanceAfter));
+      dates[accountId] = day;
+    });
+    const date = Object.values(dates).sort().pop() || null;
+    return { monthKey, accounts, dates, date, missing, ambiguous };
   }
 
   /**
@@ -185,5 +235,5 @@
     return `saldos del ${formatDate(entry.date)}, ${days} día${days === 1 ? "" : "s"} ${entry.offsetDays > 0 ? "después" : "antes"} del fin de mes`;
   }
 
-  return { STORE_NAME, GRACE_DAYS, TOLERANCE, ACCOUNTS, previousMonthKey, lastDayOfMonth, isGraceMonth, closeTarget, buildEntry, normalizeStore, recordEntry, previousEntry, continuity, describeDate };
+  return { STORE_NAME, GRACE_DAYS, TOLERANCE, ACCOUNTS, previousMonthKey, lastDayOfMonth, isGraceMonth, closeTarget, balancesAtMonthEnd, buildEntry, normalizeStore, recordEntry, previousEntry, continuity, describeDate };
 });
