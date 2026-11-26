@@ -13732,10 +13732,15 @@ test.describe("TRE-D4 · Deuda › Contratos nuevo", () => {
     // A 195 px (DEC-38) y con el texto más ancho que en local (las fuentes del CI lo ensanchaban y el CI de #688 lo vio: 204 px), nada se sale.
     await page.keyboard.press("Escape");
     await page.setViewportSize({ width: 195, height: 800 });
-    await page.addStyleTag({ content: "body, button { letter-spacing: 0.6px !important; }" });
+    await page.addStyleTag({ content: "body, button, input, select { letter-spacing: 0.6px !important; }" });
     await page.locator("#deudaContratosV2 [data-dcv2-herramientas] > summary").click();
     const fuera = await page.evaluate(() => [...document.querySelectorAll("#deudaContratosV2 *")].filter((e) => e.getClientRects().length && e.getBoundingClientRect().right > window.innerWidth + 1).map((e) => `${e.tagName}.${e.className}`));
     expect(fuera).toEqual([]);
+    // La ficha también: sus casillas no se encogen solas (la de fecha tiene un ancho mínimo propio, el CI de #689 lo vio en Ofertas).
+    await page.locator("#deudaContratosV2 [data-dcv2-editar]").first().click();
+    await expect(ficha.locator("#dcv2Previa")).not.toBeEmpty();
+    const fueraFicha = await page.evaluate(() => [...document.querySelectorAll("#deudaContratoFicha *")].filter((e) => e.getClientRects().length && e.getBoundingClientRect().right > window.innerWidth + 1).map((e) => `${e.tagName}.${e.className}#${e.id}`));
+    expect(fueraFicha).toEqual([]);
   });
 });
 
@@ -13806,7 +13811,7 @@ test.describe("TRE-D5a · Deuda › Ofertas como bandeja", () => {
     await deudaOfertasNueva(page);
     await expect(page.locator("#deudaOfertasV2 .dov2-oferta")).toHaveCount(2, { timeout: 20000 });
     await page.setViewportSize({ width: 195, height: 800 });
-    await page.addStyleTag({ content: "body, button { letter-spacing: 0.6px !important; }" });
+    await page.addStyleTag({ content: "body, button, input, select { letter-spacing: 0.6px !important; }" });
     await page.locator("#deudaOfertasV2 [data-dov2-accesos] > summary").click();
     for (const d of await page.locator("#deudaOfertasV2 .dov2-letra").all()) await d.locator("summary").click();
     const fuera = (sel) => page.evaluate((s) => [...document.querySelectorAll(`${s} *`)].filter((e) => e.getClientRects().length && e.getBoundingClientRect().right > window.innerWidth + 1).map((e) => `${e.tagName}.${e.className}`), sel);

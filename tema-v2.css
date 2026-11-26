@@ -6743,6 +6743,7 @@
 
 :root[data-tema="v2"] .dcv2-campo {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 4px;
   min-width: 0;
   font-size: 13.5px;
@@ -6753,6 +6754,7 @@
 :root[data-tema="v2"] .dcv2-campo select {
   min-height: 44px;
   width: 100%;
+  min-width: 0;
   box-sizing: border-box;
   font-size: 16px;
 }
