@@ -106,7 +106,7 @@
     "#inversion-fiscal": 3,
     "#inversion-jubilacion": 3,
     "#inversion-apalancamiento": 3,
-    "#deuda-prestamo": 3,
+    "#deuda-prestamo": 4,
     "#deuda-simulador": 3
   }
 }
