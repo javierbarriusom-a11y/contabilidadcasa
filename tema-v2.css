@@ -7105,3 +7105,164 @@
 :root[data-tema="v2"] .dcv2-capacidad[data-tono="danger"] strong {
   color: var(--e19-danger, #b42318);
 }
+
+/* ---------- R1 · El marco común, primera parte (auditoría de diseño §4; 26/11/2026) ----------
+   Solo con el tema v2; el clásico, como estaba (styles.css oculta los dos botones y la hoja no pinta caja).
+   1. Las tres píldoras de estado (dato, guardado con su hora y fuente) pasan a un punto con una palabra: verde, sincronizado;
+      ámbar, solo en este equipo; rojo, revisar (TRE-09). Al tocarlo se abre #estadoHoja con lo de siempre. Los avisos que solo salen
+      cuando hacen falta (sin conexión, escenario distinto de Base) siguen a la vista.
+   2. El recuadro «Estado · Guía de este flujo» deja de pintarse; su enlace pasa a «Guía», en la cabecera, y lo que decía se lee en la
+      guía (app.js, e17FillGuideContext). Donde no había recuadro (Hoy, Registrar, Movimientos), «Guía» no sale: tienen su botón.
+   3. D-N49: sin la tira de cinco cifras en Cierre, Deuda › Contratos y Deuda › Ofertas cuando pintan la vista nueva (cada una da sus
+      cifras en su sitio), como ya Plan y Deuda › Plan. */
+:root[data-tema="v2"] .topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 6px 34px;
+  min-height: 52px;
+  background: var(--e19-canvas);
+  border-bottom: 1px solid var(--e19-border);
+}
+
+:root[data-tema="v2"] .topbar-status {
+  position: relative;
+  margin-top: 0;
+  justify-content: flex-end;
+  gap: 4px 8px;
+}
+
+:root[data-tema="v2"] .topbar > :first-child {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+:root[data-tema="v2"] .topbar-acciones {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+}
+
+:root[data-tema="v2"] .topbar-guia {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 10px;
+  color: var(--e19-ink);
+  font-weight: 600;
+}
+
+:root[data-tema="v2"] .workspace:has(> #e17ViewGuide[hidden]) .topbar-guia {
+  display: none;
+}
+
+:root[data-tema="v2"] .estado-punto {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--e19-border);
+  border-radius: 999px;
+  background: var(--e19-surface);
+  color: var(--e19-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+:root[data-tema="v2"] .estado-punto:hover {
+  border-color: var(--e19-border-strong);
+}
+
+:root[data-tema="v2"] .estado-punto-marca {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--e19-warning);
+}
+
+:root[data-tema="v2"] .estado-punto[data-tono="cloud"] .estado-punto-marca {
+  background: var(--e19-success);
+}
+
+:root[data-tema="v2"] .estado-punto[data-tono="warn"] .estado-punto-marca {
+  background: var(--e19-danger);
+}
+
+:root[data-tema="v2"] .estado-hoja {
+  display: none;
+}
+
+:root[data-tema="v2"] .topbar-status[data-estado-abierto] > .estado-hoja {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  width: min(380px, calc(100vw - 32px));
+  padding: 16px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md, 12px);
+  background: var(--e19-surface);
+  box-shadow: var(--e19-shadow-pop, var(--shadow));
+}
+
+:root[data-tema="v2"] .estado-hoja .durability-status {
+  flex-wrap: wrap;
+  white-space: normal;
+}
+
+:root[data-tema="v2"] .estado-hoja .source-note {
+  max-width: 100%;
+  text-align: left;
+  white-space: normal;
+}
+
+:root[data-tema="v2"] #e17ViewGuide {
+  display: none !important;
+}
+
+:root[data-tema="v2"] .e17-guia-contexto {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 16px;
+}
+
+:root[data-tema="v2"] .e17-guia-contexto[hidden] {
+  display: none;
+}
+
+:root[data-tema="v2"] .e17-guia-contexto dt {
+  color: var(--e19-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+:root[data-tema="v2"] .e17-guia-contexto dd {
+  margin: 2px 0 0;
+}
+
+:root[data-tema="v2"] body:has(#cierre:not([hidden]) > #cierreV2[data-modo="v2"]) #topbarStatusStrip,
+:root[data-tema="v2"] body:has(#deuda-contratos:not([hidden]) > #deudaContratosV2:not([hidden]):not([data-modo="anterior"])) #topbarStatusStrip,
+:root[data-tema="v2"] body:has(#deuda-comparar:not([hidden]) > #deudaOfertasV2:not([hidden]):not([data-modo="anterior"])) #topbarStatusStrip {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  :root[data-tema="v2"] .topbar {
+    padding: 4px 16px;
+  }
+
+  :root[data-tema="v2"] .topbar-status > :is(.conexion-aviso, .escenario-aviso) {
+    flex-basis: 100%;
+  }
+}
