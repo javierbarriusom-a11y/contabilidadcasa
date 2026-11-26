@@ -1860,7 +1860,7 @@ function handleDeb6Simulate() {
 function renderDeudaPrestamo() {
   renderDeudaScreenTabs("deuda-prestamo");
   renderDeudaFlowNav("deuda-prestamo");
-  globalThis.renderPrestamoDeuda?.(globalThis.FinanceCanonicalLoanPayoffPlan, escenarioMotorDebtOptions());
+  globalThis.renderPrestamoDeuda?.(globalThis.FinanceCanonicalLoanPayoffPlan, escenarioMotorDebtOptions(), globalThis.FinanceCanonicalLoanOffersCompare);
 }
 
 function renderDeudaSimulador() {

@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-26-comparar-dos-prestamos",
+      fecha: "2026-11-26",
+      texto: "Préstamo para saldar: comparad dos ofertas, con seguros incluidos, y ved cuánto os ahorra o cuesta cada una frente a no pedir nada.",
+      href: "#deuda-prestamo",
+    },
+    {
       id: "2026-11-26-ofertas-solo-ofertas",
       fecha: "2026-11-26",
       texto: "Ofertas, solo ofertas: «¿Dónde va el próximo euro?» pasa a Deuda › Plan, «Repartir la nómina» a Plan › Mes y la capacidad a Contratos.",

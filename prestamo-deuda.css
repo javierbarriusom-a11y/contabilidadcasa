@@ -720,7 +720,7 @@
 }
 
 .pre-comparar-tabla-caja:focus-visible {
-  outline: 2px solid var(--e19-focus, var(--focus-ring, #2b59c3));
+  outline: 2px solid var(--focus-ring, currentColor);
   outline-offset: 2px;
 }
 

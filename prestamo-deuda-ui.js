@@ -538,7 +538,7 @@ function prestamoEjemplosAviso() {
   return `<p class="e19-kpi-note is-warn" id="prestamoEjemplosAviso" role="status"><strong>Estas cifras no son todavía las vuestras.</strong> Los caminos de abajo cuentan ${cuantos} (${ejemplos.map((row) => escapeHtml(row.entity)).join(", ")}) como si ${ejemplos.length === 1 ? "fuera una deuda vuestra" : "fueran deudas vuestras"}. Quitadlos y dad de alta las de verdad en <a href="#deuda-contratos">Contratos</a> antes de decidir nada con esta pestaña.</p>`;
 }
 
-function renderPrestamoDeuda(engine, contracts) {
+function renderPrestamoDeuda(engine, contracts, compareEngineArg) {
   const box = qs("prestamoResultado");
   if (!box) return;
   attachPrestamoDeuda(document);
@@ -555,7 +555,8 @@ function renderPrestamoDeuda(engine, contracts) {
     const result = loanEngine.plan(list, prestamoOptions(todayKey));
     const focusedId = document.activeElement && box.contains(document.activeElement) ? document.activeElement.id : "";
     let comparison = null;
-    const compareEngine = prestamoCompareEngine();
+    // El comparador lo pasa views/deuda.js (como el motor del préstamo); al repintar desde los controles, se toma del global.
+    const compareEngine = compareEngineArg || prestamoCompareEngine();
     if (compareEngine && prestamoOfferBReady(prestamoState.offerB)) {
       const { loan, earlyFeePct, ...baseOptions } = prestamoOptions(todayKey);
       comparison = compareEngine.compare(list, baseOptions, prestamoOffersForCompare(), { engine: loanEngine });

@@ -193,7 +193,8 @@ test("la pestaña está cableada: sección, menú, lanzador, ruta, scripts, siti
   assert.match(app, /case "deuda-prestamo":\s*\n\s*renderDeudaPrestamo\(\);/);
   assert.match(app, /"deuda-prestamo": \{ src: "views\/deuda\.js\?v=[\w]+", rootId: "deuda-prestamo" \}/);
   assert.match(app, /"deuda-prestamo": "simulation"/);
-  assert.match(deuda, /globalThis\.renderPrestamoDeuda\?\.\(globalThis\.FinanceCanonicalLoanPayoffPlan, escenarioMotorDebtOptions\(\)\)/);
+  // 26/11/2026: con el comparador de dos ofertas (canonical-loan-offers-compare.js) como tercer argumento.
+  assert.match(deuda, /globalThis\.renderPrestamoDeuda\?\.\(globalThis\.FinanceCanonicalLoanPayoffPlan, escenarioMotorDebtOptions\(\), globalThis\.FinanceCanonicalLoanOffersCompare\)/);
   ["prestamo-deuda.css", "canonical-loan-payoff-plan.js", "prestamo-deuda-ui.js"].forEach((file) => {
     assert.match(build, new RegExp(`"${file.replace(/\./g, "\\.")}",`), file);
     assert.match(sw, new RegExp(`"\\./${file.replace(/\./g, "\\.")}",`), file);

@@ -96,7 +96,7 @@ test("cableado: el desplegable de la otra oferta, los seguros, el orden de los s
   const plan = html.indexOf('src="canonical-loan-payoff-plan.js');
   const cmp = html.indexOf('src="canonical-loan-offers-compare.js?v=20261126pre2"');
   const ui = html.indexOf('src="prestamo-deuda-ui.js?v=20261126pre2"');
-  assert.ok(plan > 0 && plan < cmp && cmp < ui && ui < html.indexOf('src="app.js'));
+  assert.ok(cmp > 0 && cmp < plan && plan < ui && ui < html.indexOf('src="app.js'), "el comparador, antes del motor del préstamo y de la pantalla (busca el motor al usarlo)");
   assert.ok(read("service-worker.js").includes('"./canonical-loan-offers-compare.js"'));
   assert.ok(read("tools/build-public-site.mjs").includes('"canonical-loan-offers-compare.js"'));
   const src = read("prestamo-deuda-ui.js");
