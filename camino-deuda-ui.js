@@ -997,3 +997,8 @@ function attachPlanOptimo(doc) {
 // desde otra pantalla, en un teléfono lento) se perdía: el campo lo enseñaba y el plan seguía con la cifra de partida. En Safari pasaba
 // siempre en la prueba DUO-D3 (CI de #690). Con los oyentes puestos, el importe se guarda y el plan lo usa al pintarse.
 if (typeof document !== "undefined" && typeof document.addEventListener === "function") attachPlanOptimo(document);
+
+// CAT-14 (decimocuarta auditoría, 26/11/2026): los oyentes de «Camino a deuda cero», desde la carga y no desde su primer pintado. Su
+// casilla «Extra al mes» está en index.html desde el principio y el pintado la reescribe desde `caminoExtra`: lo tecleado antes de que
+// Deuda › Plan termine de pintarse se perdía, como en el plan óptimo (DUO-D3) y en Préstamo. El manejador no necesita el pintado.
+if (typeof document !== "undefined" && typeof document.addEventListener === "function") attachCaminoDeuda(document);

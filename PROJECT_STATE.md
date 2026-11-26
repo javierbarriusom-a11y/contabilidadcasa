@@ -113,6 +113,16 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 26 de noviembre de 2026 (551): CAT-14, los oyentes de los campos de index.html se enganchan al cargar
+
+- **El hogar** (26/11, noche): «continúa con lo que sigue si puedes». Siguiente de F0 (`docs/PROPUESTA_FINAL_NOVIEMBRE_2026.md`): **CAT-14**, buscar el patrón del fallo de DUO-D3 en toda la app.
+- **Barrido:** 26 funciones `attach*(doc)` en 24 ficheros. Solo es un fallo cuando el oyente atiende un campo que **ya está en `index.html`** antes de pintar la pantalla y el pintado lo reescribe desde su estado: lo tecleado al entrar se pierde. Los que pintan sus propios controles, los formularios que se leen al enviar y «¿Me lo puedo permitir?» (sus campos viven en un diálogo que solo abre el propio oyente) no lo tienen.
+- **Tres casos:** el plan óptimo (arreglado en #690), Préstamo para saldar (en #692) y **«Camino a deuda cero»**, arreglado aquí: su «Extra al mes» se perdía igual. Reproducido en Chromium escribiendo al entrar: sin el arreglo, la casilla vuelve a 0 y el cálculo no lo recoge; con él, 250 en la casilla y en el cálculo.
+- **La guardia:** `tests/cat14-oyentes-desde-la-carga.test.cjs` recorre todos los `attach*(doc)` y falla si uno atiende (en `input` o `change`) un campo de `index.html` y no se engancha al cargar. Comprobado que detecta la regresión (quitando el arreglo de Camino se pone en rojo con el motivo) y que sigue mirando los tres casos.
+- **Adaptada, sin relajar:** la prueba unitaria de DUO-D3 simulaba un documento con un solo oyente por tipo de evento; con Camino también escuchando `input` al cargar, ahora guarda y avisa a todos, como un navegador. Las mismas comprobaciones.
+- **Validación:** `npm test` **7.030/7.030**; `npm run verify` en verde; e2e de Camino, plan óptimo y DUO-D3/D5 en Chromium **22/22**.
+- **Operativo:** rama `claude/cat14-oyentes-al-cargar`, sobre #692 (comparar dos préstamos, con su CI en marcha); su PR se abre cuando #692 esté en `main`.
+
 ## Cierre de sesión — 26 de noviembre de 2026 (550): Deuda › Préstamo · comparar dos ofertas (petición urgente del hogar); cerrar agosto, al backlog
 
 - **El hogar** (26/11, tarde): «quiero priorizar por urgencia (he de tomar una decisión mañana) el poder estimar el impacto positivo o negativo de la solicitud de un crédito personal para afrontar las deudas actuales, pudiendo comparar dos ofertas». Y: «incorpora al backlog el cerrar el mes de agosto, que sigue abierto».
