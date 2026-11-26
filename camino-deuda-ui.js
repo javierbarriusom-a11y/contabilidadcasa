@@ -829,9 +829,9 @@ function planOptimoHtml(engine, contracts, todayKey, refs, Plan) {
   const opcionesVivas = { ...comunes, strategy: r.recommended.strategy, monthly: liquidezBase.monthly, ...(liquidezBase.byMonth ? { monthlyByMonth: liquidezBase.byMonth } : {}) };
   const euribor = planOptimoEuriborHtml(Plan, engine, contracts, opcionesVivas, r);
   const cuotaPlazo = planOptimoCuotaPlazoHtml(r, contracts, liquidez, modo);
-  // DUO-D4 (duodécima auditoría): la cascada del siguiente euro ya existe, la escalera de WP-42 (Deuda › Ofertas › Comparar). No se duplica:
-  // el plan lleva a ella para la pregunta de antes, «¿todo a deuda?».
-  const escalera = `<p class="e19-kpi-note" data-plan-optimo-escalera>¿Todo lo que sobra a deuda? <a href="#deuda-comparar">La escalera del próximo euro</a> reparte un importe entre colchón, deuda cara, pensión e inversión, con el coste de cada deuda tras impuestos. ¿Juntarlas en un préstamo? <a href="#deuda-prestamo">Préstamo</a> lo compara con seguir como hasta ahora, comisiones incluidas (DUO-D7: ya existía, no se duplica).</p>`;
+  // DUO-D4 (duodécima auditoría): la cascada del siguiente euro ya existe, la escalera de WP-42. No se duplica: el plan lleva a ella para la
+  // pregunta de antes, «¿todo a deuda?». Desde TRE-D5b (D-N44) está en esta misma pantalla, justo debajo: el botón baja hasta ella.
+  const escalera = `<p class="e19-kpi-note" data-plan-optimo-escalera>¿Todo lo que sobra a deuda? <button type="button" class="link-button" data-plan-optimo-ir-escalera>La escalera del próximo euro</button> reparte un importe entre colchón, deuda cara, pensión e inversión, con el coste de cada deuda tras impuestos. ¿Juntarlas en un préstamo? <a href="#deuda-prestamo">Préstamo</a> lo compara con seguir como hasta ahora, comisiones incluidas (DUO-D7: ya existía, no se duplica).</p>`;
   return `${planOptimoPreguntaHtml(r)}${heroes}${euribor}${planOptimoRazonHtml(r)}${modo === "prevision" ? planOptimoLiquidezHtml(r, liquidez, fijo) : sinPrevision}${planOptimoTramosHtml(r.recommended.periods)}${cada50}${pago}${cuotaPlazo}${escalera}${planOptimoQuitasHtml(r, ofertas, contracts)}${planOptimoAvisosHtml(r, refs)}`;
 }
 
@@ -946,6 +946,11 @@ function planOptimoOnQuita(target) {
 function planOptimoOnClick(event) {
   const button = event.target?.closest?.("[data-plan-optimo-orden]");
   if (button) planOptimoElegirOrden(button.dataset.planOptimoOrden, true);
+  if (event.target?.closest?.("[data-plan-optimo-ir-escalera]")) {
+    const card = document.getElementById("proxEuroCard");
+    card?.scrollIntoView?.({ block: "start" });
+    document.getElementById("proxEuroImporte")?.focus?.({ preventScroll: true });
+  }
 }
 
 function planOptimoOnInput(event) {
@@ -986,3 +991,9 @@ function attachPlanOptimo(doc) {
   doc.addEventListener("click", planOptimoOnClick);
   return true;
 }
+
+// Los oyentes, desde la carga y no desde el primer pintado de Deuda › Plan: hasta ahora solo se enganchaban en `renderPlanOptimo`, así
+// que lo que se escribía en «Al mes de más» o «Pago inicial» antes de que la pantalla terminara de pintarse por primera vez (al entrar
+// desde otra pantalla, en un teléfono lento) se perdía: el campo lo enseñaba y el plan seguía con la cifra de partida. En Safari pasaba
+// siempre en la prueba DUO-D3 (CI de #690). Con los oyentes puestos, el importe se guarda y el plan lo usa al pintarse.
+if (typeof document !== "undefined" && typeof document.addEventListener === "function") attachPlanOptimo(document);

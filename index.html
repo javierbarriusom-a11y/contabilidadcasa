@@ -76,7 +76,7 @@
     <link rel="stylesheet" href="patrimonio.css?v=20261014wp46b2" />
     <link rel="stylesheet" href="cierre-a11y.css?v=20261015d1" />
     <!-- Rediseño fase A: tema v2 detrás de bandera (?tema=v2). Va el último para poder redefinir tokens. -->
-    <link rel="stylesheet" href="tema-v2.css?v=20261126tred5b" />
+    <link rel="stylesheet" href="tema-v2.css?v=20261126tred5c" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -1087,6 +1087,12 @@
                 <!-- Rediseño C1 (views/plan-v2.js), solo con el tema v2: sin asignar, ritmo del mes y ahorro, a la derecha en escritorio y arriba en el móvil. -->
                 <aside class="plan-v2-lado" id="planV2Lado" aria-label="Resumen del mes" hidden></aside>
                 <div class="plan-mes-summary-grid" id="planMesSobresSummary" hidden></div>
+                <!-- WP-47 (NPV-05, docs/WP47_DISENO.md): repartir la nómina en un paso. Desde TRE-D5b (D-N44, 26/11/2026) vive en Plan › Mes, donde se confirma la nómina, y no en Deuda › Ofertas. La pinta nomina-ui.js con canonical-payroll-split.js, sobre la escalera de arriba. Guarda un borrador y una lista de transferencias que hace el hogar a mano: no mueve dinero ni anota nada en las cuentas (A11-4). -->
+                <article class="e19-card nom-card" id="nominaCard" aria-labelledby="nominaTitulo">
+                  <h3 class="escenario-motor-panel-title" id="nominaTitulo">Repartir la nómina</h3>
+                  <p class="e19-kpi-note">Cuando confirmas una nómina, esta hoja parte de lo que la escalera del próximo euro propone para esa cantidad, pero solo de lo que <strong>cabe sin que la liquidez baje del suelo</strong> en los próximos 30 días. Mueves importes con los botones y el total repartible no cambia nunca. <strong>«Aplicar» guarda un borrador con la lista de transferencias que haces tú en el banco</strong>: la app no mueve dinero.</p>
+                  <div id="nominaCuerpo" aria-live="polite"></div>
+                </article>
               </div>
             </div>
             <div class="e19-registrar-panel" data-plan-panel="prevision" hidden>
@@ -2114,35 +2120,6 @@
               </div>
             </div>
 
-            <!-- WP-42 (CAR-03 + NIN-05 + NIN-08, docs/WP42_DISENO.md): ¿dónde va el próximo euro? La pinta escalera-ui.js con canonical-next-euro.js. Solo propone un orden: no mueve dinero (A11-4). -->
-            <article class="e19-card peu-card" id="proxEuroCard" aria-labelledby="proxEuroTitulo">
-              <h3 class="escenario-motor-panel-title" id="proxEuroTitulo">¿Dónde va el próximo euro?</h3>
-              <p class="e19-kpi-note">Escribe un importe y la app lo reparte en este orden: <strong>colchón</strong>, <strong>deuda con coste alto</strong>, <strong>plan de pensiones</strong> (si el ahorro fiscal lo justifica) y, con lo que sobra, <strong>amortizar o invertir</strong>. Cada peldaño dice cuánto, por qué y qué liquidez pierdes. Es un orden para decidir, no una orden: no mueve dinero.</p>
-              <!-- NIN-08 (docs/WP42_DISENO.md §7): el dinero parado, en prueba con interruptor propio («dinero-parado»). Lo pinta escalera-ui.js; vacío y oculto si está apagado. -->
-              <div class="peu-parado" id="proxEuroParado" aria-live="polite" hidden></div>
-              <form id="proxEuroForm" novalidate>
-                <div class="peu-campos">
-                  <label class="month-picker"><span>Importe a colocar (€)</span><input type="number" id="proxEuroImporte" min="0" step="0.01" inputmode="decimal" aria-describedby="proxEuroError" /></label>
-                  <label class="month-picker"><span>Rentabilidad que esperáis de invertir (% al año, antes de impuestos)</span><input type="number" id="proxEuroRentabilidad" min="-50" max="50" step="0.1" inputmode="decimal" aria-describedby="proxEuroPista" /></label>
-                  <label class="month-picker"><span>Ya aportado a planes de pensiones este año (€, opcional)</span><input type="number" id="proxEuroPension" min="0" step="0.01" inputmode="decimal" /></label>
-                </div>
-                <label class="peu-check"><input type="checkbox" id="proxEuroEnCuentas" /><span>Ese dinero ya está en mis cuentas (cuenta como liquidez). Sin marcar, es dinero nuevo que aún no ha llegado.</span></label>
-                <p class="e19-kpi-note" id="proxEuroPista"></p>
-                <p id="proxEuroError" role="alert" hidden></p>
-                <div><button type="submit" class="e19-btn e19-btn-primary">Ver la escalera</button></div>
-              </form>
-              <div id="proxEuroResultado" aria-live="polite"></div>
-            </article>
-
-            <!-- WP-47 (NPV-05, docs/WP47_DISENO.md): repartir la nómina en un paso. La pinta nomina-ui.js con canonical-payroll-split.js, sobre la escalera de arriba. Guarda un borrador y una lista de transferencias que hace el hogar a mano: no mueve dinero ni anota nada en las cuentas (A11-4). -->
-            <article class="e19-card nom-card" id="nominaCard" aria-labelledby="nominaTitulo">
-              <h3 class="escenario-motor-panel-title" id="nominaTitulo">Repartir la nómina</h3>
-              <p class="e19-kpi-note">Cuando confirmas una nómina, esta hoja parte de lo que la escalera del próximo euro propone para esa cantidad, pero solo de lo que <strong>cabe sin que la liquidez baje del suelo</strong> en los próximos 30 días. Mueves importes con los botones y el total repartible no cambia nunca. <strong>«Aplicar» guarda un borrador con la lista de transferencias que haces tú en el banco</strong>: la app no mueve dinero.</p>
-              <div id="nominaCuerpo" aria-live="polite"></div>
-            </article>
-
-            <div id="deudaCompararCapacity"></div>
-
             <fieldset class="deuda-decidir-offer">
               <legend>Oferta de reunificación</legend>
               <p class="e19-kpi-note">Las condiciones que te ofrezcan por juntar todas tus deudas en un préstamo único. Se guardan en este navegador y no tocan nada del plan: solo hacen que «Consolidar» se pueda comparar con las otras tres.</p>
@@ -2280,6 +2257,26 @@
               <div id="planCierres"></div>
             </article>
 
+            <!-- WP-42 (CAR-03 + NIN-05 + NIN-08, docs/WP42_DISENO.md): ¿dónde va el próximo euro? Desde TRE-D5b (D-N44, 26/11/2026) vive aquí, en Deuda › Plan, y no en Ofertas: es la pregunta del orden y del colchón primero. La pinta escalera-ui.js con canonical-next-euro.js. Solo propone un orden: no mueve dinero (A11-4). -->
+            <article class="e19-card peu-card" id="proxEuroCard" aria-labelledby="proxEuroTitulo">
+              <h3 class="escenario-motor-panel-title" id="proxEuroTitulo">¿Dónde va el próximo euro?</h3>
+              <p class="e19-kpi-note">Escribe un importe y la app lo reparte en este orden: <strong>colchón</strong>, <strong>deuda con coste alto</strong>, <strong>plan de pensiones</strong> (si el ahorro fiscal lo justifica) y, con lo que sobra, <strong>amortizar o invertir</strong>. Cada peldaño dice cuánto, por qué y qué liquidez pierdes. Es un orden para decidir, no una orden: no mueve dinero.</p>
+              <!-- NIN-08 (docs/WP42_DISENO.md §7): el dinero parado, en prueba con interruptor propio («dinero-parado»). Lo pinta escalera-ui.js; vacío y oculto si está apagado. -->
+              <div class="peu-parado" id="proxEuroParado" aria-live="polite" hidden></div>
+              <form id="proxEuroForm" novalidate>
+                <div class="peu-campos">
+                  <label class="month-picker"><span>Importe a colocar (€)</span><input type="number" id="proxEuroImporte" min="0" step="0.01" inputmode="decimal" aria-describedby="proxEuroError" /></label>
+                  <label class="month-picker"><span>Rentabilidad que esperáis de invertir (% al año, antes de impuestos)</span><input type="number" id="proxEuroRentabilidad" min="-50" max="50" step="0.1" inputmode="decimal" aria-describedby="proxEuroPista" /></label>
+                  <label class="month-picker"><span>Ya aportado a planes de pensiones este año (€, opcional)</span><input type="number" id="proxEuroPension" min="0" step="0.01" inputmode="decimal" /></label>
+                </div>
+                <label class="peu-check"><input type="checkbox" id="proxEuroEnCuentas" /><span>Ese dinero ya está en mis cuentas (cuenta como liquidez). Sin marcar, es dinero nuevo que aún no ha llegado.</span></label>
+                <p class="e19-kpi-note" id="proxEuroPista"></p>
+                <p id="proxEuroError" role="alert" hidden></p>
+                <div><button type="submit" class="e19-btn e19-btn-primary">Ver la escalera</button></div>
+              </form>
+              <div id="proxEuroResultado" aria-live="polite"></div>
+            </article>
+
             <!-- WP-19 (NDB-01, docs/WP19_DISENO.md): «¿cuándo acabamos y qué cambia con más?». La pinta camino-deuda-ui.js; no borra ni sustituye nada de lo de abajo. Proyección, no compromiso; no ejecuta nada. -->
             <article class="e19-card cam-card" id="caminoDeudaCard" aria-labelledby="caminoDeudaTitulo">
               <h3 class="escenario-motor-panel-title" id="caminoDeudaTitulo">Camino a deuda cero</h3>
@@ -2413,6 +2410,9 @@
                 <p class="e19-subtitle" id="deudaContratosNote"></p>
               </div>
             </div>
+
+            <!-- TRE-D5b (D-N44, 26/11/2026): la capacidad de endeudamiento, en la cabecera de Contratos (antes en Deuda › Ofertas). La pinta renderDeudaContratos. -->
+            <div id="deudaContratosCapacity"></div>
 
             <!-- 15/11/2026 («hazlo tú por mí directamente»): las financiaciones que ya están en los recibos, para darlas de alta con un toque. La pinta deudaContratosDetectadosHtml (views/deuda.js) con canonical-debt-receipts.js. -->
             <div id="deudaContratosDetectados"></div>
@@ -8142,6 +8142,9 @@
           <dialog class="dpv2-ajustar" id="deudaPlanV2Ajustar" aria-labelledby="dpv2AjustarTitulo"></dialog>
           <!-- TRE-D3c (views/deuda-plan-v2.js), solo con el tema v2: «Comparar con otras formas»; cada forma de saldar con su fecha y su coste, y «Ver…» a lo de siempre. Comparar no cambia nada. -->
           <dialog class="dpv2-ajustar dpv2-comparar" id="deudaPlanV2Comparar" aria-labelledby="dpv2CompararTitulo"></dialog>
+          <!-- TRE-D5b (views/deuda-plan-v2.js, D-N44), solo con el tema v2: «¿Dónde va el próximo euro?» de Deuda › Plan nuevo. Al abrirlo se trae aquí la tarjeta
+               de siempre (#proxEuroCard, la de escalera-ui.js, con sus ids y manejadores) y al cerrarlo vuelve a su sitio en el detalle del plan. -->
+          <dialog class="dpv2-ajustar dpv2-comparar dpv2-euro" id="deudaPlanV2Euro" aria-labelledby="dpv2EuroTitulo"></dialog>
           <!-- TRE-D4 (views/deuda-contratos-v2.js), solo con el tema v2: la ficha de un contrato (lo básico, plazo y progreso, costes y estado), con vista previa
                y «Guardar» explícito con deshacer. Escribe por handleDeudaContratosFieldChange, como la tabla de siempre. -->
           <dialog class="dpv2-ajustar dcv2-ficha" id="deudaContratoFicha" aria-labelledby="dcv2FichaTitulo"></dialog>
@@ -8176,7 +8179,7 @@
     <script defer src="medidor-utilidad.js?v=20261125tred5"></script>
     <script defer src="ocultar-cifras.js?v=20261122und17"></script>
     <script defer src="views/plegados-medidor.js?v=20261118dec40"></script>
-    <script defer src="funciones-en-prueba.js?v=20261125tred5"></script>
+    <script defer src="funciones-en-prueba.js?v=20261126tred5c"></script>
     <script defer src="vendor/supabase-js-2.117.2.umd.js"></script>
     <script defer src="xlsx-loader.js?v=20260929p2a1"></script>
     <script defer src="supabase-config.js?v=20260602a"></script>
@@ -8464,7 +8467,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20261119priv4"></script>
-    <script defer src="novedades.js?v=20261125tred5"></script>
+    <script defer src="novedades.js?v=20261126tred5c"></script>
     <script defer src="ux-shell.js?v=20261121dec45"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -8501,7 +8504,7 @@
     <script defer src="revision-tipo-ui.js?v=20261007wp20a1"></script>
     <script defer src="canonical-debt-payoff-path.js?v=20261124duod8"></script>
     <script defer src="canonical-debt-optimal-plan.js?v=20261125tred3"></script>
-    <script defer src="camino-deuda-ui.js?v=20261125dn40"></script>
+    <script defer src="camino-deuda-ui.js?v=20261126tred5d"></script>
     <script defer src="kit-entidad-ui.js?v=20261124duod6"></script>
     <script defer src="salud-motor.js?v=20261123duo04"></script>
     <script defer src="salud-motor-ui.js?v=20261123duo04"></script>
@@ -8533,7 +8536,7 @@
     <script defer src="canonical-next-euro.js?v=20261030nin08a"></script>
     <script defer src="escalera-ui.js?v=20261030nin08a"></script>
     <script defer src="canonical-payroll-split.js?v=20261014wp47b2"></script>
-    <script defer src="nomina-ui.js?v=20261014wp47b2"></script>
+    <script defer src="nomina-ui.js?v=20261126tred5c"></script>
     <script defer src="canonical-forecast-bridge.js?v=20261013wp43b2"></script>
     <script defer src="puente-ui.js?v=20261109fx40b"></script>
     <script defer src="periodo-ui.js?v=20261116fx15a"></script>
@@ -8578,9 +8581,9 @@
     <script defer src="views/cobertura-ajuste.js?v=20261019cobro"></script>
     <script defer src="views/hoy-v2.js?v=20261124dn39"></script>
     <script defer src="views/deuda-simulador-v2.js?v=20261123duo01"></script>
-    <script defer src="views/deuda-plan-v2.js?v=20261125tre3c"></script>
+    <script defer src="views/deuda-plan-v2.js?v=20261126tred5c"></script>
     <script defer src="views/componentes-v2.js?v=20261125tred4"></script>
-    <script defer src="views/deuda-contratos-v2.js?v=20261125tred4"></script>
+    <script defer src="views/deuda-contratos-v2.js?v=20261126tred5c"></script>
     <script defer src="canonical-debt-offers.js?v=20261125tred5"></script>
     <script defer src="views/deuda-ofertas-v2.js?v=20261125tred5"></script>
     <script defer src="views/movimientos-v2.js?v=20261119dat07"></script>
@@ -8589,7 +8592,7 @@
     <script defer src="views/huella-extracto.js?v=20261118dec13"></script>
     <script defer src="views/repaso-v2.js?v=20261121foco2"></script>
     <script defer src="views/copia-aviso.js?v=20261118dec41"></script>
-    <script defer src="views/plan-v2.js?v=20261116fx14a"></script>
+    <script defer src="views/plan-v2.js?v=20261126tred5c"></script>
     <script defer src="views/prevision-v2.js?v=20261121dec30"></script>
     <script defer src="views/cierre-v2.js?v=20261104coste1"></script>
     <script defer src="buzon-extractos.js?v=20261025xda02"></script>

@@ -92,7 +92,7 @@ test("UND-13 · enchufado: botón en cada fila de Contratos, diálogo, script, i
   assert.ok(html.indexOf('src="kit-entidad-ui.js?v=') < html.indexOf('src="app.js?v='));
   assert.match(read("tools/build-public-site.mjs"), /^ {2}"kit-entidad-ui\.js",$/m);
   assert.match(read("service-worker.js"), /^ {2}"\.\/kit-entidad-ui\.js",$/m);
-  assert.match(read("app.js"), /"deuda-contratos": \{ src: "views\/deuda\.js\?v=20261125(?:dn40|tred4|tred5)"/);
+  assert.match(read("app.js"), /"deuda-contratos": \{ src: "views\/deuda\.js\?v=2026112(?:5(?:dn40|tred4|tred5)|6tred5c)"/);
   const css = read("styles.css");
   assert.match(css, /body\.imprimiendo-kit-entidad > :not\(\[data-kit-entidad-ancestro\]\):not\(#kitEntidad\)/);
   assert.match(css, /body\.imprimiendo-kit-entidad \.kit-entidad-no-imprimir \{\s*display: none;/);

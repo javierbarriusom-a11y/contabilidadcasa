@@ -8,7 +8,8 @@
  *   D · el orden: una barra por contrato hasta que se salda con el plan, y rayado lo que se adelanta frente a pagar solo las cuotas;
  *   E · accesos: «Ajustar el plan» abre su panel (TRE-D2: los controles del plan óptimo de siempre, agrupados, con la vista previa
  *       arriba); «Comparar con otras formas» abre la suya (TRE-D3c: cada forma de saldar con su fecha y su coste, y «Ver…» a lo de
- *       siempre); «Cerrar las deudas saldadas» lleva a su sitio en el detalle.
+ *       siempre); «¿Dónde va el próximo euro?» abre la escalera de siempre en su panel (TRE-D5b, D-N44: vivía en Ofertas; la tarjeta es
+ *       la misma, se trae al panel y vuelve al cerrarlo); «Cerrar las deudas saldadas» lleva a su sitio en el detalle.
  * Lee los motores de siempre (el plan óptimo ya calculado, `planOptimoResultadoUltimo`; el camino sin extra; el seguimiento): no calcula
  * nada propio. Todo lo de siempre sigue debajo y vuelve con «Ver todo el detalle» (decisión 5 de ESTADO: no se retira nada en uso).
  * `localStorage["deuda-plan-v2-modo"] = "anterior"` abre siempre lo de siempre (lo usan las pruebas de sus controles). D-N49: con la vista
@@ -223,6 +224,7 @@
     const filas = [
       ["ajustar", "Ajustar el plan", resumenAjustes || "Cuánto al mes, el orden, pago inicial, comisiones y quitas"],
       ["comparar", "Comparar con otras formas", "El otro orden · pagar de golpe con la caja · un préstamo · solo las cuotas"],
+      ["euro", "¿Dónde va el próximo euro?", "Un importe, en orden: colchón, deuda cara, pensión o amortizar · el dinero parado"],
       ["cerrar", "Cerrar las deudas saldadas", "Carta de saldo cero, ficheros y CIRBE de cada deuda que acabéis"],
     ];
     return `<nav class="dpv2-card dpv2-accesos" aria-label="Más del plan">${filas
@@ -493,6 +495,23 @@
     </div>`;
   }
 
+  // --- TRE-D5b (D-N44): «¿Dónde va el próximo euro?», la escalera de siempre (escalera-ui.js) en su panel. La tarjeta no se copia: se
+  // trae aquí al abrir (los mismos nodos, ids y manejadores, como los controles de «Ajustar») y vuelve a su sitio del detalle al cerrar.
+  function euroChromeHtml() {
+    return `<div class="dpv2-aj-in">
+      <div class="dpv2-aj-fija">
+        <span class="clas-v2-asa" aria-hidden="true"></span>
+        <div class="dpv2-aj-cabeza">
+          <div><p class="dpv2-kicker">Deuda · Plan</p><h2 id="dpv2EuroTitulo">¿Dónde va el próximo euro?</h2></div>
+          <button type="button" class="e19-btn e19-btn-secondary clas-v2-cerrar" data-dpv2-euro="cerrar" aria-label="Cerrar «¿Dónde va el próximo euro?»">×</button>
+        </div>
+        <p class="dpv2-nota">Para un importe que os llega (una paga extra, lo que sobra del mes): en qué orden colocarlo. Solo propone; no mueve dinero.</p>
+      </div>
+      <div data-dpv2-euro-hueco></div>
+      <div class="dpv2-aj-pie"><button type="button" class="e19-btn e19-btn-primary" data-dpv2-euro="cerrar">Listo</button></div>
+    </div>`;
+  }
+
   // --- Con la app ------------------------------------------------------------------------------------------------------------------
 
   function guard(fn, fallback = null) {
@@ -728,6 +747,9 @@
     if (dialog?.open) dialog.close();
     const cmp = cmpDialogo();
     if (cmp?.open) cmp.close();
+    euroDevolver();
+    const euro = euroDialogo();
+    if (euro?.open) euro.close();
   }
 
   // --- TRE-D3c: «Comparar con otras formas», con la app. Calcula las rutas de «Orden de ataque» al abrir (son el motor de escenarios,
@@ -819,6 +841,49 @@
     root.FinanceMedidor?.anotar("deuda-comparar", "vista");
   }
 
+  const euroDialogo = () => (typeof qs === "function" ? qs("deudaPlanV2Euro") : null);
+  let euroPrestado = null;
+  let euroPendiente = false; // Plan › Mes pide la escalera antes de que Deuda › Plan se pinte: se abre al terminar el pintado
+  function pedirEuro() {
+    euroPendiente = true;
+  }
+  function euroDevolver() {
+    if (euroPrestado?.hueco.parentNode) euroPrestado.hueco.replaceWith(euroPrestado.nodo);
+    euroPrestado = null;
+  }
+
+  function abrirEuro() {
+    if (modoAnterior()) {
+      irAlDetalle("#proxEuroCard");
+      return;
+    }
+    const dialog = euroDialogo();
+    const tarjeta = typeof qs === "function" ? qs("proxEuroCard") : null;
+    if (!dialog || !tarjeta || typeof dialog.showModal !== "function") {
+      irAlDetalle("#proxEuroCard");
+      return;
+    }
+    if (!dialog.dataset.enganchado) {
+      dialog.dataset.enganchado = "1";
+      dialog.addEventListener("click", (event) => { if (event.target.closest?.('[data-dpv2-euro="cerrar"]')) dialog.close(); });
+      dialog.addEventListener("close", () => {
+        euroDevolver();
+        qs("deudaPlanV2")?.querySelector('[data-dpv2="euro"]')?.focus?.();
+      });
+      root.addEventListener("hashchange", () => { if (dialog.open) dialog.close(); });
+    }
+    if (!dialog.firstElementChild) dialog.innerHTML = euroChromeHtml();
+    const hueco = dialog.querySelector("[data-dpv2-euro-hueco]");
+    if (hueco && !dialog.contains(tarjeta)) {
+      const marca = root.document.createComment("dpv2-euro #proxEuroCard");
+      tarjeta.before(marca);
+      hueco.append(tarjeta);
+      euroPrestado = { nodo: tarjeta, hueco: marca };
+    }
+    if (typeof renderProximoEuro === "function") guard(() => renderProximoEuro(root.FinanceCanonicalNextEuro));
+    if (!dialog.open) dialog.showModal();
+  }
+
   function irAlDetalle(selector) {
     guard(() => root.localStorage.setItem(MODO_KEY, "anterior"));
     root.FinanceMedidor?.anotar("deuda-plan-v2", "descarte");
@@ -846,6 +911,7 @@
     } else if (accion === "detalle") irAlDetalle(null);
     else if (accion === "ajustar") abrirAjustar();
     else if (accion === "comparar") abrirComparar();
+    else if (accion === "euro") abrirEuro();
     else if (accion === "cerrar") irAlDetalle("#planCierres");
     else if (accion === "volver") {
       guard(() => root.localStorage.removeItem(MODO_KEY));
@@ -899,8 +965,24 @@
     box.hidden = false;
   }
 
-  const api = { modelo, html, mesLargo, MODO_KEY, ajustarModelo, ajustarVistaHtml, ajustarChromeHtml, AJ_SITIOS, compararModelo, compararHtml, compararChromeHtml };
-  root.renderDeudaPlanV2 = render;
+  // Lo que pidió Plan › Mes, en cuanto la pantalla está pintada: con la vista nueva, el panel; si no (lo de siempre, sin deudas o el
+  // tema clásico), la tarjeta en su sitio.
+  function renderYPedido() {
+    render();
+    if (!euroPendiente) return;
+    euroPendiente = false;
+    const box = typeof qs === "function" ? qs("deudaPlanV2") : null;
+    if (box && !box.hidden && !modoAnterior()) abrirEuro();
+    else {
+      const card = typeof qs === "function" ? qs("proxEuroCard") : null;
+      card?.scrollIntoView?.({ block: "start" });
+      qs?.("proxEuroImporte")?.focus?.({ preventScroll: true });
+    }
+  }
+
+  const api = { modelo, html, mesLargo, MODO_KEY, ajustarModelo, ajustarVistaHtml, ajustarChromeHtml, AJ_SITIOS, compararModelo, compararHtml, compararChromeHtml, euroChromeHtml };
+  root.renderDeudaPlanV2 = renderYPedido;
+  root.pedirDeudaProxEuro = pedirEuro; // Plan › Mes («Ver adónde va el próximo euro») llega aquí (TRE-D5b)
   root.FinanceDeudaPlanV2 = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);

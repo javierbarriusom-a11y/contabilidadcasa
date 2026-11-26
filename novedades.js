@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-26-ofertas-solo-ofertas",
+      fecha: "2026-11-26",
+      texto: "Ofertas, solo ofertas: «¿Dónde va el próximo euro?» pasa a Deuda › Plan, «Repartir la nómina» a Plan › Mes y la capacidad a Contratos.",
+      href: "#deuda-ruta",
+    },
+    {
       id: "2026-11-25-ofertas-nuevas",
       fecha: "2026-11-25",
       texto: "Deuda › Ofertas, nueva: cada oferta del banco con su veredicto frente a vuestro plan (os compensa o no y cuánto), y qué podéis pedir.",

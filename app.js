@@ -231,11 +231,11 @@ const HEAVY_RENDER_VIEWS = new Set([
 const VIEW_CHUNKS = {
   "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20261105pulido1", rootId: "presupuestoMesRoot" },
   "estado-semana": { src: "views/estado-semana.js?v=20261125tre10", rootId: "estadoSemanaRoot" },
-  "deuda-comparar": { src: "views/deuda.js?v=20261125tred5", rootId: "deuda-comparar" },
-  "deuda-ruta": { src: "views/deuda.js?v=20261125tred5", rootId: "deuda-ruta" },
-  "deuda-prestamo": { src: "views/deuda.js?v=20261125tred5", rootId: "deuda-prestamo" },
-  "deuda-contratos": { src: "views/deuda.js?v=20261125tred5", rootId: "deuda-contratos" },
-  "deuda-simulador": { src: "views/deuda.js?v=20261125tred5", rootId: "deuda-simulador" },
+  "deuda-comparar": { src: "views/deuda.js?v=20261126tred5c", rootId: "deuda-comparar" },
+  "deuda-ruta": { src: "views/deuda.js?v=20261126tred5c", rootId: "deuda-ruta" },
+  "deuda-prestamo": { src: "views/deuda.js?v=20261126tred5c", rootId: "deuda-prestamo" },
+  "deuda-contratos": { src: "views/deuda.js?v=20261126tred5c", rootId: "deuda-contratos" },
+  "deuda-simulador": { src: "views/deuda.js?v=20261126tred5c", rootId: "deuda-simulador" },
   "inversion-cartera": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-cartera" },
   "inversion-rebalanceo": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-rebalanceo" },
   "inversion-fiscal": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-fiscal" },
@@ -30451,6 +30451,7 @@ async function renderActiveSection(viewId = viewFromHash()) {
       break;
     case "plan":
       renderPlan();
+      globalThis.renderNominaReparto?.(globalThis.FinanceCanonicalPayrollSplit); // WP-47 (nomina-ui.js); en Plan › Mes desde TRE-D5b (D-N44)
       break;
     case "update-data":
       renderMonthlyDetails();
@@ -30534,11 +30535,10 @@ async function renderActiveSection(viewId = viewFromHash()) {
       break;
     case "deuda-comparar":
       renderDeudaComparar();
-      globalThis.renderProximoEuro?.(globalThis.FinanceCanonicalNextEuro); // WP-42 (escalera-ui.js)
-      globalThis.renderNominaReparto?.(globalThis.FinanceCanonicalPayrollSplit); // WP-47 (nomina-ui.js)
       break;
     case "deuda-ruta":
       renderDeudaRuta();
+      globalThis.renderProximoEuro?.(globalThis.FinanceCanonicalNextEuro); // WP-42 (escalera-ui.js); en Deuda › Plan desde TRE-D5b (D-N44)
       break;
     case "deuda-contratos":
       renderDeudaContratos();

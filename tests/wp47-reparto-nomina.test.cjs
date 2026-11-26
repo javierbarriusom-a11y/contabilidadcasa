@@ -261,15 +261,19 @@ test("WP-47 · la tarjeta no ejecuta ni anota nada: ni red, ni movimientos, ni c
   assert.match(source, /showUndoToast\(/, "aplicar, descartar y apartar se pueden deshacer");
 });
 
-test("WP-47 · cableado: tarjeta en Deuda › Comparar bajo la escalera, scripts en orden, gancho en app.js, almacén en la copia y listas de ficheros", () => {
+// TRE-D5b (D-N44, 26/11/2026): la tarjeta pasó de Deuda › Comparar (bajo la escalera) a Plan › Mes, donde se confirma la nómina.
+test("WP-47 · cableado: tarjeta en Plan › Mes, scripts en orden, gancho en app.js (ruta plan), almacén en la copia y listas de ficheros", () => {
   const html = read("index.html");
-  assert.ok(html.indexOf('id="proxEuroCard"') < html.indexOf('id="nominaCard"') && html.indexOf('id="nominaCard"') < html.indexOf('id="deudaCompararCapacity"'));
+  const mes = html.slice(html.indexOf('data-plan-panel="mes"'), html.indexOf('data-plan-panel="prevision"'));
+  assert.ok(mes.includes('id="nominaCard"'), "la tarjeta vive en Plan › Mes");
+  const comparar = html.slice(html.indexOf('id="deuda-comparar"'), html.indexOf('id="deuda-ruta"'));
+  assert.ok(!comparar.includes('id="nominaCard"'), "y ya no en Deuda › Ofertas");
   assert.match(html, /id="nominaCuerpo" aria-live="polite"/);
   const at = (name) => html.indexOf(`<script defer src="${name}?v=`);
   assert.ok(at("escalera-ui.js") > 0 && at("escalera-ui.js") < at("canonical-payroll-split.js") && at("canonical-payroll-split.js") < at("nomina-ui.js"), "el motor y la pantalla van después de la escalera, de la que reutiliza funciones");
   assert.match(html, /href="nomina\.css\?v=/);
   const app = codigoApp();
-  assert.match(app, /globalThis\.renderNominaReparto\?\.\(globalThis\.FinanceCanonicalPayrollSplit\); \/\/ WP-47/);
+  assert.match(app, /case "plan":\s*renderPlan\(\);\s*globalThis\.renderNominaReparto\?\.\(globalThis\.FinanceCanonicalPayrollSplit\); \/\/ WP-47/);
   assert.match(app, /"payroll-split-drafts", \/\/ WP-47/);
   ["service-worker.js", "tools/build-public-site.mjs"].forEach((file) => {
     const source = read(file);
