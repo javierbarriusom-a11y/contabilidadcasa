@@ -13885,3 +13885,75 @@ test.describe("TRE-D5b · lo que no eran ofertas, en su sitio", () => {
     });
   }
 });
+
+// Deuda › Préstamo para saldar · «Comparar con otra oferta» (26/11/2026, petición urgente del hogar). Tarjeta INVENTADA al 21 % dada de
+// alta en Contratos; dos ofertas INVENTADAS. Lo tecleado antes del primer pintado no se pierde (los oyentes, desde la carga).
+test.describe("Deuda › Préstamo · comparar dos ofertas", () => {
+  for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+    test(`el impacto de cada una frente a no pedir nada, quién gana cada criterio, quitar con deshacer y se recuerda (${viewport.width} px)`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(120000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#deuda-contratos");
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      await page.fill("#deudaContratosAddEntity", "Tarjeta Prueba");
+      await page.selectOption("#deudaContratosAddType", "Préstamo");
+      await page.fill("#deudaContratosAddPrincipal", "4000");
+      await page.fill("#deudaContratosAddApr", "21");
+      await page.fill("#deudaContratosAddPayment", "150");
+      await page.fill("#deudaContratosAddInstallments", "36");
+      await page.locator('#deudaContratosAddForm button[type="submit"]').click();
+      // Se escribe nada más entrar, sin esperar a que la pestaña se pinte.
+      await page.evaluate(() => { location.hash = "#deuda-prestamo"; });
+      await page.fill("#prestamoNombre", "Banco Uno FICTICIO");
+      const result = page.locator("#prestamoResultado");
+      await expect(result.locator(".pre-cuota")).toBeVisible({ timeout: 15000 });
+      await page.fill("#prestamoCapital", "4000");
+      await page.fill("#prestamoPlazo", "48");
+      await page.fill("#prestamoTin", "7.5");
+      // Sin la segunda oferta, no hay comparación.
+      await expect(page.locator("#prestamoComparar")).toHaveCount(0);
+      await page.locator("#prestamoOfertaB > summary").click();
+      await page.fill("#prestamoBNombre", "Banco Dos FICTICIO");
+      await page.fill("#prestamoBCapital", "4000");
+      await page.fill("#prestamoBPlazo", "60");
+      await page.fill("#prestamoBTin", "6.9");
+      await page.fill("#prestamoBSeguro", "15");
+      const card = page.locator("#prestamoComparar");
+      await expect(card).toBeVisible({ timeout: 10000 });
+      await expect(card.locator(".pre-comparar-titulo")).toHaveText(/^(La más conveniente: Banco (Uno|Dos) FICTICIO|Sin una ganadora clara)$/);
+      await expect(card.locator(".pre-comparar-frase")).toContainText(/es la más barata en total: [\d.]+ € menos que/);
+      // Frente a no pedir nada: las dos, con el signo en palabras.
+      await expect(card.locator(".pre-impacto")).toHaveCount(2);
+      await expect(card.locator(".pre-impacto").first()).toContainText("Banco Uno FICTICIO");
+      for (const linea of await card.locator(".pre-impacto-linea").all()) await expect(linea.locator(".pre-impacto-signo")).toHaveText(/^(Mejor|Peor|Igual)$/);
+      await expect(card.locator(".pre-impacto").first()).toContainText(/Os (ahorra|cuesta) [\d.,]+\s€/);
+      // La tabla: seis criterios con ganadora y cinco filas de información; la mejor de cada fila, marcada.
+      await expect(card.locator(".pre-comparar-tabla tbody tr")).toHaveCount(11);
+      expect(await card.locator('.pre-comparar-tabla td[data-gana="1"]').count()).toBeGreaterThanOrEqual(5);
+      await expect(card).toContainText("Coste efectivo anual (TAE con seguros)");
+      // El seguro de la otra oferta sube su coste efectivo por encima de su TAE.
+      const efectivo = await page.evaluate(() => {
+        const s = JSON.parse(storageGet(storageKey("deuda-prestamo-saldar"), "{}"));
+        return { b: s.offerB, label: s.label };
+      });
+      expect(efectivo.label).toBe("Banco Uno FICTICIO");
+      expect(efectivo.b).toMatchObject({ label: "Banco Dos FICTICIO", capital: 4000, months: 60, tinPct: 6.9, insuranceMonthly: 15 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "sin desbordar en horizontal").toBe(true);
+      // Se recuerda al recargar, con el desplegable abierto.
+      await page.reload();
+      await page.evaluate(() => { location.hash = "#deuda-prestamo"; });
+      await expect(page.locator("#prestamoComparar")).toBeVisible({ timeout: 15000 });
+      await expect(page.locator("#prestamoOfertaB")).toHaveAttribute("open", "");
+      await expect(page.locator("#prestamoBTin")).toHaveValue("6.9");
+      // Quitar la otra oferta, con deshacer.
+      await page.locator("#prestamoBQuitar").click();
+      await expect(page.locator("#prestamoComparar")).toHaveCount(0);
+      await page.locator("#undoToastButton").click();
+      await expect(page.locator("#prestamoComparar")).toBeVisible();
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});

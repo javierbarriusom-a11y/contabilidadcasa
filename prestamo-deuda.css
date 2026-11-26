@@ -586,3 +586,267 @@
     flex-wrap: wrap;
   }
 }
+
+/* ---------- «Comparar con otra oferta» (26/11/2026) ----------
+   El desplegable de la segunda oferta en el formulario y la tarjeta de comparación, arriba del resultado. El signo de cada impacto
+   va en palabras («Mejor», «Peor», «Igual») además de en color (WCAG 1.4.1); la mejor de cada fila de la tabla, marcada con «✓». */
+.pre-ayuda {
+  margin: 0;
+  font: 400 var(--e19-text-sm) / 1.35 var(--e19-font-sans);
+  color: var(--e19-muted);
+}
+
+.pre-oferta-b {
+  border-top: 1px solid var(--e19-border);
+  padding-top: 12px;
+}
+
+.pre-oferta-b > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font: 600 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.pre-oferta-b[open] {
+  display: grid;
+  gap: 12px;
+}
+
+/* Con la segunda oferta abierta, el formulario mide más que la ventana: deja de ser fijo para que se llegue a todos sus campos. */
+.pre-condiciones:has(.pre-oferta-b[open]) {
+  position: static;
+}
+
+.pre-seguro-nota {
+  margin: 8px 0 0;
+}
+
+.pre-comparar {
+  grid-column: 1 / -1; /* ocupa las dos columnas del resultado: la tabla necesita el ancho */
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+  background: var(--e19-accent-soft);
+  border-color: var(--e19-accent-soft-border);
+}
+
+.pre-comparar[data-tono="aviso"] {
+  background: var(--e19-warning-soft);
+  border-color: var(--e19-warning-soft-border);
+}
+
+.pre-comparar-titulo {
+  margin: 0;
+  font: 700 var(--e19-text-lg, 1.25rem) / 1.25 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.pre-comparar-frase,
+.pre-comparar-lineas {
+  margin: 0;
+  font: 400 var(--e19-text-base) / 1.45 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.pre-comparar-lineas {
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.pre-comparar-sub {
+  margin: 6px 0 0;
+  font: 600 var(--e19-text-sm) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.pre-impactos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pre-impacto {
+  padding: 12px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md, 12px);
+  background: var(--e19-surface);
+}
+
+.pre-impacto-titulo {
+  margin: 0 0 6px;
+  font: 700 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+  overflow-wrap: anywhere;
+}
+
+.pre-impacto ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.pre-impacto-linea {
+  font: 400 var(--e19-text-sm) / 1.4 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.pre-impacto-signo {
+  display: inline-block;
+  min-width: 3.6em;
+  margin-right: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.8em;
+  text-align: center;
+  background: var(--e19-surface-sunken);
+  color: var(--e19-ink);
+}
+
+.pre-impacto-linea[data-signo="pos"] .pre-impacto-signo {
+  background: var(--e19-success-soft);
+  color: var(--e19-success);
+}
+
+.pre-impacto-linea[data-signo="neg"] .pre-impacto-signo {
+  background: var(--e19-danger-soft);
+  color: var(--e19-danger);
+}
+
+.pre-comparar-tabla-caja:focus-visible {
+  outline: 2px solid var(--e19-focus, var(--focus-ring, #2b59c3));
+  outline-offset: 2px;
+}
+
+.pre-comparar-tabla-caja {
+  overflow-x: auto;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md, 12px);
+  background: var(--e19-surface);
+}
+
+.pre-comparar-tabla {
+  min-width: 0; /* anula el `table { min-width: 1120px }` genérico de styles.css, como .account-balance-table */
+  width: 100%;
+  border-collapse: collapse;
+  font: 400 var(--e19-text-sm) / 1.35 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.pre-comparar-tabla th,
+.pre-comparar-tabla td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--e19-border);
+  text-align: right;
+  vertical-align: top;
+}
+
+.pre-comparar-tabla th[scope="row"],
+.pre-comparar-tabla thead th:first-child {
+  text-align: left;
+  font-weight: 400;
+  color: var(--e19-muted);
+  white-space: normal; /* una regla global de tablas no parte las cabeceras: el criterio empujaba las cifras fuera de la caja */
+  min-width: 12em;
+}
+
+.pre-comparar-tabla td {
+  white-space: nowrap;
+}
+
+.pre-comparar-tabla thead th,
+.pre-comparar-tabla thead th:first-child {
+  font-weight: 700;
+  color: var(--e19-ink);
+  background: var(--e19-surface-sunken); /* fijo: una regla global de tablas pinta las cabeceras claras también en oscuro */
+  overflow-wrap: anywhere;
+}
+
+.pre-comparar-tabla td[data-gana="1"] {
+  font-weight: 700;
+}
+
+.pre-comparar-tabla td[data-gana="1"]::before {
+  content: "✓ ";
+  color: var(--e19-success);
+}
+
+.pre-comparar-gana {
+  color: var(--e19-muted);
+}
+
+.pre-comparar-etq {
+  display: none;
+}
+
+.pre-comparar-info th,
+.pre-comparar-info td {
+  background: var(--e19-surface-soft);
+}
+
+@media (max-width: 760px) {
+  .pre-impactos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* En el móvil, cada fila de la tabla en dos líneas: el criterio arriba y las dos cifras debajo (sin desplazar en horizontal). */
+  .pre-comparar-tabla thead {
+    display: none;
+  }
+
+  .pre-comparar-tabla,
+  .pre-comparar-tabla tbody {
+    display: block;
+  }
+
+  .pre-comparar-tabla tr {
+    display: grid;
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    border-bottom: 1px solid var(--e19-border);
+  }
+
+  .pre-comparar-tabla th[scope="row"] {
+    grid-column: 1 / -1;
+    border-bottom: 0;
+    padding-bottom: 2px;
+  }
+
+  .pre-comparar-tabla td {
+    border-bottom: 0;
+    text-align: left;
+    white-space: normal;
+  }
+
+  .pre-comparar-tabla th[scope="row"] {
+    min-width: 0;
+  }
+
+  .pre-comparar-etq {
+    display: block;
+    font-size: 0.85em;
+    color: var(--e19-muted);
+    overflow-wrap: anywhere;
+  }
+
+  .pre-comparar-tabla td[data-gana="1"]::before {
+    content: none;
+  }
+
+  .pre-comparar-tabla td[data-gana="1"] .pre-comparar-etq::after {
+    content: "✓ mejor";
+    margin-left: 4px;
+    font-weight: 700;
+    color: var(--e19-success);
+  }
+
+  .pre-comparar-gana {
+    display: none;
+  }
+}

@@ -40,7 +40,29 @@ function prestamoDefaults() {
     includeMortgage: false,
     holder: "",
     selection: "auto",
+    label: "",
+    insuranceMonthly: 0,
+    offerB: prestamoOfferBEmpty(),
   };
+}
+
+// 26/11/2026 · «Comparar con otra oferta»: los campos de la segunda oferta (sin deslizadores) y su estado vacío.
+const PRESTAMO_B_FIELDS = {
+  capital: { id: "prestamoBCapital", integer: false },
+  months: { id: "prestamoBPlazo", integer: true },
+  tinPct: { id: "prestamoBTin" },
+  openingFeePct: { id: "prestamoBComision" },
+  earlyFeePct: { id: "prestamoBComisionAnticipada" },
+  insuranceMonthly: { id: "prestamoBSeguro" },
+};
+
+function prestamoOfferBEmpty() {
+  return { label: "", capital: null, months: null, tinPct: null, openingFeePct: 0, earlyFeePct: 0, insuranceMonthly: 0 };
+}
+
+/** La segunda oferta cuenta cuando tiene capital, plazo y TIN. */
+function prestamoOfferBReady(offer) {
+  return Boolean(offer) && ["capital", "months", "tinPct"].every((key) => offer[key] !== null && offer[key] !== undefined && Number.isFinite(Number(offer[key])));
 }
 
 // Los ingresos del hogar que ya conoce la app (los mismos que lee el guardarraíl de apalancamiento), solo como valor de partida.
@@ -78,6 +100,21 @@ function prestamoLoad() {
     includeMortgage: saved.includeMortgage === true,
     holder: typeof saved.holder === "string" ? saved.holder.slice(0, 40) : "",
     selection: Array.isArray(saved.selection) ? saved.selection.map(String).slice(0, 40) : "auto",
+    label: typeof saved.label === "string" ? saved.label.slice(0, 40) : "",
+    insuranceMonthly: num(saved.insuranceMonthly, 0),
+    offerB: (() => {
+      const b = saved.offerB && typeof saved.offerB === "object" ? saved.offerB : {};
+      const empty = prestamoOfferBEmpty();
+      return {
+        label: typeof b.label === "string" ? b.label.slice(0, 40) : "",
+        capital: num(b.capital, empty.capital),
+        months: b.months === null || b.months === undefined ? null : Math.round(num(b.months, 0)) || null,
+        tinPct: num(b.tinPct, empty.tinPct),
+        openingFeePct: num(b.openingFeePct, 0),
+        earlyFeePct: num(b.earlyFeePct, 0),
+        insuranceMonthly: num(b.insuranceMonthly, 0),
+      };
+    })(),
   };
   return loaded;
 }
@@ -147,7 +184,17 @@ function prestamoOfferHtml(result) {
       <div class="pre-linea pre-sub"><span>— Total intereses</span><span>${money(t.totalInterest, true)}</span></div>
       ${feeRow}
       <div class="pre-linea pre-total"><span>Importe total adeudado</span><strong>${money(round2(t.totalOwed + t.openingFee), true)}</strong></div>
+      ${prestamoSeguroLineaHtml(t, prestamoState.insuranceMonthly)}
     </article>`;
+}
+
+// Con seguros o vinculaciones, lo que de verdad cuesta al mes y al año (la TAE no los incluye).
+function prestamoSeguroLineaHtml(terms, seguro) {
+  if (!(Number(seguro) > 0)) return "";
+  const engine = prestamoEngine();
+  const irr = engine?.monthlyIrr ? engine.monthlyIrr(terms.netFunds, terms.payment + Number(seguro), terms.months) : null;
+  const efectivo = irr === null ? null : round2((Math.pow(1 + irr, 12) - 1) * 100);
+  return `<p class="e19-kpi-note pre-seguro-nota" data-prestamo-seguro-nota>Con ${money(Number(seguro), true)} al mes de seguros o vinculaciones, la cuota es ${money(round2(terms.payment + Number(seguro)), true)} y el coste efectivo anual, ${prestamoPct(efectivo)} (la TAE no los cuenta).</p>`;
 }
 
 // La frase con UNA cifra: cuándo se acaba la deuda con el plan agresivo, y la comparación honesta con pagar lo mismo sin préstamo.
@@ -327,6 +374,103 @@ function prestamoNotesHtml(result) {
     </article>`;
 }
 
+// ---- «Comparar con otra oferta» (26/11/2026) ----
+
+function prestamoCompareEngine() {
+  return globalThis.FinanceCanonicalLoanOffersCompare || null;
+}
+
+/** Las dos ofertas en la forma del comparador: la de arriba (A) y la del desplegable (B). */
+function prestamoOffersForCompare() {
+  const s = prestamoState;
+  return [
+    { label: s.label || "", capital: s.capital, months: s.months, tinPct: s.tinPct, openingFeePct: s.openingFeePct, earlyFeePct: s.earlyFeePct, insuranceMonthly: s.insuranceMonthly },
+    { ...s.offerB },
+  ];
+}
+
+function prestamoSignedEuros(value) {
+  return money(Math.abs(round2(value)), true);
+}
+
+// Frente a no pedir nada: el signo en palabras (no solo en color), y lo que no se puede comparar, dicho.
+function prestamoImpactoHtml(offer) {
+  const lines = [];
+  if (offer.impactCost === null) {
+    lines.push({ tone: "neutro", text: "Alguna deuda no acaba dentro del horizonte: no se puede decir cuánto ahorra." });
+  } else if (offer.impactCost > 1) {
+    lines.push({ tone: "pos", text: `Os ahorra ${prestamoSignedEuros(offer.impactCost)} en intereses, comisiones y seguros hasta la deuda cero.` });
+  } else if (offer.impactCost < -1) {
+    lines.push({ tone: "neg", text: `Os cuesta ${prestamoSignedEuros(offer.impactCost)} más en intereses, comisiones y seguros hasta la deuda cero.` });
+  } else {
+    lines.push({ tone: "neutro", text: "Cuesta lo mismo que hoy en intereses, comisiones y seguros." });
+  }
+  const delta = offer.monthlyDeltaSteady;
+  if (delta < -1) lines.push({ tone: "pos", text: `Pagáis ${prestamoSignedEuros(delta)} menos al mes en deudas (de ${money(offer.monthlyDebtToday, true)} a ${money(offer.monthlyDebtSteady, true)}).` });
+  else if (delta > 1) lines.push({ tone: "neg", text: `Pagáis ${prestamoSignedEuros(delta)} más al mes en deudas (de ${money(offer.monthlyDebtToday, true)} a ${money(offer.monthlyDebtSteady, true)}).` });
+  else lines.push({ tone: "neutro", text: `Pagáis lo mismo al mes en deudas (${money(offer.monthlyDebtSteady, true)}).` });
+  if (offer.impactMonths !== null && offer.debtFreeWithLoan) {
+    const when = prestamoMonthText(offer.debtFreeWithLoan);
+    if (offer.impactMonths > 0) lines.push({ tone: "pos", text: `Deuda cero en ${when}, ${prestamoMonths(offer.impactMonths)} antes que hoy.` });
+    else if (offer.impactMonths < 0) lines.push({ tone: "neg", text: `Deuda cero en ${when}, ${prestamoMonths(-offer.impactMonths)} después que hoy (pagando solo las cuotas).` });
+    else lines.push({ tone: "neutro", text: `Deuda cero en ${when}, como hoy.` });
+  }
+  const signo = { pos: "Mejor", neg: "Peor", neutro: "Igual" };
+  return `<section class="pre-impacto" aria-label="${escapeHtml(offer.label)} frente a no pedir nada">
+      <h4 class="pre-impacto-titulo">${escapeHtml(offer.label)}</h4>
+      <ul>${lines.map((line) => `<li class="pre-impacto-linea" data-signo="${line.tone}"><span class="pre-impacto-signo">${signo[line.tone]}</span> ${escapeHtml(line.text)}</li>`).join("")}</ul>
+    </section>`;
+}
+
+function prestamoCompareValue(value, unit) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return "—";
+  if (unit === "%") return prestamoPct(value);
+  if (unit === "meses") return prestamoSpan(Number(value));
+  return money(Number(value), true);
+}
+
+function prestamoCompareHtml(comparison) {
+  if (!comparison) return "";
+  if (!comparison.ok) {
+    return `<article class="e19-card pre-comparar" id="prestamoComparar" aria-labelledby="prestamoCompararTitulo"><h3 class="escenario-motor-panel-title" id="prestamoCompararTitulo">Comparar las dos ofertas</h3><p class="e19-kpi-note" role="alert">${escapeHtml(comparison.error)}</p></article>`;
+  }
+  const { a, b, criteria, verdict } = comparison;
+  const mark = (who, side) => (who === side ? ' data-gana="1"' : "");
+  const winnerText = (who) => (who === "a" ? a.label : who === "b" ? b.label : who === "empate" ? "Empate" : "—");
+  const extraRows = [
+    { title: "Cuota del préstamo (con seguros)", a: a.loanPayment, b: b.loanPayment, unit: "€" },
+    { title: "TAE", a: a.terms.taePct, b: b.terms.taePct, unit: "%" },
+    { title: "Deudas que cancela", a: a.cancelled, b: b.cancelled, unit: "€" },
+    { title: "Cuota de deudas el primer mes (hoy " + money(a.monthlyDebtToday, true) + ")", a: a.monthlyDebtWithLoan, b: b.monthlyDebtWithLoan, unit: "€" },
+  ];
+  // En el móvil la cabecera de la tabla no se ve: cada cifra lleva el nombre de su oferta (oculto en el escritorio).
+  // En el escritorio la etiqueta no se pinta (display: none) y el lector usa la cabecera; en el móvil, sin cabecera, la lee aquí.
+  const cell = (label, text) => `<span class="pre-comparar-etq">${escapeHtml(label)}: </span>${escapeHtml(text)}`;
+  const rows = [
+    ...criteria.map((c) => `<tr><th scope="row">${escapeHtml(c.title)}</th><td${mark(c.winner, "a")}>${cell(a.label, prestamoCompareValue(c.a, c.unit))}</td><td${mark(c.winner, "b")}>${cell(b.label, prestamoCompareValue(c.b, c.unit))}</td><td class="pre-comparar-gana">${escapeHtml(winnerText(c.winner))}</td></tr>`),
+    ...extraRows.map((r) => `<tr class="pre-comparar-info"><th scope="row">${escapeHtml(r.title)}</th><td>${cell(a.label, prestamoCompareValue(r.a, r.unit))}</td><td>${cell(b.label, prestamoCompareValue(r.b, r.unit))}</td><td class="pre-comparar-gana"></td></tr>`),
+    `<tr class="pre-comparar-info"><th scope="row">Comprobaciones de vuestra política superadas</th><td>${cell(a.label, `${a.checksPassed} de ${a.checksTotal}`)}</td><td>${cell(b.label, `${b.checksPassed} de ${b.checksTotal}`)}</td><td class="pre-comparar-gana"></td></tr>`,
+  ].join("");
+  const [first, ...rest] = verdict.lines;
+  const pick = verdict.recommended === "a" ? a.label : verdict.recommended === "b" ? b.label : "";
+  return `<article class="e19-card pre-comparar" id="prestamoComparar" aria-labelledby="prestamoCompararTitulo" data-tono="${escapeHtml(verdict.tone)}">
+      <p class="pre-veredicto-eyebrow">Comparar las dos ofertas</p>
+      <h3 class="pre-comparar-titulo" id="prestamoCompararTitulo">${pick ? `La más conveniente: ${escapeHtml(pick)}` : a.cancelled > 0 || b.cancelled > 0 ? "Sin una ganadora clara" : "Ninguna de las dos cancela deuda"}</h3>
+      <p class="pre-comparar-frase">${escapeHtml(first || "")}</p>
+      ${rest.length ? `<ul class="pre-comparar-lineas">${rest.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>` : ""}
+      <h4 class="pre-comparar-sub">Frente a no pedir nada</h4>
+      <div class="pre-impactos">${prestamoImpactoHtml(a)}${prestamoImpactoHtml(b)}</div>
+      <div class="pre-comparar-tabla-caja" tabindex="0" role="region" aria-label="Las dos ofertas, criterio a criterio">
+        <table class="pre-comparar-tabla">
+          <caption class="sr-only">Las dos ofertas, criterio a criterio; la mejor de cada fila va marcada</caption>
+          <thead><tr><th scope="col">Criterio</th><th scope="col">${escapeHtml(a.label)}</th><th scope="col">${escapeHtml(b.label)}</th><th scope="col">Mejor</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <p class="e19-kpi-note">Mismas deudas y mismos supuestos para las dos, con el mismo cálculo que el resto de esta pestaña. El detalle de abajo es el de ${escapeHtml(a.label)}. Es una simulación: no pide nada al banco ni cambia el plan.</p>
+    </article>`;
+}
+
 function prestamoResultHtml(result) {
   if (!result.ok) return `<article class="e19-card"><p class="e19-kpi-note" role="alert">${escapeHtml(result.error)}</p></article>`;
   // Sin nada que cancelar, comparar caminos sería pedir dinero para dejarlo parado: solo la oferta, el porqué y la elección.
@@ -359,6 +503,25 @@ function prestamoSyncControls() {
   });
   const holder = qs("prestamoTitular");
   if (holder && document.activeElement !== holder) holder.value = s.holder || "";
+  const nombre = qs("prestamoNombre");
+  if (nombre && document.activeElement !== nombre) nombre.value = s.label || "";
+  const seguro = qs("prestamoSeguro");
+  if (seguro && document.activeElement !== seguro) seguro.value = Number(s.insuranceMonthly) > 0 ? String(s.insuranceMonthly) : "";
+  const b = s.offerB || prestamoOfferBEmpty();
+  const bNombre = qs("prestamoBNombre");
+  if (bNombre && document.activeElement !== bNombre) bNombre.value = b.label || "";
+  Object.entries(PRESTAMO_B_FIELDS).forEach(([key, field]) => {
+    const input = qs(field.id);
+    if (!input || document.activeElement === input) return;
+    const value = b[key];
+    const vacio = value === null || value === undefined || ((key === "openingFeePct" || key === "earlyFeePct" || key === "insuranceMonthly") && !(Number(value) > 0));
+    input.value = vacio ? "" : String(value);
+  });
+  const desplegable = qs("prestamoOfertaB");
+  if (desplegable && prestamoOfferBReady(b) && !desplegable.dataset.abiertoUnaVez) {
+    desplegable.open = true;
+    desplegable.dataset.abiertoUnaVez = "1";
+  }
   const keep = qs("prestamoSeguir");
   if (keep) keep.checked = s.keepPaying;
   const mortgage = qs("prestamoHipoteca");
@@ -391,7 +554,13 @@ function renderPrestamoDeuda(engine, contracts) {
     const todayKey = isoLocalDate(new Date()).slice(0, 7);
     const result = loanEngine.plan(list, prestamoOptions(todayKey));
     const focusedId = document.activeElement && box.contains(document.activeElement) ? document.activeElement.id : "";
-    const html = `${prestamoEjemplosAviso()}${prestamoResultHtml(result)}`;
+    let comparison = null;
+    const compareEngine = prestamoCompareEngine();
+    if (compareEngine && prestamoOfferBReady(prestamoState.offerB)) {
+      const { loan, earlyFeePct, ...baseOptions } = prestamoOptions(todayKey);
+      comparison = compareEngine.compare(list, baseOptions, prestamoOffersForCompare(), { engine: loanEngine });
+    }
+    const html = `${prestamoEjemplosAviso()}${prestamoCompareHtml(comparison)}${prestamoResultHtml(result)}`;
     if (box.__prestamoHtml !== html) {
       box.innerHTML = html;
       box.__prestamoHtml = html;
@@ -422,6 +591,46 @@ function prestamoParse(raw) {
 function prestamoOnInput(event) {
   const target = event.target;
   if (!target || !target.id || !target.closest?.("#deuda-prestamo")) return;
+  if (!prestamoState) prestamoState = prestamoLoad(); // lo escrito antes del primer pintado no se pierde (como DUO-D3)
+  if (target.id === "prestamoNombre" || target.id === "prestamoBNombre") {
+    const texto = String(target.value || "").slice(0, 40);
+    if (target.id === "prestamoNombre") prestamoState.label = texto;
+    else prestamoState.offerB = { ...(prestamoState.offerB || prestamoOfferBEmpty()), label: texto };
+    prestamoRerender();
+    return;
+  }
+  if (target.id === "prestamoSeguro") {
+    const parsed = prestamoParse(target.value);
+    if (parsed.invalid || (!parsed.empty && (parsed.value < 0 || parsed.value > 1000))) {
+      target.setAttribute("aria-invalid", "true");
+      prestamoLastError = "Los seguros o vinculaciones, un importe al mes entre 0 y 1.000 €.";
+      renderPrestamoDeuda(prestamoEngine(), null);
+      return;
+    }
+    target.removeAttribute("aria-invalid");
+    prestamoLastError = "";
+    prestamoState.insuranceMonthly = parsed.empty ? 0 : parsed.value;
+    prestamoRerender();
+    return;
+  }
+  const entryB = Object.entries(PRESTAMO_B_FIELDS).find(([, field]) => field.id === target.id);
+  if (entryB) {
+    const [key, field] = entryB;
+    const parsed = prestamoParse(target.value);
+    if (parsed.invalid) {
+      target.setAttribute("aria-invalid", "true");
+      prestamoLastError = "Escribe un número, por ejemplo 16500 o 8,5.";
+      renderPrestamoDeuda(prestamoEngine(), null);
+      return;
+    }
+    target.removeAttribute("aria-invalid");
+    prestamoLastError = "";
+    const optional = key === "openingFeePct" || key === "earlyFeePct" || key === "insuranceMonthly";
+    const value = parsed.empty ? (optional ? 0 : null) : field.integer ? Math.round(parsed.value) : parsed.value;
+    prestamoState.offerB = { ...(prestamoState.offerB || prestamoOfferBEmpty()), [key]: value };
+    prestamoRerender();
+    return;
+  }
   if (target.id === "prestamoTitular") {
     prestamoState.holder = String(target.value || "").slice(0, 40);
     prestamoRerender();
@@ -456,6 +665,7 @@ function prestamoOnInput(event) {
 function prestamoOnChange(event) {
   const target = event.target;
   if (!target || !target.closest?.("#deuda-prestamo")) return;
+  if (!prestamoState) prestamoState = prestamoLoad();
   if (target.id === "prestamoSeguir") {
     prestamoState.keepPaying = target.checked;
     prestamoRerender();
@@ -482,6 +692,17 @@ function prestamoOnChange(event) {
 function prestamoOnClick(event) {
   const target = event.target;
   if (!target || !target.closest?.("#deuda-prestamo")) return;
+  if (!prestamoState) prestamoState = prestamoLoad();
+  if (target.id === "prestamoBQuitar") {
+    const anterior = prestamoState.offerB;
+    prestamoState.offerB = prestamoOfferBEmpty();
+    prestamoRerender();
+    if (typeof showUndoToast === "function") {
+      showUndoToast("Otra oferta quitada.", () => { prestamoState.offerB = anterior; prestamoRerender(); });
+    } else if (typeof announceStatus === "function") announceStatus("Otra oferta quitada.");
+    qs("prestamoBCapital")?.focus();
+    return;
+  }
   const fix = target.closest("[data-prestamo-fix-months]");
   if (fix) {
     prestamoState.months = Number(fix.getAttribute("data-prestamo-fix-months"));
@@ -499,7 +720,9 @@ function prestamoOnClick(event) {
   if (target.id === "prestamoReset") {
     const keepIncome = prestamoState.monthlyIncome;
     const keepHolder = prestamoState.holder;
-    prestamoState = { ...prestamoDefaults(), monthlyIncome: keepIncome, holder: keepHolder };
+    const keepB = prestamoState.offerB;
+    const keepLabel = prestamoState.label;
+    prestamoState = { ...prestamoDefaults(), monthlyIncome: keepIncome, holder: keepHolder, offerB: keepB, label: keepLabel };
     prestamoLastError = "";
     prestamoRerender();
     if (typeof announceStatus === "function") announceStatus("Condiciones devueltas a la oferta de partida.");
@@ -518,3 +741,8 @@ function attachPrestamoDeuda(doc) {
   });
   return true;
 }
+
+// Los oyentes, desde la carga (no desde el primer pintado): lo que se escribe al entrar en la pestaña, antes de que termine de pintarse
+// en un teléfono lento, no se pierde. Es el patrón del fallo de DUO-D3 en Safari (26/11/2026). Los manejadores cargan el estado si
+// aún no lo hay.
+if (typeof document !== "undefined" && typeof document.addEventListener === "function") attachPrestamoDeuda(document);

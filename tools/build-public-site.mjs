@@ -199,6 +199,7 @@ const files = [
   "ajustes-areas.js",
   "escenario-ui.js",
   "canonical-loan-payoff-plan.js",
+  "canonical-loan-offers-compare.js",
   "prestamo-deuda-ui.js",
   "canonical-payroll.js",
   "nominas-ui.js",
