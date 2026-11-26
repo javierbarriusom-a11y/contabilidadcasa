@@ -12688,8 +12688,11 @@ test.describe("DUO-D5 y DUO-D2 · Cada 50 € más y el cierre de una deuda sald
       await expect(tabla.locator("tbody th").first()).toHaveText("+50 €");
       await expect(page.locator("[data-plan-optimo-cada50-frase]")).toContainText("cada 50 € más");
       await expect(page.locator("#planCierres")).toBeEmpty();
-      // Saldar la tarjeta: capital pendiente a cero en Contratos.
+      // Saldar la tarjeta: capital pendiente a cero en Contratos. Se escribe cuando la pantalla ha terminado de pintarse (la app lo dice
+      // quitando aria-busy, «… lista»): escribir mientras dice «Actualizando cálculos» perdía a veces el «0» (el foco se iba de la casilla).
       await page.evaluate(() => { location.hash = "#deuda-contratos"; });
+      await expect(page.locator("#deuda-contratos")).toBeVisible();
+      await expect(page.locator("#deuda-contratos")).not.toHaveAttribute("aria-busy", "true", { timeout: 20000 });
       const fila = page.locator("[data-deuda-contrato-row]").filter({ has: page.locator('input[data-deuda-contrato-field="entity"][value="Banco FICTICIO"]') });
       const capital = fila.locator('input[data-deuda-contrato-field="currentPrincipal"]');
       await capital.fill("0");
