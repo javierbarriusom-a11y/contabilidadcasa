@@ -134,7 +134,8 @@ test("pinta sin asignar, ritmo y ahorro, y las partidas con el mismo campo edita
   assert.match(lado, /Gastado <strong>448 €<\/strong> de 3\.200 €/, "el ritmo es del gasto: el ahorro no cuenta como gastado");
   assert.doesNotMatch(lado, /Irá a ahorro este mes/, "ya no hay una tarjeta suelta de ahorro");
   // No hay un «Asignar» inventado: lo que sobra lleva a la escalera del próximo euro, que ya existe.
-  assert.match(lado, /data-plan-v2-nav="deuda-comparar">Ver adónde va el próximo euro</);
+  // TRE-D5b (D-N44): la escalera vive en Deuda › Plan; el botón lleva allí y la abre en su panel.
+  assert.match(lado, /data-plan-v2-nav="deuda-ruta" data-plan-v2-euro>Ver adónde va el próximo euro</);
   const tabla = elements.planMesTables.innerHTML;
   assert.match(tabla, /<h3>Partidas de octubre 2026<\/h3>/);
   assert.match(tabla, /<input type="text" inputmode="decimal" autocomplete="off" data-plan-mes-planned="ingreso-persona-a" data-plan-mes-month="2026-10" aria-label="Previsto de Ingreso Persona A" value="3\.000"/);
@@ -165,7 +166,7 @@ test("un mes cerrado deja los campos bloqueados; el exceso de lo asignado sale e
   // Con el ahorro (T27): 5.400 de gasto + 800 de ahorro frente a 5.000 de ingreso.
   assert.match(lado, /Lo asignado \(6\.200 €, con 800 € de ahorro\) supera en 1\.200 € el ingreso previsto de 5\.000 €\./);
   assert.doesNotMatch(lado, /El gasto cabe/, "aquí tampoco cabe el gasto");
-  assert.doesNotMatch(lado, /deuda-comparar/);
+  assert.doesNotMatch(lado, /data-plan-v2-euro/, "sin botón a la escalera cuando no sobra nada");
 });
 
 test("el campo enseña los céntimos (no redondea lo guardado) y el mes se elige con flechas", () => {

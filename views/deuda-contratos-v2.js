@@ -115,6 +115,21 @@
     };
   }
 
+  // TRE-D5b (D-N44): la capacidad de endeudamiento, en una línea de la cabecera (antes, una tarjeta en Deuda › Ofertas). Sale del mismo
+  // cálculo que la tarjeta de siempre y que la alerta de Hoy (`debtCapacityStatus`): cuotas frente al ingreso previsto, con su umbral.
+  function capacidadFrase(cap) {
+    if (!cap || !(Number(cap.income) > 0)) return null;
+    const pct = (v, d = 1) => `${(Number(v) * 100).toLocaleString("es-ES", { minimumFractionDigits: d, maximumFractionDigits: d })} %`;
+    const tono = cap.status === "danger" ? "danger" : cap.status === "warn" ? "warn" : "good";
+    const umbral = pct(cap.dangerAt, 0);
+    const avales = cap.guaranteeImpact && cap.guaranteeImpact.guaranteedMonthlyTotal > 0 ? cap.guaranteeImpact : null;
+    const margen = avales ? (avales.exceedsCapacity ? 0 : Math.max(0, Number(avales.remainingMargin) || 0)) : Math.max(0, Number(cap.marginEuros) || 0);
+    const cola = margen > 0
+      ? `margen de ${euros(margen)} al mes${avales ? ", ya descontados los avales" : ""}`
+      : avales && avales.exceedsCapacity ? "los avales consumen todo el margen" : "sin margen para más cuota";
+    return { tono, texto: `Capacidad: las cuotas son el ${pct(cap.ratio)} del ingreso previsto (umbral ${umbral}) · ${cola}.` };
+  }
+
   // Las herramientas de siempre, con su línea de qué hacen y dónde están en el detalle.
   const HERRAMIENTAS = [
     ["#cirbeCard", "Conciliación con la CIRBE", "Lo que ve el Banco de España frente a vuestros contratos"],
@@ -137,6 +152,7 @@
     const cab = `<div class="dcv2-cabeza">
         <h2 class="dcv2-titulo" id="dcv2Titulo">Contratos</h2>
         <p class="dcv2-resumen">${m.resumen.vivos === 1 ? "1 vivo" : `${m.resumen.vivos} vivos`} · ${esc(euros(m.resumen.debe))} · cuota ${esc(euros(m.resumen.cuota))} al mes</p>
+        ${m.capacidad ? `<p class="dcv2-capacidad" data-tono="${m.capacidad.tono}">${esc(m.capacidad.texto).replace(/^Capacidad:/, "<strong>Capacidad:</strong>")}</p>` : ""}
         <div class="cv2-acciones">${K.boton({ texto: "+ Añadir un contrato", primario: true, datos: { dcv2: "anadir" } })}${K.boton({ texto: "Pegar varios", datos: { dcv2: "varios" } })}</div>
       </div>`;
     const f = faltanFrase(m.faltan);
@@ -309,11 +325,12 @@
       plan: planPorContrato(),
       comisiones: guard(() => planOptimoComisionesGuardadas(), {}) || {},
       esRevolving: (t) => Boolean(guard(() => root.FinanceCanonicalDebtContracts?.isRevolvingType?.(t), false)),
+      capacidad: guard(() => (typeof debtCapacityStatus === "function" ? debtCapacityStatus() : null), null),
     };
   }
 
   function modelo(e) {
-    return { resumen: resumen(e.contratos), faltan: faltan(e.contratos), tarjetas: tarjetas(e.contratos, e) };
+    return { resumen: resumen(e.contratos), faltan: faltan(e.contratos), tarjetas: tarjetas(e.contratos, e), capacidad: capacidadFrase(e.capacidad) };
   }
 
   let fichaId = null;
@@ -502,7 +519,7 @@
     box.hidden = false;
   }
 
-  const api = { MODO_KEY: MODO_CONTRATOS_KEY, faltan, faltanFrase, tarjetas, resumen, html, modelo, valoresDe, previa, fichaHtml, cambios, HERRAMIENTAS, CAMPOS };
+  const api = { MODO_KEY: MODO_CONTRATOS_KEY, faltan, faltanFrase, capacidadFrase, tarjetas, resumen, html, modelo, valoresDe, previa, fichaHtml, cambios, HERRAMIENTAS, CAMPOS };
   root.renderDeudaContratosV2 = render;
   root.FinanceDeudaContratosV2 = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;

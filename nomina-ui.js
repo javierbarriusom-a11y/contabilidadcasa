@@ -1,4 +1,4 @@
-// WP-47 (NPV-05, docs/WP47_DISENO.md): la tarjeta «Repartir la nómina» de Deuda › Comparar, bajo la escalera del próximo euro. El cálculo vive en canonical-payroll-split.js (puro);
+// WP-47 (NPV-05, docs/WP47_DISENO.md): la tarjeta «Repartir la nómina» de Plan › Mes (antes en Deuda › Comparar, bajo la escalera; TRE-D5b, D-N44). El cálculo vive en canonical-payroll-split.js (puro);
 // aquí se leen las nóminas confirmadas del mes, la holgura sobre el suelo en la banda de caja (WP-16) y la escalera (WP-42), se pintan las filas con sus «steppers» y se guarda
 // el borrador con la lista de transferencias en `payroll-split-drafts`. NO mueve dinero ni anota ningún movimiento en las cuentas (A11-4): la lista la ejecuta el hogar, a mano.
 // Tampoco va a Hoy (congelado hasta H-02): el aviso «reparte esta nómina» no sale de la pregunta «¿ha llegado…?».
@@ -179,7 +179,7 @@ function nominaEditorHtml(model) {
     ? `<p class="peu-aviso" role="note"><strong>Escalera parcial:</strong> faltan datos (${escapeHtml(model.ladder.missing.join(", "))}). Lo que dependa de ellos no es fiable.</p>` : "";
   const investRung = model.ladder && model.ladder.rungs.find((rung) => rung.id === "invest");
   const investNote = investRung && investRung.status === "no-verdict"
-    ? `<p class="e19-kpi-note"><strong>Por qué queda dinero sin repartir:</strong> sin una rentabilidad esperada de invertir la escalera no decide entre amortizar el resto e invertir. Escríbela en «¿Dónde va el próximo euro?», arriba.</p>` : "";
+    ? `<p class="e19-kpi-note"><strong>Por qué queda dinero sin repartir:</strong> sin una rentabilidad esperada de invertir la escalera no decide entre amortizar el resto e invertir. Escríbela en <button type="button" class="link-button" data-nom-action="escalera">«¿Dónde va el próximo euro?», en Deuda › Plan</button>.</p>` : "";
   const inAccounts = `<label class="peu-check"><input type="checkbox" data-nom-inaccounts data-nom-focus="inaccounts"${model.inAccounts ? " checked" : ""} /><span>Mis saldos declarados ya incluyen esta nómina. Sin marcar, es dinero que aún no está en la liquidez de la escalera.</span></label>`;
   return `${head}${inAccounts}${nominaAvailabilityHtml(model)}${ladderNote}${investNote}
     <h4 class="nom-subtitulo">Reparto</h4>
@@ -279,6 +279,8 @@ function nominaClick(event) {
   }
   const action = target.getAttribute("data-nom-action");
   if (action === "aplicar") { nominaApply(); return; }
+  // TRE-D5b (D-N44): la escalera vive en Deuda › Plan; con la vista nueva se abre en su panel en cuanto se pinta (views/deuda-plan-v2.js).
+  if (action === "escalera") { globalThis.pedirDeudaProxEuro?.(); window.location.hash = "deuda-ruta"; return; }
   if (action === "restablecer") { nominaWorking = { key: nominaWorking.key, rows: engine.resetRows(nominaWorking.rows) }; nominaNote = ""; nominaRepaint(); announceStatus("Reparto restablecido."); return; }
   const before = nominaStoreLoad();
   const id = target.getAttribute("data-nom-id");

@@ -1103,12 +1103,12 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
-// WP-42: la tarjeta «¿Dónde va el próximo euro?» de Deuda › Comparar, en claro y en oscuro: vacía, con error de validación, con la escalera completa (los cuatro peldaños), sin veredicto y parcial.
+// WP-42: la tarjeta «¿Dónde va el próximo euro?» de Deuda › Plan (antes Deuda › Comparar; TRE-D5b), en claro y en oscuro: vacía, con error de validación, con la escalera completa (los cuatro peldaños), sin veredicto y parcial.
 for (const scheme of ["light", "dark"]) {
   test.describe(`WP-42 · contraste de la escalera del próximo euro en modo ${scheme}`, () => {
     test.use({ colorScheme: scheme });
-    test("Deuda › Comparar: sin fallos de contraste ni de accesibilidad en ninguno de sus estados", async ({ page }) => {
-      await page.goto("/index.html#deuda-comparar");
+    test("Deuda › Plan (desde TRE-D5b): sin fallos de contraste ni de accesibilidad en ninguno de sus estados", async ({ page }) => {
+      await page.goto("/index.html#deuda-ruta");
       await page.reload();
       await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
       await page.reload();
@@ -1352,12 +1352,12 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
-// WP-47: la tarjeta «Repartir la nómina» de Deuda › Comparar, en claro y en oscuro: vacía, con el reparto (filas, steppers, avisos), con un aviso de tope y con el borrador guardado.
+// WP-47: la tarjeta «Repartir la nómina» de Plan › Mes (antes Deuda › Comparar; TRE-D5b), en claro y en oscuro: vacía, con el reparto (filas, steppers, avisos), con un aviso de tope y con el borrador guardado.
 for (const scheme of ["light", "dark"]) {
   test.describe(`WP-47 · contraste del reparto de la nómina en modo ${scheme}`, () => {
     test.use({ colorScheme: scheme });
-    test("Deuda › Comparar: sin fallos de contraste ni de accesibilidad en ninguno de sus estados", async ({ page }) => {
-      await page.goto("/index.html#deuda-comparar");
+    test("Plan › Mes (desde TRE-D5b): sin fallos de contraste ni de accesibilidad en ninguno de sus estados", async ({ page }) => {
+      await page.goto("/index.html#plan");
       await page.reload();
       await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
       await page.reload();
@@ -2617,6 +2617,32 @@ for (const scheme of ["light", "dark"]) {
         await expect(page.locator('#deudaPlanV2Comparar [data-dpv2-cmp-fila="plan"]')).toBeVisible({ timeout: 15000 });
         const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
         const r = await new AxeBuilder({ page }).include("#deudaPlanV2Comparar").analyze();
+        expect(fmt(r), fmt(r).slice(0, 5).join("\n")).toEqual([]);
+      });
+    }
+  });
+}
+
+// TRE-D5b (D-N44, 26/11/2026): «¿Dónde va el próximo euro?» en su panel de Deuda › Plan nuevo, con la escalera calculada, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`TRE-D5b · la escalera del próximo euro en su panel en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      test(`#deudaPlanV2Euro a ${viewport.width} px: sin fallos de contraste ni de accesibilidad`, async ({ page }) => {
+        test.setTimeout(120000);
+        const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+        await arrancarEnCaliente(page, { viewport });
+        await page.evaluate(() => { location.hash = "deuda-ruta"; });
+        await deudaPlanNueva(page);
+        await expect(page.locator("#deudaPlanV2 #dpv2Fecha")).toBeVisible({ timeout: 20000 });
+        await page.locator('#deudaPlanV2 [data-dpv2="euro"]').click();
+        const panel = page.locator("#deudaPlanV2Euro");
+        await panel.locator("#proxEuroImporte").fill("1000");
+        await panel.locator('#proxEuroForm button[type="submit"]').click();
+        await expect(panel.locator("[data-peu-rung]").first()).toBeVisible({ timeout: 15000 });
+        await page.mouse.move(0, 0);
+        const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+        const r = await new AxeBuilder({ page }).include("#deudaPlanV2Euro").analyze();
         expect(fmt(r), fmt(r).slice(0, 5).join("\n")).toEqual([]);
       });
     }

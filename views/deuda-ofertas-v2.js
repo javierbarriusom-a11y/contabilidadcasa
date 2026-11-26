@@ -12,8 +12,9 @@
  *   - tres accesos: probar a mano (el Simulador visual), la calculadora de préstamo e historial.
  * **Una sola fuente, sin migrar nada:** las quitas se leen de donde ya viven (las de «Ajustar el plan», `plan-optimo-quitas`) y la
  * oferta de reunificación de siempre, de la suya; solo los tipos nuevos se guardan aquí (`deuda-ofertas`, en la copia). Lo de siempre
- * de Ofertas › Comparar (las estrategias, la escalera del próximo euro, «Dinero parado», «Repartir la nómina», la capacidad…) sigue
- * detrás de «Ver todo el detalle»; sacarlo de aquí a su sitio (D-N44) es TRE-D5b.
+ * de Ofertas › Comparar (las estrategias, la oferta de reunificación, los modos de liquidación) sigue detrás de «Ver todo el detalle».
+ * Lo que no eran ofertas salió a su sitio con TRE-D5b (D-N44, 26/11/2026): la escalera del próximo euro y «Dinero parado», a Deuda ›
+ * Plan; «Repartir la nómina», a Plan › Mes; la capacidad de endeudamiento, a la cabecera de Contratos.
  *
  * Script de pantalla: comparte el ámbito global de app.js (qs, escapeHtml, money, storageGet/Set/Key, isoLocalDate…).
  */

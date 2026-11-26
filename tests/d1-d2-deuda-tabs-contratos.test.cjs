@@ -817,6 +817,9 @@ test("D-2 · renderDeudaContratos pinta pestañas, cabecera y filas, y usa el de
       // 15/11/2026: «Detectadas en vuestros recibos» — cubierta de verdad en tests/rec-recibos-deuda.test.cjs y en su e2e.
       deudaContratosRecibos: () => null,
       deudaContratosDetectadosHtml: () => "",
+      // TRE-D5b (D-N44): la capacidad de endeudamiento, en la cabecera de Contratos — cubierta de verdad en tests/d-12-capacidad-endeudamiento.test.cjs.
+      debtCapacityStatus: () => ({}),
+      debtCapacityHtml: () => "<article>capacidad</article>",
       // DEB5/DEB6 (Oleada 3, Bloque 4): renderDeudaContratos ya las llama al final — cubiertas de
       // verdad en tests/deb5-deb6-prioridad-fiscal-y-consolidacion.test.cjs, aquí solo evita que
       // este test (centrado en la tabla y su cabecera) reviente por dependencias no relacionadas.

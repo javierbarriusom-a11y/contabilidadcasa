@@ -1,11 +1,11 @@
-// WP-42 (CAR-03 + NIN-05 + NIN-08, docs/WP42_DISENO.md): la tarjeta «¿Dónde va el próximo euro?» de Deuda › Comparar. El cálculo vive en canonical-next-euro.js (puro); aquí se
+// WP-42 (CAR-03 + NIN-05 + NIN-08, docs/WP42_DISENO.md): la tarjeta «¿Dónde va el próximo euro?» de Deuda › Plan (antes en Deuda › Comparar; TRE-D5b, D-N44). El cálculo vive en canonical-next-euro.js (puro); aquí se
 // recogen las cifras que ya existen en la app (liquidez y suelo del colchón, deudas con su coste efectivo tras la deducción fiscal, tipo marginal, tipo del ahorro, reparto
 // de la cartera y sus objetivos), se guardan los datos que teclea el hogar en `next-euro-inputs` y se pinta la escalera. NO mueve dinero ni crea transferencias (A11-4; la lista
 // de transferencias es WP-47). Tampoco va a Hoy (congelado hasta H-02).
 //
 // Script de pantalla: se carga antes de app.js y comparte su ámbito global (qs, money, escapeHtml, storageGet, storageSet, storageKey, isoLocalDate, announceStatus, estadoHtml,
 // queueRemoteSave, accountBalancesFromState, cuadroMandosReserve, debtContractSourceRows, dividendSpanishSavingsRatePct, fiscalWithholdingRate, iv1PositionsList, iv6PortfolioTargets,
-// iv5PortfolioAnnualReturnPct…). Sin llamadas al DOM ni escuchas al cargarse: app.js llama a `renderProximoEuro` al pintar Deuda › Comparar.
+// iv5PortfolioAnnualReturnPct…). Sin llamadas al DOM ni escuchas al cargarse: app.js llama a `renderProximoEuro` al pintar Deuda › Plan.
 
 const PROX_EURO_STORE = "next-euro-inputs"; // en la copia (BACKUP_LOCAL_STORES)
 const PROX_EURO_CERTAINTY = { cierto: "Cierto", esperado: "Esperado, no garantizado", fiscal: "Ahorro fiscal, de una vez" };

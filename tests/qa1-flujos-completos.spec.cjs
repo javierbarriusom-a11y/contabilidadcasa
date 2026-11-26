@@ -3080,7 +3080,7 @@ test.describe("WP-42 · escalera del próximo euro", () => {
     }, { liquidity, floor, withholding });
   };
   const open = async (page) => {
-    await page.goto("/index.html#deuda-comparar");
+    await page.goto("/index.html#deuda-ruta");
     await page.reload();
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
     await page.reload();
@@ -3567,7 +3567,7 @@ test.describe("WP-47 · reparto de la nómina", () => {
     }, { headroom });
   };
   const open = async (page) => {
-    await page.goto("/index.html#deuda-comparar");
+    await page.goto("/index.html#plan");
     await page.reload();
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
     await page.reload();
@@ -5131,7 +5131,7 @@ test.describe("WP-41 · aviso de deuda en la sombra en Cierre", () => {
 // cartera 100 % fondos, objetivos 50/50 fondo-cripto (el reparto manda dinero a cripto), política firmada que no compra cripto, plan B firmado con un umbral que salta.
 test.describe("WP-42 · la escalera frente a la política y el plan B", () => {
   const prepare = async (page) => {
-    await page.goto("/index.html#deuda-comparar");
+    await page.goto("/index.html#deuda-ruta");
     await page.reload();
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
     await page.reload();
@@ -5419,12 +5419,13 @@ test.describe("WP-46 · antigüedad por componente del patrimonio", () => {
 // WP-47 PR-2 (docs/WP47_DISENO.md §6): el reparto de la nómina frente a la política firmada y al plan B. Se cruzan los importes EDITADOS con los botones; solo avisa y «Aplicar» sigue disponible.
 // Datos INVENTADOS: una nómina de 3.000 €, holgura de 2.000 €, objetivos 50/50 fondo-cripto, política firmada que no compra cripto, plan B firmado que salta.
 test.describe("WP-47 · el reparto de la nómina frente a la política y el plan B", () => {
+  // TRE-D5b (D-N44): la escalera está en Deuda › Plan y la nómina en Plan › Mes; se rellena la escalera allí y se lee aquí, sin recargar.
   const prepare = async (page) => {
-    await page.goto("/index.html#deuda-comparar");
+    await page.goto("/index.html#deuda-ruta");
     await page.reload();
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
     await page.reload();
-    await expect(page.locator("#nominaCard")).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("#proxEuroCard")).toBeVisible({ timeout: 15000 });
     await page.evaluate(() => {
       globalThis.accountBalancesFromState = () => ({ total: 4000 });
       globalThis.cuadroMandosReserve = () => 3000;
@@ -5446,6 +5447,8 @@ test.describe("WP-47 · el reparto de la nómina frente a la política y el plan
     await page.locator("#proxEuroRentabilidad").fill("7");
     await page.locator('#proxEuroForm button[type="submit"]').click();
     await expect(page.locator("[data-peu-rung]")).toHaveCount(4);
+    await page.evaluate(() => { location.hash = "plan"; });
+    await expect(page.locator("#nominaCard")).toBeVisible({ timeout: 15000 });
     await page.evaluate(() => renderNominaReparto(FinanceCanonicalPayrollSplit));
     return page.locator("#nominaCard");
   };
@@ -10713,7 +10716,7 @@ test.describe("NIN-08 · dinero parado", () => {
     });
     for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
       await page.setViewportSize(viewport);
-      await page.goto("/index.html#deuda-comparar");
+      await page.goto("/index.html#deuda-ruta");
       await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
       await page.reload();
       await expect(page.locator("#proxEuroCard")).toBeVisible({ timeout: 15000 });
@@ -13820,4 +13823,62 @@ test.describe("TRE-D5a · Deuda › Ofertas como bandeja", () => {
     await expect(page.locator("#dov2AnadirVista")).not.toBeEmpty();
     expect(await fuera("#deudaOfertaAnadir")).toEqual([]);
   });
+});
+
+// TRE-D5b (D-N44, «ok, adelante» del hogar el 26/11/2026): lo que no eran ofertas sale de Ofertas a su sitio, sin perder nada. La escalera del
+// próximo euro (con «Dinero parado») vive en Deuda › Plan y, con la vista nueva, se abre en su panel (la misma tarjeta, traída y devuelta);
+// «Repartir la nómina», en Plan › Mes, y Plan › Mes lleva a la escalera; la capacidad de endeudamiento, en la cabecera de Contratos.
+// Arranque en caliente, contratos FICTICIOS.
+test.describe("TRE-D5b · lo que no eran ofertas, en su sitio", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+    const etiqueta = viewport.width === 390 ? " @safari" : "";
+    test(`la escalera en Deuda › Plan (panel de la vista nueva), la nómina en Plan › Mes, la capacidad en Contratos y Ofertas sin ellas, a ${viewport.width} px${etiqueta}`, async ({ page }) => {
+      test.setTimeout(150000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await arrancarEnCaliente(page, { viewport });
+      await page.evaluate(() => { location.hash = "deuda-ruta"; });
+      await deudaPlanNueva(page);
+      const vista = page.locator("#deudaPlanV2");
+      await expect(vista.locator("#dpv2Fecha")).toBeVisible({ timeout: 20000 });
+      // La tarjeta de siempre vive en Deuda › Plan; con la vista nueva, tras su acceso.
+      await expect(page.locator("#deuda-ruta #proxEuroCard")).toHaveCount(1);
+      await expect(page.locator("#deuda-ruta #proxEuroCard")).toBeHidden();
+      const acceso = vista.locator('[data-dpv2="euro"]');
+      await expect(acceso).toContainText("¿Dónde va el próximo euro?");
+      await acceso.click();
+      const panel = page.locator("#deudaPlanV2Euro");
+      await expect(panel).toBeVisible();
+      await expect(panel.locator("#proxEuroCard")).toHaveCount(1);
+      await panel.locator("#proxEuroImporte").fill("1000");
+      await panel.locator('#proxEuroForm button[type="submit"]').click();
+      await expect(panel.locator("[data-peu-rung]").first()).toBeVisible({ timeout: 15000 });
+      expect(await panel.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+      // Al cerrar, la tarjeta vuelve a su sitio (con lo calculado) y el foco al acceso.
+      await page.keyboard.press("Escape");
+      await expect(panel).toBeHidden();
+      await expect(page.locator("#deuda-ruta #proxEuroCard [data-peu-rung]").first()).toBeAttached();
+      await expect(acceso).toBeFocused();
+      // Plan › Mes: «Repartir la nómina» vive aquí; y la escalera se pide desde aquí y se abre en cuanto Deuda › Plan se pinta.
+      await page.evaluate(() => { location.hash = "plan"; });
+      await expect(page.locator('#plan [data-plan-panel="mes"] #nominaCard')).toBeVisible({ timeout: 15000 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
+      await page.evaluate(() => { pedirDeudaProxEuro(); location.hash = "deuda-ruta"; });
+      await expect(panel).toBeVisible({ timeout: 15000 });
+      await expect(panel.locator("#proxEuroCard")).toHaveCount(1);
+      await panel.locator('[data-dpv2-euro="cerrar"]').last().click();
+      await expect(panel).toBeHidden();
+      // Contratos: la capacidad en la cabecera de la vista nueva; la tarjeta de siempre, en el detalle.
+      await page.evaluate(() => { location.hash = "deuda-contratos"; });
+      await deudaContratosNueva(page);
+      await expect(page.locator("#deudaContratosV2 .dcv2-capacidad")).toHaveText(/^Capacidad: las cuotas son el [\d,]+ % del ingreso previsto \(umbral \d+ %\) · /, { timeout: 20000 });
+      await expect(page.locator("#deudaContratosCapacity .deuda-capacidad-card")).toHaveCount(1);
+      // Ofertas, incluso con todo el detalle, ya no las tiene.
+      await page.evaluate(() => { location.hash = "deuda-comparar"; });
+      await expect(page.locator("#deuda-comparar")).toBeVisible({ timeout: 20000 });
+      for (const sel of ["#proxEuroCard", "#nominaCard", ".deuda-capacidad-card"]) await expect(page.locator(`#deuda-comparar ${sel}`)).toHaveCount(0);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
 });

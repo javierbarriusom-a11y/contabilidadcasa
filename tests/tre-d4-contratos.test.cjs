@@ -96,7 +96,7 @@ test("TRE-D4 · cableado: la vista, la ficha, el modo, los ficheros y lo medido"
   const html = leer("index.html");
   assert.match(html, /<nav class="deuda-flow-nav" id="deudaContratosFlowNav"[^>]*><\/nav>\s*<!--[\s\S]*?-->\s*<div class="dcv2" id="deudaContratosV2" hidden><\/div>/);
   assert.match(html, /<dialog class="dpv2-ajustar dcv2-ficha" id="deudaContratoFicha" aria-labelledby="dcv2FichaTitulo"><\/dialog>/);
-  assert.match(html, /<script defer src="views\/componentes-v2\.js\?v=20261125tred4"><\/script>\s*<script defer src="views\/deuda-contratos-v2\.js\?v=20261125tred4"><\/script>/);
+  assert.match(html, /<script defer src="views\/componentes-v2\.js\?v=20261125tred4"><\/script>\s*<script defer src="views\/deuda-contratos-v2\.js\?v=2026112(?:5tred4|6tred5c)"><\/script>/);
   for (const f of ["tools/build-public-site.mjs", "service-worker.js"]) {
     assert.match(leer(f), /views\/componentes-v2\.js/, f);
     assert.match(leer(f), /views\/deuda-contratos-v2\.js/, f);

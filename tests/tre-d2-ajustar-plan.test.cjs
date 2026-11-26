@@ -101,7 +101,7 @@ test("TRE-D2 · estilos del tema v2, el patrón de Clasificar y lo medido", () =
   assert.match(bloque, /\[data-modo="prevision"\] label:has\(#planOptimoMensual\)/, "el importe solo con «Un importe fijo»");
   assert.match(leer("medidor-utilidad.js"), /id: "deuda-ajustar", nombre: "Ajustar el plan"/);
   assert.match(leer("funciones-en-prueba.js"), /id: "deuda-ajustar", nombre: "Ajustar el plan"/);
-  assert.match(leer("index.html"), /views\/deuda-plan-v2\.js\?v=20261125tre(?:d2|3c)/);
+  assert.match(leer("index.html"), /views\/deuda-plan-v2\.js\?v=2026112(?:5tre(?:d2|3c)|6tred5c)/);
 });
 
 test("TRE-D2 · DUO-01: el panel es una pantalla del censo, con sus efectos y sin excepciones nuevas", () => {

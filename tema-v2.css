@@ -7050,3 +7050,58 @@
   background: var(--e19-accent-soft);
   font-weight: 600;
 }
+
+/* ---------- TRE-D5b · lo que salió de Ofertas (D-N44, 26/11/2026) ----------
+   «¿Dónde va el próximo euro?» en su panel de Deuda › Plan nuevo: la tarjeta de siempre (#proxEuroCard) se trae al panel y pierde su
+   marco y su título (el del panel ya lo dice). «Repartir la nómina», en Plan › Mes, bajo la tabla del mes. La capacidad, en la cabecera de
+   Contratos nuevo (.dcv2-capacidad). */
+:root[data-tema="v2"] dialog.dpv2-euro #proxEuroCard {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+:root[data-tema="v2"] dialog.dpv2-euro #proxEuroTitulo {
+  display: none;
+}
+
+:root[data-tema="v2"] dialog.dpv2-euro .peu-campos {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+:root[data-tema="v2"] #plan #nominaCard {
+  min-width: 0;
+  margin: 0;
+  padding: 22px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-lg);
+  background: var(--e19-surface);
+  box-shadow: var(--e19-shadow-card);
+}
+
+:root[data-tema="v2"] #plan.plan-v2-mes-on #nominaCard {
+  grid-column: 1;
+}
+
+@media (max-width: 640px) {
+  :root[data-tema="v2"] #plan #nominaCard {
+    padding: 14px;
+  }
+}
+
+:root[data-tema="v2"] .dcv2-capacidad {
+  margin: 0;
+  font-size: 14px;
+  color: var(--e19-muted);
+  overflow-wrap: anywhere;
+}
+
+:root[data-tema="v2"] .dcv2-capacidad[data-tono="warn"] strong {
+  color: var(--e19-warning, #9a6700);
+}
+
+:root[data-tema="v2"] .dcv2-capacidad[data-tono="danger"] strong {
+  color: var(--e19-danger, #b42318);
+}

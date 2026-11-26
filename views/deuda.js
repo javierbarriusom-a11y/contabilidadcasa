@@ -246,8 +246,6 @@ function renderDeudaComparar() {
   renderDeudaScreenTabs("deuda-comparar");
   renderDeudaFlowNav("deuda-comparar");
   renderScenarioDependencyNotice("deuda-comparar");
-  const capacityEl = qs("deudaCompararCapacity");
-  if (capacityEl) capacityEl.innerHTML = debtCapacityHtml(debtCapacityStatus());
   const grid = qs("deudaCompararGrid");
   if (!grid) return;
   const reserveField = qs("deudaCompararReserve");
@@ -1419,6 +1417,9 @@ function renderDeudaContratos() {
   globalThis.attachKitEntidad?.(document); // UND-13 (kit-entidad-ui.js): el kit para hablar con cada entidad, desde la fila
   renderDeudaScreenTabs("deuda-contratos");
   renderDeudaFlowNav("deuda-contratos");
+  // TRE-D5b (D-N44): la capacidad de endeudamiento, en la cabecera de Contratos (antes en Deuda › Ofertas).
+  const capacityEl = qs("deudaContratosCapacity");
+  if (capacityEl) capacityEl.innerHTML = debtCapacityHtml(debtCapacityStatus());
   const body = qs("deudaContratosTable");
   if (!body) return;
   const contracts = debtContractSourceRows();

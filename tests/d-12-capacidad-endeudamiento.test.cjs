@@ -176,12 +176,17 @@ test("D-12 · debtCapacityHtml avisa de que no queda margen cuando ya supera el 
 
 // --- Cableado: index.html y las dos pantallas -------------------------------------------------
 
-test("D-12 · index.html declara los dos contenedores", () => {
+// TRE-D5b (D-N44, 26/11/2026): el segundo contenedor pasó de Deuda › Ofertas a la cabecera de Contratos; Ofertas ya no lo tiene.
+test("D-12 · index.html declara los dos contenedores: en Deuda › Plan y en la cabecera de Contratos", () => {
   assert.match(html, /id="deudaRutaCapacity"/);
-  assert.match(html, /id="deudaCompararCapacity"/);
+  assert.match(html, /id="deudaContratosCapacity"/);
+  assert.doesNotMatch(html, /id="deudaCompararCapacity"/);
+  const contratos = html.slice(html.indexOf('id="deuda-contratos"'), html.indexOf('id="deudaContratosTable"'));
+  assert.ok(contratos.includes('id="deudaContratosCapacity"'), "en la cabecera de Contratos, antes de la tabla");
 });
 
-test("D-12 · renderDeudaRuta y renderDeudaComparar pintan el indicador", () => {
+test("D-12 · renderDeudaRuta y renderDeudaContratos pintan el indicador", () => {
   assert.match(extractFunction("renderDeudaRuta"), /deudaRutaCapacity[\s\S]*?debtCapacityHtml\(debtCapacityStatus\(\)\)/);
-  assert.match(extractFunction("renderDeudaComparar"), /deudaCompararCapacity[\s\S]*?debtCapacityHtml\(debtCapacityStatus\(\)\)/);
+  assert.match(extractFunction("renderDeudaContratos"), /deudaContratosCapacity[\s\S]*?debtCapacityHtml\(debtCapacityStatus\(\)\)/);
+  assert.doesNotMatch(extractFunction("renderDeudaComparar"), /debtCapacityHtml/);
 });

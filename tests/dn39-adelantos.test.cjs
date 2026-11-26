@@ -24,8 +24,11 @@ test("D-N39 · la revisión trimestral ya no espera a la semana del 14/12", () =
   assert.doesNotMatch(read("revision-trimestral-ui.js"), /semana del 14\/12\) · /);
 });
 
-test("DUO-D4 · la cascada del siguiente euro no se duplica: el plan óptimo lleva a la escalera de WP-42 (Deuda › Ofertas › Comparar)", () => {
+test("DUO-D4 · la cascada del siguiente euro no se duplica: el plan óptimo lleva a la escalera de WP-42, que desde TRE-D5b (D-N44) está en la misma pantalla", () => {
   const ui = read("camino-deuda-ui.js");
-  assert.match(ui, /data-plan-optimo-escalera>¿Todo lo que sobra a deuda\? <a href="#deuda-comparar">La escalera del próximo euro<\/a>/);
-  assert.ok(read("index.html").includes('id="deuda-comparar"'));
+  assert.match(ui, /data-plan-optimo-escalera>¿Todo lo que sobra a deuda\? <button type="button" class="link-button" data-plan-optimo-ir-escalera>La escalera del próximo euro<\/button>/);
+  assert.match(ui, /data-plan-optimo-ir-escalera[\s\S]*?getElementById\("proxEuroCard"\)[\s\S]*?scrollIntoView/);
+  const html = read("index.html");
+  const ruta = html.slice(html.indexOf('id="deuda-ruta"'), html.indexOf('id="deuda-prestamo"'));
+  assert.ok(ruta.includes('id="proxEuroCard"'), "la escalera vive en Deuda › Plan");
 });

@@ -140,7 +140,7 @@ function planV2SinAsignarHtml({ month, entries, totals, asignado: asignadoGasto,
   // No hay un «Asignar» que reparta solo: lo que sobra se decide en la escalera del próximo euro, que ya existe.
   const pasado = month.key < String(today).slice(0, 7);
   const action = !over && sinAsignar > 0 && !pasado
-    ? `<button type="button" class="e19-btn e19-btn-secondary plan-v2-accion" data-plan-v2-nav="deuda-comparar">Ver adónde va el próximo euro</button>`
+    ? `<button type="button" class="e19-btn e19-btn-secondary plan-v2-accion" data-plan-v2-nav="deuda-ruta" data-plan-v2-euro>Ver adónde va el próximo euro</button>`
     : "";
   return `<article class="hoy-v2-card plan-v2-sin-asignar${over ? " is-negative" : ""}">
     <p class="hoy-v2-kicker">Sin asignar</p>
@@ -383,6 +383,8 @@ function planV2Init() {
     const nav = event.target.closest("[data-plan-v2-nav]");
     if (nav) {
       globalThis.FinanceMedidor?.anotar("plan-v2", "accion");
+      // TRE-D5b (D-N44): la escalera del próximo euro está en Deuda › Plan (antes en Ofertas); se abre en cuanto se pinta.
+      if (nav.hasAttribute("data-plan-v2-euro")) globalThis.pedirDeudaProxEuro?.();
       planV2Nav(nav.dataset.planV2Nav);
       return;
     }
