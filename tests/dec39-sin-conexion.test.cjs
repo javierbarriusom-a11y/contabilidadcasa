@@ -53,7 +53,11 @@ test("DEC-39 · cableado: la línea bajo el chip, sin titular; en el sitio públ
   const html = read("index.html");
   const chip = html.indexOf('id="durabilityStatus"');
   const at = html.indexOf('<p class="conexion-aviso" id="conexionAviso" role="status" hidden></p>');
-  assert.ok(chip > 0 && at > chip && at < html.indexOf('id="sourceNote"'), "justo después del chip de la nube");
+  // R1 (26/11/2026): el chip y la fuente viven en la hoja del punto de estado (con el tema v2, tras el punto); el aviso, justo después
+  // de la hoja, a la vista. En la fila del clásico la fuente se sigue pintando detrás del aviso (order: 1), como antes.
+  const finHoja = html.indexOf("</div>", html.indexOf('id="sourceNote"'));
+  assert.ok(chip > 0 && chip > html.indexOf('id="estadoHoja"') && at > finHoja && html.slice(finHoja, at).replace(/<\/div>|<!--[\s\S]*?-->|\s/g, "") === "", "justo después del chip de la nube (y de la hoja que lo guarda)");
+  assert.match(read("styles.css"), /\.topbar-status \.source-note \{\s*order: 1;/);
   const script = html.indexOf('<script defer src="sin-conexion-ui.js?v=20261120dec39"></script>');
   assert.ok(script > 0 && script < html.indexOf('<script defer src="app.js'), "antes de app.js");
   assert.ok(read("service-worker.js").includes('"./sin-conexion-ui.js"'));

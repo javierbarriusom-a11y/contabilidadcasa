@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-26-cabecera-ligera",
+      fecha: "2026-11-26",
+      texto: "Arriba, menos ruido: el estado es un punto que se abre al tocarlo y «Guía», un enlace. Sin cifras repetidas en Cierre, Contratos y Ofertas.",
+      href: "#cierre",
+    },
+    {
       id: "2026-11-26-ofertas-solo-ofertas",
       fecha: "2026-11-26",
       texto: "Ofertas, solo ofertas: «¿Dónde va el próximo euro?» pasa a Deuda › Plan, «Repartir la nómina» a Plan › Mes y la capacidad a Contratos.",

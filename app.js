@@ -1044,6 +1044,7 @@ function openE17Dialog(kind) {
     if (!dialog) return;
     qs("e17FlowGuideTitle").textContent = topic[0];
     qs("e17FlowGuideBody").textContent = topic[1];
+    globalThis.FinanceMarcoV2?.rellenarGuia(activeViewId, E17Experience?.guidanceFor(activeViewId, null), state?.balanceDate || baseData?.metadata?.forecastStart); // R1
     dialog.showModal();
     return;
   }
@@ -3818,7 +3819,8 @@ function updateSyncUi(message, tone = "local") {
       : "Sin guardar todavía en esta sesión";
   }
   durability.title = qs("sourceNote")?.title || qs("sourceNote")?.textContent || "";
-  globalThis.FinanceSinConexion?.pintar(); // DEC-39: la frase de «sin conexión» cambia si hay sesión en la nube
+  globalThis.FinanceSinConexion?.pintar(); // DEC-39
+  globalThis.FinanceMarcoV2?.pintarEstadoPunto(tone); // R1: el punto de estado, del mismo tono que el chip: la frase de «sin conexión» cambia si hay sesión en la nube
 }
 
 function durableOutboxId(userId = remoteUser?.id) {

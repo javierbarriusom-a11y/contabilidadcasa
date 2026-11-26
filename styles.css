@@ -1030,6 +1030,23 @@ h2 {
   gap: 8px 10px;
 }
 
+/* R1: el enlace «Guía» y el punto de estado son del tema v2 (tema-v2.css). En el clásico no se ven y la hoja que agrupa
+   las tres píldoras no pinta caja propia: la fila es la de siempre. */
+.topbar-guia,
+.estado-punto {
+  display: none;
+}
+
+.estado-hoja,
+.topbar-acciones {
+  display: contents;
+}
+
+/* R1: la fuente vive en la hoja del punto, delante de los avisos en el HTML; en la fila del clásico se sigue pintando la última. */
+.topbar-status .source-note {
+  order: 1;
+}
+
 /* UX2: mismo lenguaje visual de píldora que .durability-status, justo al lado en el cromado. */
 .data-nature-badge {
   display: inline-flex;
