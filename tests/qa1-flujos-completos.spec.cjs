@@ -13491,23 +13491,29 @@ test.describe("TRE-D1 · Deuda › Plan nuevo", () => {
 // en una lista y cada «Ver…» a lo de siempre (todas las piezas del inventario a dos toques como mucho). Arranque en caliente, contratos FICTICIOS.
 test.describe("TRE-D3c · Deuda › Comparar con otras formas", () => {
   const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  // 26/11/2026: partida en dos pruebas (las formas; cada «Ver…» a su sitio). Junta, a 390 px en el WebKit del CI pasaba de los 150 s
+  // aun llegando al final (#691: el resultado ya estaba en pantalla). Las mismas comprobaciones, ninguna menos; cada parte, su tiempo.
+  async function abrirComparar(page, viewport) {
+    await arrancarEnCaliente(page, { viewport });
+    await page.evaluate(() => { location.hash = "deuda-ruta"; });
+    await deudaPlanNueva(page);
+    const vista = page.locator("#deudaPlanV2");
+    await expect(vista.locator("#dpv2Fecha")).toBeVisible({ timeout: 20000 });
+    const panel = page.locator("#deudaPlanV2Comparar");
+    const abrir = async () => {
+      await vista.locator('[data-dpv2="comparar"]').click();
+      await expect(panel.locator('[data-dpv2-cmp-fila="plan"]')).toBeVisible({ timeout: 15000 });
+    };
+    await abrir();
+    return { vista, panel, abrir };
+  }
   for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
     const etiqueta = viewport.width === 390 ? " @safari" : "";
-    test(`las formas con su fecha y su coste, y cada «Ver…» a su sitio de siempre, a ${viewport.width} px${etiqueta}`, async ({ page }) => {
+    test(`las formas con su fecha y su coste, sin campos, y «Guardar como escenario» sin aplicar, a ${viewport.width} px${etiqueta}`, async ({ page }) => {
       test.setTimeout(150000);
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
-      await arrancarEnCaliente(page, { viewport });
-      await page.evaluate(() => { location.hash = "deuda-ruta"; });
-      await deudaPlanNueva(page);
-      const vista = page.locator("#deudaPlanV2");
-      await expect(vista.locator("#dpv2Fecha")).toBeVisible({ timeout: 20000 });
-      const panel = page.locator("#deudaPlanV2Comparar");
-      const abrir = async () => {
-        await vista.locator('[data-dpv2="comparar"]').click();
-        await expect(panel.locator('[data-dpv2-cmp-fila="plan"]')).toBeVisible({ timeout: 15000 });
-      };
-      await abrir();
+      const { vista, panel } = await abrirComparar(page, viewport);
       // La fila del plan da la misma fecha que el héroe (sin plan guardado, la fecha única es la del plan).
       const heroe = (await vista.locator("#dpv2Fecha").textContent()).trim().toLowerCase();
       await expect(panel.locator('[data-dpv2-cmp-fila="plan"] .dpv2-cmp-dato strong').first()).toHaveText(new RegExp(`^${heroe}$`, "i"));
@@ -13527,6 +13533,14 @@ test.describe("TRE-D3c · Deuda › Comparar con otras formas", () => {
       await panel.locator('[data-dpv2-cmp-fila="caja-avalancha"] [data-dpv2-cmp="escenario"]').click();
       await expect(panel.locator(".dpv2-cmp-estado")).toContainText("No se ha aplicado nada");
       expect(await page.evaluate(() => loadEscenarioMotorSaved().length)).toBe(antes + 1);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+
+    test(`cada «Ver…» a su sitio de siempre, Escape devuelve el foco y «Probar un préstamo» lleva a Préstamo, a ${viewport.width} px${etiqueta}`, async ({ page }) => {
+      test.setTimeout(150000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      const { vista, panel, abrir } = await abrirComparar(page, viewport);
       // «Ver el camino»: lo de siempre, en su sitio (un toque desde aquí).
       await panel.locator('[data-dpv2-cmp="camino"]').click();
       await expect(panel).toBeHidden();
@@ -13555,6 +13569,7 @@ test.describe("TRE-D3c · Deuda › Comparar con otras formas", () => {
     });
   }
 });
+
 
 // TRE-D2 · «Ajustar el plan» (decimotercera §2.3; auditoría de diseño §5.2, PR 2): panel derecho en el escritorio y hoja inferior en el
 // móvil, con los controles del plan óptimo de siempre (los mismos nodos) y una vista previa que se mueve con ellos; al cerrar, todo
