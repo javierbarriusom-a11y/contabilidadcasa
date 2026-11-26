@@ -991,3 +991,9 @@ function attachPlanOptimo(doc) {
   doc.addEventListener("click", planOptimoOnClick);
   return true;
 }
+
+// Los oyentes, desde la carga y no desde el primer pintado de Deuda › Plan: hasta ahora solo se enganchaban en `renderPlanOptimo`, así
+// que lo que se escribía en «Al mes de más» o «Pago inicial» antes de que la pantalla terminara de pintarse por primera vez (al entrar
+// desde otra pantalla, en un teléfono lento) se perdía: el campo lo enseñaba y el plan seguía con la cifra de partida. En Safari pasaba
+// siempre en la prueba DUO-D3 (CI de #690). Con los oyentes puestos, el importe se guarda y el plan lo usa al pintarse.
+if (typeof document !== "undefined" && typeof document.addEventListener === "function") attachPlanOptimo(document);
