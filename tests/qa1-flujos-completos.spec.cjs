@@ -13928,8 +13928,9 @@ test.describe("R1 · el marco común, primera parte", () => {
       await expect(punto).toHaveAttribute("aria-expanded", "false");
       await expect(page.locator("#durabilityStatus")).toBeHidden();
       await expect(punto).toBeFocused();
+      // Tocar fuera: el antetítulo de la franja (a 390 px la hoja abierta tapa el título de la pantalla, como debe).
       await punto.click();
-      await page.locator("#cierre h2:visible").first().click();
+      await page.locator("#viewEyebrow").click();
       await expect(punto).toHaveAttribute("aria-expanded", "false");
       // «Guía» abre la guía con lo que decía el recuadro.
       await page.locator("#topbarGuia").click();
