@@ -207,6 +207,22 @@ anterior en rojo**, salvo lo que espere un dato del hogar.
 | 3 | **CAT-08:** Hoy en la primera pantalla del iPhone | La pantalla más vista; es pequeño |
 | 4 | **CAT-01:** inventario de capacidades | Evita volver a proponer lo que ya existe |
 | 5 | Arreglos de lo que salga del cierre de noviembre | Lo que mande el uso real |
+| 6 | **CIE-01 · Cerrar agosto y septiembre** (petición del hogar, 26/11: «cerrar el mes de agosto, que sigue abierto») | Ver abajo |
+
+**Hecho fuera de plan el 26/11, por urgencia (el hogar decide al día siguiente):** «Comparar con otra oferta» en Deuda › Préstamo para
+saldar (#692): dos ofertas sobre las mismas deudas, con seguros o vinculaciones, el impacto de cada una frente a no pedir nada y quién
+gana cada criterio.
+
+**CIE-01 · Cerrar agosto y septiembre (P0 · M).** Hoy no se puede hacer bien. Cierre solo deja elegir el mes en curso o el anterior
+(`closeTarget`, `canonical-month-close-balances.js`), y al firmar guarda **los saldos de hoy** como saldos de cierre. Lo que hace falta:
+- **Elegir mes:** Cierre deja elegir cualquier mes pasado sin firmar («Meses sin firmar: agosto, septiembre»), el más antiguo primero.
+- **Saldos del mes:** el saldo de cierre de un mes pasado es el último saldo del extracto de ese mes por cuenta (el de su último
+  movimiento con saldo), no el de hoy. Sin extracto que llegue a fin de mes, se dice y se pide el saldo a mano.
+- **Orden:** agosto antes que septiembre. Firmar un mes anterior a otro ya firmado (octubre) no lo reabre; el cuadre «saldo anterior +
+  movimientos = saldo de cierre» se comprueba con el siguiente.
+- **Carta y backtest** de ese mes, como cualquier cierre.
+- **Pruebas:** e2e de un mes atrasado con saldos del extracto, y que octubre siga firmado.
+- **Del hogar después:** firmar agosto y septiembre (H11 decía «sin firmar»; el 26/11 el hogar pide cerrarlos).
 
 - **Del hogar:**
   - **H-06 / H-11**, cierre de noviembre con saldos del día (1-3/12);
@@ -326,6 +342,7 @@ anterior en rojo**, salvo lo que espere un dato del hogar.
 | Tarea | Qué | Fecha |
 |---|---|---|
 | H-37 | Clasificar lo pendiente de agosto a noviembre | Antes del 1/12 |
+| CIE-01 (hogar) | Firmar agosto y septiembre cuando Cierre lo permita | F0 |
 | H-06 / H-11 | Cerrar noviembre con saldos del día | 1-3/12 |
 | H-13 | Proponer 5 personas para WP-54 | 15/12 |
 | H-12 | Política de inversión y plan B | 18/12 |
