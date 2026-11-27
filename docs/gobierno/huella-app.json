@@ -8,6 +8,10 @@
     {
       "version": "20261127cat17",
       "sha256": "eadecc69d64bdfc67f1da458461ea78ccfef77cd2f19ec18206cfb4b7d749cd7"
+    },
+    {
+      "version": "20261127cat11",
+      "sha256": "4a3f0aac166666af00b690e8d2560dcfee9b8922dbc59f9a3b05342f7f8b6640"
     }
   ]
 }

@@ -113,6 +113,48 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 27 de noviembre de 2026 (558): CAT-11, preparar el plan de 2027 con lo real (D-N46, opción C con la ventana de la opción 3)
+
+- **El hogar** (27/11): «D-N46, C y aplicar ya como previsión»; tras ver que la historia era corta, «opción 3»; permiso para la copia del motor en una rama sin PR.
+- **Qué hace.** Una línea en Plan › Mes, en los dos temas (decisión 10): «¿Preparamos el plan de 2027 con lo real?». Abre una hoja, inferior en el móvil y lateral en el escritorio, con:
+  - la conclusión: gastos de 2027 frente a lo previsto hoy;
+  - los meses de historia que hay («La base son 4 meses (jul–oct)… En marzo se repite»);
+  - «Lo que cambia», con tres opciones por partida: lo real, el último trimestre si se aparta más de un 20 %, o dejarla;
+  - «Se queda como está», plegado y con el porqué de cada partida;
+  - «Qué ocurrirá» antes de «Aplicar».
+  - Aplicar escribe en el plan guardado (`cuadroMandosStageCell` + `saveVisualChanges`) y Previsión lo usa al momento. Deshacer, entero, desde la misma línea.
+  - Con cambios pendientes en el borrador del plan no aplica ni deshace, para no mezclarlos. No toca 2026, 2028 ni los meses ya cerrados (pensando en H-38).
+- **Motor puro** `canonical-plan-2027.js`, con 19 pruebas. Reutiliza la evidencia de base cero (WP-34), no la copia:
+  - mediana de los meses con real;
+  - solo aplana lo mensual: el seguro anual y las pagas extra conservan su forma, y un real suelto no se multiplica por 12;
+  - no toca lo bloqueado (contratos de deuda, fórmulas, tarjetas);
+  - no arrastra un plan que ya recoge una subida reciente;
+  - no vuelve a añadir lo que salió del plan;
+  - ignora diferencias triviales;
+  - el aviso del trimestre solo con 6 meses o más.
+- **Inflación:** las partidas, a precios de hoy. La previsión ya la compone desde el mes en curso (`simulateHistoricalReference`, `modelStartDate`) y sumarla en el plan la contaría dos veces; la hoja dice cuánto añadirá. Hubo una corrección por el camino: un primer cálculo contaba desde julio de 2026 (`baseModelStartDate`), que solo usa la proyección de los saldos de partida.
+- **Se aparta de TRE-12:** una sola hoja y no tres pasos con «Lado a lado»; sin inflación por categoría; «los recibos que suben» esperan a CAT-03.
+- **Medido en la app:** la ventana real es de julio a octubre de 2026 (4 meses; en diciembre, 5), porque solo hay reales en los meses del plan. De ahí la opción 3 y H-38.
+- **Ficheros:**
+  - `canonical-plan-2027.js`, `plan-2027-ui.js` y `plan-2027.css` (propio, solo tokens; no toca `tema-v2.css`);
+  - una línea en `renderPlanMes` (`app.js`, que pasa el motor: el consumidor de ARQ-3);
+  - el contenedor y el diálogo en `index.html`;
+  - Service Worker y lista del build.
+- **Guardias propias aplicadas:**
+  - `app.js` a `?v=20261127cat11`, con su huella anotada por `tools/huella-app.mjs` (CAT-17);
+  - la línea de Novedades, con su capacidad «plan-anual» en `capacidades.json` (CAT-01);
+  - `novedades.js` a `20261127cat11`, en las cinco listas fijadas;
+  - ARQ-3 a 138 motores, con su consumidor;
+  - la clave del deshacer (`plan-2027-aplicado`) excluida de la copia con su motivo, porque los importes aplicados ya van en ella.
+- **Visto en capturas** (390 y 1440, claro y oscuro, v2 y clásico). Corregidos: «Cambia 1 partida», el aviso que repetía la mediana, las opciones en negrita con fondo gris del `fieldset` global, el triángulo del plegado, y el contraste del enlace en el clásico oscuro (4,28:1 → tinta).
+- **Validación** (sobre `claude/zen-franklin-e1r1l2` con `main` `3fcdef13`):
+  - `npm test` **7.068/7.068**;
+  - `lint` y `typecheck` en verde;
+  - batería Chromium e2e + a11y + perf-screens **617/617** (37,5 min), con la e2e nueva (1280 y 390 `@safari`: aplicar sube la previsión de febrero de 2027 y deshacer la devuelve) y axe 8/8 (dos temas, claro y oscuro, dos anchos);
+  - `test:mobile-overflow` **415 visitas sin nada cortado**;
+  - WebKit, solo en el CI.
+- **Operativo:** #698 fusionado a las ~17:35 UTC (squash `03afd3a`). La rama `claude/zen-franklin-e1r1l2` se reinició desde ese `main` y lleva solo los cambios de CAT-11 (aplicados limpios). Sobre esa base: `npm test` **7.068/7.068**, con lint y typecheck en verde. La batería y mobile-overflow de arriba se pasaron con el mismo código sobre `3fcdef13`; lo que cambió entre medias en `main` son documentos y las guardias de CAT-01 y CAT-17, que esa misma pasada de `npm test` ya cubre. La copia sigue en `claude/zen-franklin-plan2027-copia`. Orden: CAT-11 → R2 (557).
+
 ## Cierre de sesión — 27 de noviembre de 2026 (556): coordinación de sesiones con #694 en rojo; CON-05 a CON-08 y el plan del sistema de diseño (D-N56); CAT-01, el inventario de capacidades; CAT-17, la versión de `app.js`
 
 - **El hogar** (27/11, conversación nueva): comprobar si #694 está fusionado y desplegado, coordinar las ramas de las otras sesiones y proponer cuatro funciones grandes, además de un plan para aplicar el sistema de diseño del PDF en todas las pantallas, conservando CON-01 a CON-04 y lo pendiente.
