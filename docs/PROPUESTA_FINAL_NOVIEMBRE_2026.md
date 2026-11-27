@@ -19,7 +19,7 @@ descartada con su motivo.
 
 **Reglas de lectura:**
 - **Lo decidido por el hogar** se marca como «decidido»; **lo propuesto por Claude**, como «propuesta» o «recomendación».
-- **Las decisiones nuevas** siguen la numeración D-N (siguiente libre tras la decimocuarta: **D-N54**; tras el §10 del 27/11, **D-N56**).
+- **Las decisiones nuevas** siguen la numeración D-N (siguiente libre tras la decimocuarta: **D-N54**; tras el §10 del 27/11, D-N56; tras D-N56 (CON-05 a CON-08 y DS), **D-N57**).
 - **El repositorio es público:** ninguna cifra real del hogar aquí.
 
 ---
@@ -327,6 +327,7 @@ gana cada criterio.
 | H10 | Excepción XGO-01 de Cierre | — | 4/12 |
 | **D-N54** (nueva) | Adoptar este documento: la 1.0 el 1/3/2027, los criterios de §2 y la congelación del 14/1 | **Sí** | 4/12 |
 | **D-N55** (nueva, 27/11) | CON-01 (mapa de meses y extractos) en F0 y CON-04 (decisiones en la app) en F1; CON-02 y CON-03 al catálogo (§10) | **Sí a CON-01 y CON-04** | 4/12 |
+| **D-N56** (nueva, 27/11) | CON-05 dentro de CAT-03; CON-06 (cola de avisos) y CON-07 (arranque con tres extractos, antes de WP-54) en F2; CON-08 al catálogo con FX-25; DS-0 y DS-1 (tokens de escala y guardia de diseño en el CI) en F1; «cuerpo compacto» de 13,5 para tablas; 4 propuestas como máximo por conversación (`docs/PROPUESTA_CON05_CON08_Y_PLAN_DISENO_2026-11-27.md`) | **Sí a todo; (b) en la tipografía** | 4/12 |
 | D-N45 | Versiones anteriores fuera del menú | Sí | 14/12 |
 | D-N51 | La tira de cinco cifras fuera de todo el tema v2 | Sí | 14/12 |
 | D-N52 | Tres puertas de datos fuera del menú con el «+» | Sí | 14/12 |
@@ -501,3 +502,6 @@ código (regla 4). Son propuesta: no entran en ninguna fase hasta que el hogar l
 
 **Decisión que piden:** **D-N55**: adoptar CON-01 en F0 (detrás de CIE-01) y CON-04 en F1; CON-02 y CON-03 al catálogo, con su
 fase propuesta. Recomendación: **sí a CON-01 y CON-04**. Son las dos que mueven la 1.0: firmar los meses que faltan y decidir antes.
+
+**Seguimiento (27/11, otra conversación):** CON-05 a CON-08 y el plan para aplicar el sistema de diseño (DS-0 a DS-5), con lo medido en
+`tema-v2.css` (25 tamaños de letra frente a 6 del sistema), en `docs/PROPUESTA_CON05_CON08_Y_PLAN_DISENO_2026-11-27.md`. Piden **D-N56**.
