@@ -4862,6 +4862,9 @@ test.describe("WP-38 · aviso del plan B en Cierre", () => {
   const openCierre = async (page) => {
     await page.goto("/index.html#cierre");
     await expect(page.locator("#cierreVersions")).toBeAttached({ timeout: 15000 });
+    // #cierreVersions está en index.html desde el principio: no dice que views/cierre.js (renderCierre) se haya cargado. Con la máquina
+    // cargada, la siembra llamaba a renderCierre antes (batería de R2, 27/11/2026).
+    await page.waitForFunction(() => typeof renderCierre === "function", null, { timeout: 15000 });
   };
   const aviso = (page) => page.locator("#planBAviso");
 
@@ -5080,6 +5083,9 @@ test.describe("WP-41 · aviso de deuda en la sombra en Cierre", () => {
   const abrirCierre = async (page) => {
     await page.goto("/index.html#cierre");
     await expect(page.locator("#cierreVersions")).toBeAttached({ timeout: 15000 });
+    // #cierreVersions está en index.html desde el principio: no dice que views/cierre.js (renderCierre) se haya cargado. Con la máquina
+    // cargada, la siembra llamaba a renderCierre antes (batería de R2, 27/11/2026).
+    await page.waitForFunction(() => typeof renderCierre === "function", null, { timeout: 15000 });
   };
 
   test("sin extracto no sale nada; con compromisos los cuenta sin darlos de alta; con extracto viejo avisa de que no puede mirar; el botón lleva a Contratos", async ({ page }) => {
@@ -5244,6 +5250,9 @@ test.describe("WP-43 · aviso del puente en Cierre", () => {
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
     await page.reload();
     await expect(page.locator("#cierreVersions")).toBeAttached({ timeout: 15000 });
+    // #cierreVersions está en index.html desde el principio: no dice que views/cierre.js (renderCierre) se haya cargado. Con la máquina
+    // cargada, la siembra llamaba a renderCierre antes (batería de R2, 27/11/2026).
+    await page.waitForFunction(() => typeof renderCierre === "function", null, { timeout: 15000 });
   };
 
   test("sin puente no sale nada; un cambio pequeño tampoco; un cambio relevante dice la dirección y la frase; el botón lleva a Previsión; sin diálogos ni desbordes", async ({ page }) => {
@@ -5309,6 +5318,9 @@ test.describe("WP-44 · aviso de calma en Cierre", () => {
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
     await page.reload();
     await expect(page.locator("#cierreVersions")).toBeAttached({ timeout: 15000 });
+    // #cierreVersions está en index.html desde el principio: no dice que views/cierre.js (renderCierre) se haya cargado. Con la máquina
+    // cargada, la siembra llamaba a renderCierre antes (batería de R2, 27/11/2026).
+    await page.waitForFunction(() => typeof renderCierre === "function", null, { timeout: 15000 });
   };
 
   test("sin serie no sale nada; una caída por debajo del primer nivel tampoco; una de nivel 2 dice la cifra y la falta de política; el botón lleva a la tarjeta; sin diálogos ni desbordes", async ({ page }) => {
@@ -13372,7 +13384,8 @@ test.describe("TRE-08 · El menú lateral no estira el escritorio", () => {
     const medir = () => page.evaluate(() => ({
       menu: document.getElementById("primarySidebar").getBoundingClientRect().height,
       doc: document.documentElement.scrollHeight,
-      main: document.querySelector("main").getBoundingClientRect().height,
+      // La pantalla entera: la franja de arriba y <main> (R2, 27/11/2026: con el menú de 900 px, la página la mide ella y no el menú).
+      main: document.querySelector("main").parentElement.getBoundingClientRect().height,
     }));
     // Desde una pantalla que solo está en el grupo, y vuelta a Hoy.
     const soloAvanzada = await page.evaluate(() => {
@@ -13383,7 +13396,10 @@ test.describe("TRE-08 · El menú lateral no estira el escritorio", () => {
         .find((href) => !fuera.has(href) && !document.querySelector(`${href}[data-nav-family]`)).slice(1);
     });
     await page.evaluate((h) => { location.hash = h; }, soloAvanzada);
-    await expect(avanzadas).toHaveJSProperty("open", true);
+    // R2 (D-N50, 27/11/2026): con el tema v2 el destino marcado y su «Más» ya dicen dónde se está, y el grupo («Más pantallas») no se
+    // abre solo. En el clásico sí: lo comprueba «R2 · Cinco destinos › en el clásico».
+    await expect(page.locator(`#navDestinosV2 .nav-v2-destino.es-activo`)).toHaveCount(1);
+    await expect(avanzadas).toHaveJSProperty("open", false);
     await page.evaluate(() => { location.hash = "home"; });
     await expect(page.locator("#hoyV2")).toBeVisible();
     await expect(avanzadas).toHaveJSProperty("open", false);
@@ -13398,7 +13414,7 @@ test.describe("TRE-08 · El menú lateral no estira el escritorio", () => {
     await avanzadas.locator("summary").click();
     await expect(avanzadas).toHaveJSProperty("open", true);
     await page.evaluate(() => { location.hash = "home"; });
-    await expect(page.locator("#hoyV2")).toBeVisible();
+    await expect(page.locator("#home")).toBeVisible();
     await expect(avanzadas).toHaveJSProperty("open", true);
   });
 });
@@ -14243,6 +14259,198 @@ test.describe("D-N57 · asignación flexible y nueva partida desde la ficha", ()
       expect(filas.length).toBeGreaterThanOrEqual(1);
       expect(filas.every((valor) => valor === 0), "sale con previsto 0 €").toBe(true);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
+// R2 (auditoría de diseño §4, D-N50; decimocuarta auditoría, CAT-06; 27/11/2026): con el tema v2, el menú son cinco destinos con su
+// pregunta y el buscador arriba, y en el móvil una barra inferior que se esconde al bajar. Hecho cuando: el menú cerrado cabe en 900 px
+// de alto en el escritorio y la barra está en el móvil. No se retira ninguna pantalla: el menú de siempre sigue, plegado en «Más pantallas».
+test.describe("R2 · Cinco destinos", () => {
+  test("el menú: cinco destinos, el buscador arriba, cada destino con su «Más» y todo en 900 px de alto, a 1440 px", async ({ page }) => {
+    test.setTimeout(120000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/index.html#home");
+    const menu = page.locator("#navDestinosV2");
+    await expect(menu.locator(".nav-v2-destino")).toHaveCount(5);
+    await expect(menu.locator(".nav-v2-destino strong")).toHaveText(["Hoy", "Movimientos", "Plan", "Patrimonio", "Decidir"]);
+    await expect(menu.locator('.nav-v2-destino[data-destino="plan"] small')).toHaveText("¿Qué viene?");
+    await expect(menu.locator('a[href="#home"]')).toHaveAttribute("aria-current", "page");
+    // Las entradas de siempre no se ven (cada una está en un destino, en su «Más» o en el pie), pero siguen en el DOM.
+    await expect(page.locator('.side-nav a.nav-primary-link[href="#cierre"]')).toBeHidden();
+    await expect(page.locator('.side-nav a.nav-primary-link[href="#cierre"]')).toHaveCount(1);
+    await expect(page.locator("#advancedNav > summary")).toContainText("Más pantallas");
+    // En cada destino, con su «Más» abierto, el menú cabe en la ventana; y una pantalla que solo está en «Más pantallas» no lo abre.
+    for (const [ruta, destino, actual] of [["home", "hoy", null], ["cierre", "movimientos", "Cierre del mes"], ["presupuesto-mes", "plan", "Presupuesto del mes"], ["deuda-contratos", "patrimonio", "Contratos de deuda"], ["escenario-guardados", "decidir", "Escenarios guardados"], ["mapa-calor", "plan", null]]) {
+      await page.evaluate((h) => { location.hash = h; }, ruta);
+      await expect(menu.locator(`.nav-v2-destino[data-destino="${destino}"]`)).toHaveClass(/es-activo/);
+      if (actual) await expect(menu.locator('.nav-v2-mas a[aria-current="page"]')).toHaveText(actual);
+      await expect(page.locator("#advancedNav")).toHaveJSProperty("open", false);
+      const alto = await page.locator("#primarySidebar").evaluate((el) => el.scrollHeight);
+      expect(alto, `el menú en #${ruta}`).toBeLessThanOrEqual(900);
+    }
+    // Un toque en «Más» lleva a la pantalla; el pie lleva a Ajustes con el guardado; el buscador abre el de siempre.
+    await menu.locator('.nav-v2-mas a[href="#estado-semana"]').click();
+    await expect(page.locator("#estado-semana")).toBeVisible();
+    await expect(menu.locator('.nav-v2-mas a[href="#estado-semana"]')).toHaveAttribute("aria-current", "page");
+    await expect(page.locator('#navPieV2 a[href="#ajustes"] small')).toContainText(/Local|Sincronizado|Revisar/);
+    await page.locator("#navPieV2 a[href='#ajustes']").click();
+    await expect(page.locator("#ajustes")).toBeVisible();
+    await expect(page.locator('#navPieV2 a[href="#ajustes"]')).toHaveAttribute("aria-current", "page");
+    await expect(menu.locator("[aria-current]")).toHaveCount(0);
+    await menu.locator(".nav-v2-buscar").click();
+    await expect(page.locator("#e17LauncherDialog")).toBeVisible();
+    await page.keyboard.press("Escape");
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("la barra inferior: cinco destinos, lleva a su sitio, se esconde al bajar y al escribir y no tapa el final, a 390 px @safari", async ({ page }) => {
+    test.setTimeout(90000);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#home");
+    const barra = page.locator("#barraDestinosV2");
+    await expect(barra).toBeVisible();
+    await expect(barra.locator("a")).toHaveText(["Hoy", "Movimientos", "Plan", "Patrimonio", "Decidir"]);
+    await expect(barra.locator('a[href="#home"]')).toHaveAttribute("aria-current", "page");
+    const caja = await barra.boundingBox();
+    expect(caja.y + caja.height, "pegada abajo").toBeGreaterThan(838);
+    expect(caja.height, "cabe el dedo").toBeGreaterThanOrEqual(56);
+    // A su sitio, marcándolo.
+    await barra.locator('a[href="#plan"]').click();
+    await expect(page.locator("#plan")).toBeVisible();
+    await expect(barra.locator('a[href="#plan"]')).toHaveAttribute("aria-current", "page");
+    await barra.locator('a[href="#deuda-ruta"]').click();
+    await expect(page.locator("#deuda-ruta")).toBeVisible();
+    await expect(barra.locator('a[data-destino="patrimonio"]')).toHaveAttribute("aria-current", "page");
+    // Se esconde cuando el hogar baja (con el dedo: el gesto llega antes que el desplazamiento) y vuelve al subir; lo que la página se
+    // desplaza sola al pintarse no la esconde.
+    await page.waitForTimeout(900); // lo que dura la calma tras cambiar de pantalla
+    const desplazar = (dy, gesto = true) => page.evaluate(([y, g]) => {
+      if (g) window.dispatchEvent(new Event("touchmove"));
+      window.scrollBy(0, y);
+    }, [dy, gesto]);
+    await desplazar(400, false);
+    await page.waitForTimeout(300);
+    await expect(barra).not.toHaveAttribute("data-oculta", "");
+    await desplazar(400);
+    await expect(barra).toHaveAttribute("data-oculta", "");
+    await desplazar(-200);
+    await expect(barra).not.toHaveAttribute("data-oculta", "");
+    // Al final de la pantalla, lo último queda por encima de la barra.
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect(barra).not.toHaveAttribute("data-oculta", "");
+    const libre = await page.evaluate(() => parseFloat(getComputedStyle(document.body).paddingBottom));
+    expect(libre, "el cuerpo deja libre el alto de la barra").toBeGreaterThanOrEqual((await barra.boundingBox()).height);
+    // Mientras se escribe, no está.
+    await page.goto("/index.html#plan");
+    await expect(barra).toBeVisible();
+    const campo = page.locator("#plan input:visible").first();
+    await campo.focus();
+    await expect(barra).toHaveAttribute("data-escribiendo", "");
+    await campo.blur();
+    await expect(barra).not.toHaveAttribute("data-escribiendo", "");
+    // Con el menú abierto, tampoco; el menú lleva los mismos destinos.
+    await page.locator("#mobileNavToggle").click();
+    await expect(page.locator("#navDestinosV2 .nav-v2-destino")).toHaveCount(5);
+    expect(await barra.evaluate((el) => getComputedStyle(el).transform)).not.toBe("none");
+    await page.locator("#mobileNavToggle").click();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
+
+  test("en el clásico, el menú de siempre y sin barra, a 390 y 1440 px", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/index.html?tema=clasico#home");
+    await expect(page.locator("#navDestinosV2")).toBeHidden();
+    await expect(page.locator('.side-nav a.nav-primary-link[href="#cierre"]')).toBeVisible();
+    await expect(page.locator("#advancedNav > summary")).toContainText("Herramientas avanzadas");
+    // TRE-08 sigue en el clásico: una pantalla que solo está en el grupo lo abre, y al volver a una principal se cierra.
+    await page.evaluate(() => { location.hash = "mapa-calor"; });
+    await expect(page.locator("#advancedNav")).toHaveJSProperty("open", true);
+    await page.evaluate(() => { location.hash = "home"; });
+    await expect(page.locator("#advancedNav")).toHaveJSProperty("open", false);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.locator("#barraDestinosV2")).toBeHidden();
+  });
+});
+
+// CAT-11 · Plan 2027 con lo real (D-N46, 27/11/2026, opción C con la ventana de la opción 3). Con el reloj el 27/11/2026, la demo
+// (plan desde julio de 2026) da 4 meses de historia: julio a octubre. Se siembran los reales de «Vivienda» (previsto 750 €): mediana
+// 865 €, un 15 % más, «poca historia» y sin comparar con el trimestre. «Aplicar» escribe los 12 meses de 2027 en el plan guardado,
+// la previsión de 2027 lo usa al momento y «Deshacer» lo deja como estaba. Con algo pendiente en el borrador, no se aplica.
+test.describe("CAT-11 · Preparar el plan de 2027 con lo real", () => {
+  for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+    test(`la línea de Plan › Mes, la hoja con «Qué ocurrirá», aplicar a la previsión y deshacer, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(120000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 27, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      const entrada = page.locator("#plan2027Entrada");
+      await expect(entrada).toBeVisible({ timeout: 20000 });
+      await expect(entrada).toContainText("¿Preparamos el plan de 2027 con lo real?");
+      await page.evaluate(() => {
+        [860, 880, 850, 870].forEach((value, index) => { expenseActuals[`expense-home|2026-${String(7 + index).padStart(2, "0")}`] = value; });
+        applicationRenderRevision += 1;
+      });
+      const previsto = (mes) => page.evaluate((key) => plannedValueForRow(rowForSeriesKey("expense|expense-home"), { key }), mes);
+      // La previsión de febrero de 2027 (el mismo cálculo que pinta Plan › Previsión): gasto de ese mes.
+      const prevision = () => page.evaluate(() => {
+        const i = forecastMonths().findIndex((m) => m.key === "2027-02");
+        return planningBreakdownForForecastMonth(i, addMonths(modelStartDate(), i)).coreSpend;
+      });
+      expect(await previsto("2027-02")).toBe(750);
+      const antes = await prevision();
+
+      await entrada.locator('[data-p27="abrir"]').click();
+      const hoja = page.locator("#plan2027Dialogo");
+      await expect(hoja).toBeVisible();
+      await expect(hoja.locator("#p27Titulo")).toHaveText("Preparar 2027 con lo real");
+      await expect(hoja).toContainText("La base son 4 meses (jul–oct)");
+      const vivienda = hoja.locator(".p27-fila", { hasText: "Vivienda" });
+      await expect(vivienda).toContainText("Poca historia: todavía no se compara con el último trimestre.");
+      await expect(hoja.locator(".p27-vista")).toContainText("Cambia 1 partida.");
+      await expect(vivienda.locator('input[value="mediana"]')).toBeChecked();
+      await expect(vivienda.locator('input[value="trimestre"]')).toHaveCount(0);
+      await expect(hoja.locator(".p27-pie")).toContainText("Se escriben 12 importes de 1 partida en el plan de 2027.");
+      await expect(hoja.locator(".p27-pie")).toContainText("se puede deshacer entero");
+      expect(await previsto("2027-02"), "abrir la hoja no cambia nada").toBe(750);
+      if (viewport.width === 390) {
+        const ancho = await hoja.evaluate((el) => el.scrollWidth - el.clientWidth);
+        expect(ancho, "la hoja no desborda a 390 px").toBeLessThanOrEqual(1);
+      }
+
+      // «Dejarlo en 750» no escribe nada; volver a «Lo real».
+      await vivienda.locator('input[value="mantener"]').check();
+      await expect(hoja.locator(".p27-pie")).toContainText("No se escribe nada.");
+      await expect(hoja.locator('[data-p27="aplicar"]')).toBeDisabled();
+      await hoja.locator(".p27-fila", { hasText: "Vivienda" }).locator('input[value="mediana"]').check();
+
+      await hoja.locator('[data-p27="aplicar"]').click();
+      await expect(hoja).toBeHidden();
+      expect(await previsto("2027-01")).toBe(865);
+      expect(await previsto("2027-12")).toBe(865);
+      expect(await previsto("2026-12"), "fuera de 2027 no se toca").toBe(750);
+      expect(await previsto("2028-01"), "fuera de 2027 no se toca").toBe(750);
+      expect(await prevision(), "Previsión usa el plan aplicado").toBeGreaterThan(antes + 100);
+      await expect(entrada).toContainText("Plan de 2027 preparado con lo real el 27/11: 12 importes.");
+
+      // Con algo pendiente en el borrador, deshacer no mezcla y no hace nada.
+      await page.evaluate(() => cuadroMandosStageCell("expense|expense-services", "2027-03", 1));
+      await entrada.locator('[data-p27="deshacer"]').click();
+      expect(await previsto("2027-05")).toBe(865);
+      await page.evaluate(() => { discardVisualChanges(); });
+
+      await entrada.locator('[data-p27="deshacer"]').click();
+      await expect(entrada).toContainText("¿Preparamos el plan de 2027 con lo real?");
+      expect(await previsto("2027-05")).toBe(750);
+      expect(await prevision()).toBeCloseTo(antes, 2);
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }

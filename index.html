@@ -53,6 +53,7 @@
     <link rel="stylesheet" href="salud-motor.css?v=20261123duo04" />
     <link rel="stylesheet" href="seguimiento-plan.css?v=20261124dn39" />
     <link rel="stylesheet" href="prestamo-deuda.css?v=20261126pre2" />
+    <link rel="stylesheet" href="plan-2027.css?v=20261127cat11" />
     <link rel="stylesheet" href="nominas.css?v=20261008wp31a1" />
     <link rel="stylesheet" href="anomalias.css?v=20261012wp36a2" />
     <link rel="stylesheet" href="estados.css?v=20261009wp37a1" />
@@ -95,6 +96,9 @@
           <button class="mobile-nav-toggle" id="mobileNavToggle" type="button" aria-expanded="false" aria-controls="primarySidebar">Menú</button>
         </div>
 
+        <!-- R2 · D-N50 (27/11/2026): con el tema v2, el buscador y los cinco destinos con su pregunta (views/navegacion-v2.js). El menú de
+             siempre sigue debajo, entero: sus entradas principales no se ven en el v2 y «Herramientas avanzadas» pasa a «Más pantallas». -->
+        <nav class="nav-destinos-v2" id="navDestinosV2" aria-label="Destinos" hidden></nav>
         <nav class="side-nav" aria-label="Áreas de la aplicación">
           <p class="nav-section-label">Día a día</p>
           <a href="#home" class="nav-primary-link active">
@@ -308,6 +312,9 @@
           </div>
         </div>
 
+        <!-- R2: el pie del menú del diseño (Ajustes con el estado de guardado, y la ayuda), solo con el tema v2. -->
+        <nav class="nav-pie-v2" id="navPieV2" aria-label="Ajustes y ayuda" hidden></nav>
+
         <!-- WP-01 (NXP-02): sello de la versión que corre en este dispositivo y «Novedades», una línea
              por cada cambio visible desplegado (novedades.js). Lo pinta ux-shell.js, fuera del script principal. -->
         <details class="version-stamp" id="versionStamp">
@@ -319,6 +326,8 @@
           <ul class="version-stamp-list" id="novedadesList"></ul>
         </details>
       </aside>
+      <!-- R2 · D-N50: la barra inferior del móvil con los cinco destinos (DUO-05 rehecha: se esconde al bajar). Solo con el tema v2. -->
+      <nav class="barra-destinos-v2" id="barraDestinosV2" aria-label="Destinos" hidden></nav>
 
       <div class="workspace">
         <!-- Rendimiento (30/09/2026): la cabecera nace ya en su estado final —eyebrow oculto y <h1> solo para
@@ -1084,6 +1093,8 @@
             <p class="e19-registrar-crumb" id="planCrumb" aria-live="polite"></p>
 
             <div class="e19-registrar-panel" data-plan-panel="mes">
+              <!-- CAT-11 (D-N46, 27/11/2026): «Preparar el plan de 2027 con lo real», en los dos temas. La pinta plan-2027-ui.js. -->
+              <p class="p27-entrada" id="plan2027Entrada" hidden><span id="plan2027Texto"></span> <button type="button" class="link-button" data-p27="abrir">Preparar el plan</button> <button type="button" class="link-button" data-p27="deshacer" hidden>Deshacer</button></p>
               <div class="e19-plan-mes">
                 <div class="registrar-mes-controls">
                   <label class="month-picker">
@@ -8179,6 +8190,7 @@
           <!-- TRE-D2 (views/deuda-plan-v2.js), solo con el tema v2: «Ajustar el plan» de Deuda › Plan nuevo; panel derecho en escritorio, hoja inferior en móvil.
                Al abrirlo se traen aquí los controles del plan óptimo de siempre (los mismos nodos, ids y manejadores) y al cerrarlo vuelven a su sitio. -->
           <dialog class="dpv2-ajustar" id="deudaPlanV2Ajustar" aria-labelledby="dpv2AjustarTitulo"></dialog>
+          <dialog class="p27" id="plan2027Dialogo" aria-labelledby="p27Titulo"></dialog>
           <!-- TRE-D3c (views/deuda-plan-v2.js), solo con el tema v2: «Comparar con otras formas»; cada forma de saldar con su fecha y su coste, y «Ver…» a lo de siempre. Comparar no cambia nada. -->
           <dialog class="dpv2-ajustar dpv2-comparar" id="deudaPlanV2Comparar" aria-labelledby="dpv2CompararTitulo"></dialog>
           <!-- TRE-D5b (views/deuda-plan-v2.js, D-N44), solo con el tema v2: «¿Dónde va el próximo euro?» de Deuda › Plan nuevo. Al abrirlo se trae aquí la tarjeta
@@ -8525,7 +8537,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20261119priv4"></script>
-    <script defer src="novedades.js?v=20261127dn57"></script>
+    <script defer src="novedades.js?v=20261127dn57b"></script>
     <script defer src="ux-shell.js?v=20261121dec45"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -8609,6 +8621,8 @@
     <script defer src="capas-ui.js?v=20261012wp35a1"></script>
     <script defer src="canonical-zero-base.js?v=20261012wp34a1"></script>
     <script defer src="base-cero-ui.js?v=20261012wp34a1"></script>
+    <script defer src="canonical-plan-2027.js?v=20261127cat11"></script>
+    <script defer src="plan-2027-ui.js?v=20261127cat11"></script>
     <script defer src="canonical-month-letter.js?v=20261116fx43a"></script>
     <script defer src="carta-mes-ui.js?v=20261116fx43a"></script>
     <script defer src="canonical-large-payments.js?v=20261107xpr08a"></script>
@@ -8647,6 +8661,7 @@
     <script defer src="canonical-debt-offers.js?v=20261125tred5"></script>
     <script defer src="views/deuda-ofertas-v2.js?v=20261125tred5"></script>
     <script defer src="views/marco-v2.js?v=20261126r1b"></script>
+    <script defer src="views/navegacion-v2.js?v=20261127r2"></script>
     <script defer src="views/movimientos-v2.js?v=20261119dat07"></script>
     <script defer src="views/importar-v2.js?v=20261116xda04b"></script>
     <script defer src="views/clasificar-v2.js?v=20261120dec14"></script>
@@ -8672,7 +8687,7 @@
     <script defer src="siguiente-paso-ui.js?v=20261028wp17"></script>
     <script defer src="cierre-guia-ui.js?v=20261104cierreC3"></script>
     <script defer src="antes-de-decidir-ui.js?v=20261113xda10pr3"></script>
-    <script defer src="app.js?v=20261127dn57"></script>
+    <script defer src="app.js?v=20261127dn57b"></script>
     <script defer src="p2-ui.js?v=20261119priv4"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

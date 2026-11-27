@@ -10,8 +10,24 @@
       "sha256": "eadecc69d64bdfc67f1da458461ea78ccfef77cd2f19ec18206cfb4b7d749cd7"
     },
     {
+      "version": "20261127cat11",
+      "sha256": "4a3f0aac166666af00b690e8d2560dcfee9b8922dbc59f9a3b05342f7f8b6640"
+    },
+    {
+      "version": "20261127r2",
+      "sha256": "812ab9d60c805a0234d727816e349f29c70f9554da3a0bca273eec9df7908e9e"
+    },
+    {
+      "version": "20261127r2b",
+      "sha256": "18f8fc6db471b1c2c7ef28ba80dfc3d4aea2f2090fc49531600f506e64e9699a"
+    },
+    {
       "version": "20261127dn57",
       "sha256": "54ee758dbd28c6d346370a97fba4f99bce66e9f629276ca39a51548e33a15802"
+    },
+    {
+      "version": "20261127dn57b",
+      "sha256": "c91f8a9e1f413bbdada4cdafe14b5b01460b55c965b7945d82ab8efdc577cbba"
     }
   ]
 }

@@ -1792,6 +1792,27 @@
       "novedades": [
         "2026-11-23-escenario-ajustes"
       ]
+    },
+    {
+      "id": "plan-anual",
+      "verbo": "Preparar el plan del año que viene con lo real de este",
+      "sinonimos": [
+        "plan 2027",
+        "plan anual",
+        "presupuesto del año",
+        "año que viene",
+        "mediana",
+        "lo real"
+      ],
+      "donde": "#plan › Mes › Preparar el plan",
+      "origen": [
+        "CAT-11",
+        "TRE-12",
+        "D-N46"
+      ],
+      "novedades": [
+        "2026-11-27-plan-2027"
+      ]
     }
   ],
   "noSonCapacidad": [
@@ -1862,6 +1883,10 @@
     {
       "novedad": "2026-11-22-ajustes-areas",
       "porque": "Reorganización de Ajustes en el móvil"
+    },
+    {
+      "novedad": "2026-11-27-cinco-destinos",
+      "porque": "Reorganización de la navegación (R2, D-N50): las mismas pantallas, en cinco destinos y una barra inferior en el móvil"
     }
   ]
 }

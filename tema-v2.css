@@ -7381,3 +7381,284 @@
     display: none;
   }
 }
+
+/* ---------- R2 · La navegación de cinco destinos (auditoría de diseño §4, D-N50; CAT-06; 27/11/2026) ----------
+   De `Navegacion.png`, `HoyDesktop.png` (la barra lateral) y `Hoy.png` (la barra inferior). views/navegacion-v2.js pinta el buscador, los
+   cinco destinos y el pie; el menú de siempre sigue en el DOM. Todo cuelga de `:has(> #navDestinosV2:not([hidden]))`: si el script no
+   llega a pintar, se sigue viendo el menú de siempre entero. */
+:root[data-tema="v2"] .sidebar:has(> #navDestinosV2:not([hidden])) .side-nav > :is(.nav-section-label, .nav-primary-link, .e17-nav-actions) {
+  display: none;
+}
+
+:root[data-tema="v2"] .nav-destinos-v2:not([hidden]) {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+:root[data-tema="v2"] .nav-v2-buscar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #e7eff1;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+:root[data-tema="v2"] .nav-v2-buscar:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-tema="v2"] .nav-v2-buscar svg,
+:root[data-tema="v2"] .nav-v2-icono {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+:root[data-tema="v2"] .nav-v2-buscar svg {
+  width: 18px;
+  height: 18px;
+}
+
+:root[data-tema="v2"] .nav-v2-buscar span {
+  flex: 1 1 auto;
+}
+
+:root[data-tema="v2"] .nav-v2-buscar kbd {
+  font: inherit;
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+:root[data-tema="v2"] .nav-v2-destinos,
+:root[data-tema="v2"] .nav-v2-mas,
+:root[data-tema="v2"] .barra-destinos-v2 ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root[data-tema="v2"] .nav-v2-destinos {
+  display: grid;
+  gap: 4px;
+}
+
+:root[data-tema="v2"] .nav-v2-destino > a {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  color: #e7eff1;
+  text-decoration: none;
+}
+
+:root[data-tema="v2"] .nav-v2-destino > a:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+:root[data-tema="v2"] .nav-v2-destino.es-activo > a {
+  background: rgba(255, 255, 255, 0.13);
+}
+
+:root[data-tema="v2"] .nav-v2-destino strong {
+  display: block;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+:root[data-tema="v2"] .nav-v2-destino small {
+  display: block;
+  color: rgba(231, 239, 241, 0.78);
+  font-size: 12px;
+}
+
+:root[data-tema="v2"] .nav-v2-mas {
+  display: grid;
+  gap: 2px;
+  margin: 4px 0 6px 46px;
+}
+
+:root[data-tema="v2"] .nav-v2-mas a {
+  display: block;
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: rgba(231, 239, 241, 0.86);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+:root[data-tema="v2"] .nav-v2-mas a:hover,
+:root[data-tema="v2"] .nav-v2-mas a[aria-current="page"] {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+:root[data-tema="v2"] .nav-v2-mas a[aria-current="page"] {
+  font-weight: 650;
+}
+
+/* El pie: la persona (la tarjeta de siempre, en una fila), Ajustes con el guardado y la ayuda. */
+:root[data-tema="v2"] .sidebar:has(> #navDestinosV2:not([hidden])) .family-context-card {
+  padding: 4px;
+  margin-top: 12px;
+}
+
+:root[data-tema="v2"] .sidebar:has(> #navDestinosV2:not([hidden])) .family-context-card > div:first-child,
+:root[data-tema="v2"] .sidebar:has(> #navDestinosV2:not([hidden])) #familyContextNote {
+  display: none;
+}
+
+:root[data-tema="v2"] .sidebar:has(> #navDestinosV2:not([hidden])) :is(.sync-head, #syncStatus) {
+  display: none;
+}
+
+:root[data-tema="v2"] .sidebar:has(> #navDestinosV2:not([hidden])) #advancedNav > summary small {
+  display: none;
+}
+
+:root[data-tema="v2"] .sidebar:has(> #navDestinosV2:not([hidden])) .family-context-switch button {
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+:root[data-tema="v2"] .sidebar:has(> #navDestinosV2:not([hidden])) .sync-panel {
+  padding: 6px 10px;
+  margin-top: 8px;
+}
+
+:root[data-tema="v2"] .nav-pie-v2:not([hidden]) {
+  display: grid;
+  gap: 2px;
+  margin-top: 8px;
+}
+
+:root[data-tema="v2"] .nav-v2-pie-enlace {
+  display: block;
+  padding: 8px 12px;
+  border-radius: 10px;
+  color: #e7eff1;
+  text-decoration: none;
+}
+
+:root[data-tema="v2"] .nav-v2-pie-enlace:hover,
+:root[data-tema="v2"] .nav-v2-pie-enlace[aria-current="page"] {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-tema="v2"] .nav-v2-pie-enlace strong {
+  display: block;
+  color: #fff;
+  font-size: 14px;
+}
+
+:root[data-tema="v2"] .nav-v2-pie-enlace small {
+  display: block;
+  color: rgba(231, 239, 241, 0.78);
+  font-size: 12px;
+}
+
+/* La barra inferior: solo en el móvil. */
+:root[data-tema="v2"] .barra-destinos-v2 {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  :root[data-tema="v2"] .barra-destinos-v2:not([hidden]) {
+    display: block;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 70;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-top: 1px solid var(--e19-border);
+    background: var(--e19-surface);
+    transition: transform 0.2s ease;
+  }
+
+  /* Se esconde al bajar, mientras se escribe y con el menú abierto; vuelve al subir. */
+  :root[data-tema="v2"] .barra-destinos-v2:is([data-oculta], [data-escribiendo]),
+  :root[data-tema="v2"] body:has(.sidebar.mobile-open) .barra-destinos-v2 {
+    transform: translateY(110%);
+  }
+
+  :root[data-tema="v2"] .barra-destinos-v2 ul {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  :root[data-tema="v2"] .barra-destinos-v2 a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 58px;
+    padding: 6px 2px;
+    color: var(--e19-muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  :root[data-tema="v2"] .barra-destinos-v2 a .nav-v2-icono {
+    box-sizing: content-box;
+    padding: 3px 14px;
+    border-radius: 999px;
+  }
+
+  :root[data-tema="v2"] .barra-destinos-v2 a[aria-current="page"] {
+    color: var(--e19-ink);
+    font-weight: 700;
+  }
+
+  :root[data-tema="v2"] .barra-destinos-v2 a[aria-current="page"] .nav-v2-icono {
+    background: var(--e19-accent-soft);
+  }
+
+  /* Lo último de cada pantalla no se queda debajo de la barra, y los avisos de abajo salen por encima. */
+  :root[data-tema="v2"][data-barra-destinos] body {
+    padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+  }
+
+  :root[data-tema="v2"][data-barra-destinos] :is(.undo-toast, .update-toast, .finding-test-bar) {
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Todo lo que va fijo o pegado abajo sale por encima de la barra (es lo que tumbó DUO-05: la barra tapaba la píldora del repaso,
+     las barras de impacto y la de Importar). Lo que va dentro de un diálogo no hace falta: el diálogo queda por encima de todo. */
+  :root[data-tema="v2"][data-barra-destinos] .rep-v2-pildora {
+    bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+  }
+
+  :root[data-tema="v2"][data-barra-destinos] .view-section.view-calculating::after {
+    bottom: calc(94px + env(safe-area-inset-bottom, 0px));
+  }
+
+  :root[data-tema="v2"][data-barra-destinos] :is(.e19-plan-impact, .datos-importar-bar) {
+    bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+  }
+
+  :root[data-tema="v2"][data-barra-destinos] .e19-cuadro-mandos .cuadro-mandos-impact {
+    bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+  }
+}

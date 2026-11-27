@@ -125,7 +125,63 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 - **Visto y no cambiado:** «¿Era de ago 26?» sale el 27/11 porque agosto sigue sin firmar (CIE-01); se recomienda limitarlo al mes inmediatamente anterior (§5 del documento).
 - **D-N58 (el hogar, 27/11): «Sí a las 4 propuestas».** P1 a P4 en F1; orden recomendado P3 → P4 (a) → P2 (con DS-1) → P1, cada una en su PR y midiendo antes (documento §4).
 - **Crédito personal:** el hogar mandó la **oferta A** (préstamo preconcedido de una financiera; captura) y mandará una B para comparar. Comprobada a mano: cuota, intereses y TAE cuadran con el sistema francés, sin comisión de apertura ni seguros declarados. **Las cifras no van al repositorio** (como los contratos, que solo viven en el navegador del hogar). No se puede pasar aún por `canonical-loan-offers-compare.js`: el motor necesita los contratos de deuda del hogar (saldo, tipo, cuota, plazo, estado), que no están aquí; se piden. Preparado: la oferta A va en Deuda › Ofertas › Préstamo y la B en «Comparar con otra oferta». «Lo hemos firmado», **560**.
+- **Coordinación, al cierre (22:55 UTC):** #699 fusionado por esta sesión (squash `f854b87`, CI 46050965593 en verde con Safari), desplegado (run 46063453480) y con «Published availability» en verde. #700 (R2) trajo `main`, pasó su CI (46068705578) y entró en `main` a las 22:39 (`81c6da5`). Esta rama trae `main` con los dos: conflictos de versiones resueltos dejando todas las entradas (Novedades, huella, PROJECT_STATE 559/558/557), y `app.js` y `novedades.js` pasan a `?v=20261127dn57b` con su huella. Tras juntar: `npm test` **7.082/7.082**, lint, typecheck, a11y, rendimiento, build, privacidad y smoke en verde, `mobile-overflow` 415 y e2e en Chromium de D-N57, R2, CAT-11, ficha, WP-30 y DAT-07 **44/44**.
 - **Siguiente decisión libre: D-N59. Siguiente PROJECT_STATE: 560.**
+## Cierre de sesión — 27 de noviembre de 2026 (558): CAT-11, preparar el plan de 2027 con lo real (D-N46, opción C con la ventana de la opción 3)
+
+- **El hogar** (27/11): «D-N46, C y aplicar ya como previsión»; tras ver que la historia era corta, «opción 3»; permiso para la copia del motor en una rama sin PR.
+- **Qué hace.** Una línea en Plan › Mes, en los dos temas (decisión 10): «¿Preparamos el plan de 2027 con lo real?». Abre una hoja, inferior en el móvil y lateral en el escritorio, con:
+  - la conclusión: gastos de 2027 frente a lo previsto hoy;
+  - los meses de historia que hay («La base son 4 meses (jul–oct)… En marzo se repite»);
+  - «Lo que cambia», con tres opciones por partida: lo real, el último trimestre si se aparta más de un 20 %, o dejarla;
+  - «Se queda como está», plegado y con el porqué de cada partida;
+  - «Qué ocurrirá» antes de «Aplicar».
+  - Aplicar escribe en el plan guardado (`cuadroMandosStageCell` + `saveVisualChanges`) y Previsión lo usa al momento. Deshacer, entero, desde la misma línea.
+  - Con cambios pendientes en el borrador del plan no aplica ni deshace, para no mezclarlos. No toca 2026, 2028 ni los meses ya cerrados (pensando en H-38).
+- **Motor puro** `canonical-plan-2027.js`, con 19 pruebas. Reutiliza la evidencia de base cero (WP-34), no la copia:
+  - mediana de los meses con real;
+  - solo aplana lo mensual: el seguro anual y las pagas extra conservan su forma, y un real suelto no se multiplica por 12;
+  - no toca lo bloqueado (contratos de deuda, fórmulas, tarjetas);
+  - no arrastra un plan que ya recoge una subida reciente;
+  - no vuelve a añadir lo que salió del plan;
+  - ignora diferencias triviales;
+  - el aviso del trimestre solo con 6 meses o más.
+- **Inflación:** las partidas, a precios de hoy. La previsión ya la compone desde el mes en curso (`simulateHistoricalReference`, `modelStartDate`) y sumarla en el plan la contaría dos veces; la hoja dice cuánto añadirá. Hubo una corrección por el camino: un primer cálculo contaba desde julio de 2026 (`baseModelStartDate`), que solo usa la proyección de los saldos de partida.
+- **Se aparta de TRE-12:** una sola hoja y no tres pasos con «Lado a lado»; sin inflación por categoría; «los recibos que suben» esperan a CAT-03.
+- **Medido en la app:** la ventana real es de julio a octubre de 2026 (4 meses; en diciembre, 5), porque solo hay reales en los meses del plan. De ahí la opción 3 y H-38.
+- **Ficheros:**
+  - `canonical-plan-2027.js`, `plan-2027-ui.js` y `plan-2027.css` (propio, solo tokens; no toca `tema-v2.css`);
+  - una línea en `renderPlanMes` (`app.js`, que pasa el motor: el consumidor de ARQ-3);
+  - el contenedor y el diálogo en `index.html`;
+  - Service Worker y lista del build.
+- **Guardias propias aplicadas:**
+  - `app.js` a `?v=20261127cat11`, con su huella anotada por `tools/huella-app.mjs` (CAT-17);
+  - la línea de Novedades, con su capacidad «plan-anual» en `capacidades.json` (CAT-01);
+  - `novedades.js` a `20261127cat11`, en las cinco listas fijadas;
+  - ARQ-3 a 138 motores, con su consumidor;
+  - la clave del deshacer (`plan-2027-aplicado`) excluida de la copia con su motivo, porque los importes aplicados ya van en ella.
+- **Visto en capturas** (390 y 1440, claro y oscuro, v2 y clásico). Corregidos: «Cambia 1 partida», el aviso que repetía la mediana, las opciones en negrita con fondo gris del `fieldset` global, el triángulo del plegado, y el contraste del enlace en el clásico oscuro (4,28:1 → tinta).
+- **Validación** (sobre `claude/zen-franklin-e1r1l2` con `main` `3fcdef13`):
+  - `npm test` **7.068/7.068**;
+  - `lint` y `typecheck` en verde;
+  - batería Chromium e2e + a11y + perf-screens **617/617** (37,5 min), con la e2e nueva (1280 y 390 `@safari`: aplicar sube la previsión de febrero de 2027 y deshacer la devuelve) y axe 8/8 (dos temas, claro y oscuro, dos anchos);
+  - `test:mobile-overflow` **415 visitas sin nada cortado**;
+  - WebKit, solo en el CI.
+- **Operativo:** #698 fusionado a las ~17:35 UTC (squash `03afd3a`). La rama `claude/zen-franklin-e1r1l2` se reinició desde ese `main` y lleva solo los cambios de CAT-11 (aplicados limpios). Sobre esa base: `npm test` **7.068/7.068**, con lint y typecheck en verde. La batería y mobile-overflow de arriba se pasaron con el mismo código sobre `3fcdef13`; lo que cambió entre medias en `main` son documentos y las guardias de CAT-01 y CAT-17, que esa misma pasada de `npm test` ya cubre. La copia sigue en `claude/zen-franklin-plan2027-copia`. Orden: CAT-11 → R2 (557).
+## Cierre de sesión — 27 de noviembre de 2026 (557): R2, la navegación de cinco destinos (D-N50, CAT-06)
+
+- **El hogar** (27/11): «sigue el orden acordado pero coordínate con esta conversación» (la sesión que lleva la secuencia y las fusiones). Orden: #697 → #698 → CAT-11 (558, #699) → R2. Esta sesión construye y valida R2 y abre su PR en borrador; **la fusión la decide la sesión coordinadora**.
+- **R2** (auditoría de diseño §4; D-N50, «sí» del hogar el 25/11; decimocuarta auditoría, CAT-06), de `Navegacion.png`, `HoyDesktop.png` y `Hoy.png`. Con el tema v2 (`views/navegacion-v2.js`, nuevo):
+  - **Menú del escritorio:** «Buscar o hacer… ⌘K» (el buscador de siempre) y cinco destinos con su pregunta: Hoy «¿Vamos bien?», Movimientos «¿Qué ha pasado?», Plan «¿Qué viene?», Patrimonio «¿Cuánto tenemos y debemos?», Decidir «¿Qué hacemos con el dinero?». Bajo el destino en que se está, su «Más» (cuatro como mucho, la regla de profundidad del diseño) con la pantalla actual marcada. Al pie, la persona (la tarjeta de siempre, en una fila), Ajustes con el guardado («Local · guardado a las 14:00») y la ayuda.
+  - **Cada pantalla tiene su destino** (`destinoDe`, probado contra todas las `view-section` de `index.html`): Movimientos recoge Registrar, Cierre, Importar y la conciliación; Plan, Presupuesto, Partidas, Esta semana y las previsiones; Patrimonio, Deuda e Inversión; Decidir, Escenarios, Asesor y Segunda opinión.
+  - **Barra inferior del móvil** (DUO-05 rehecha): los cinco destinos con icono. Se esconde cuando el hogar baja (rueda, dedo o teclado; lo que la página se desplaza sola al pintarse no cuenta: en Deuda baja ~90 px y la escondía nada más entrar), mientras se escribe en un campo y con el menú abierto; vuelve al subir y siempre al final de la pantalla. El cuerpo deja libre su alto, y **todo lo fijo o pegado abajo sale por encima** (la píldora del repaso, los avisos de «Deshacer», las barras de impacto y la de Importar, «Actualizando cálculos…»): es lo que tumbó DUO-05, y lo que dio el único fallo de la primera batería (la píldora del repaso, tapada).
+  - **No se retira nada:** el menú de siempre sigue en el DOM; sus entradas principales no se ven (cada una está en un destino, en su «Más» o en el pie; lo comprueba la prueba unitaria) y «Herramientas avanzadas» pasa a «Más pantallas», plegada, que ya no se abre sola (TRE-08 sigue en el clásico). «N por revisar» sale del menú con la entrada de Ajustes (queda en el ancla de Laboratorio y en su resumen). Todo cuelga de `:has(> #navDestinosV2:not([hidden]))`: si el script falla, se ve el menú de siempre. En el clásico, nada cambia.
+  - **Medido** (demo, Chromium, 1440 × 900): el menú, de ~1.660 px (2.828 con el grupo abierto en Contratos) a **≤ 900 px en cada destino** con su «Más» (criterio de hecho de CAT-06).
+  - **Se aparta del diseño:** sin «+» en la barra (CAT-07, con D-N52 pendiente) ni avatar con la persona; Patrimonio entra por Deuda mientras no exista su Resumen (R3); Decidir, por Escenarios (el próximo euro vive en Deuda › Plan desde TRE-D5b).
+- **`app.js`:** una línea en `setActiveView` (`renderNavegacionV2`), por donde pasa toda navegación; versión `20261127r2` con su huella (CAT-17). `novedades.js` (`20261127r2`, añadida a las cinco listas fijadas) con su línea, apuntada en `capacidades.json` como «noSonCapacidad» (reorganización).
+- **Pruebas:** `tests/r2-cinco-destinos.test.cjs` (6); e2e «R2 · Cinco destinos» a 1440 (el menú ≤ 900 px en cada destino, «Más», pie, buscador), a 390 `@safari` (la barra lleva a su sitio, se esconde al bajar y al escribir, no tapa el final, con el menú abierto no está) y en el clásico (el menú de siempre y TRE-08 como estaba); axe del menú, el pie y la barra en claro y oscuro. **TRE-08:** con el v2, el grupo no se abre solo; y su medida del documento pasa a contar la pantalla con su franja (antes medía `<main>` sin la franja de 57 px y pasaba porque el menú viejo era más alto que cualquier pantalla; con 900 px lo destapó). No se relaja ninguna.
+- **Validación** con main (f854b874, #699 CAT-11) dentro, versión `20261127r2b` de `app.js` (huella) y de `novedades.js`: `npm test` **7.074/7.074**; batería e2e + a11y + perf-screens en Chromium **623/624**: el que faltó, WP-43 (aviso del puente en Cierre), por una carrera de la prueba y no de R2: esperaba a `#cierreVersions`, que está en `index.html` desde el principio, y con la máquina cargada sembraba llamando a `renderCierre` antes de que `views/cierre.js` se cargara. Las cuatro siembras de Cierre que esperaban así esperan ahora a `renderCierre` (no se relaja nada); con ello, las 40 de Cierre con 6 procesos, **40/40**. `test:mobile-overflow` **415 visitas sin nada cortado**. Antes, con main 03afd3a (#698): 7.055/7.055 y **614/614**, y el CI de #700 en verde con Safari.
+- **Siguiente:** R1 fase C (Movimientos), CAT-07 (el «+», D-N52) y R3 (Patrimonio › Resumen, la entrada de su destino).
 
 ## Cierre de sesión — 27 de noviembre de 2026 (556): coordinación de sesiones con #694 en rojo; CON-05 a CON-08 y el plan del sistema de diseño (D-N56); CAT-01, el inventario de capacidades; CAT-17, la versión de `app.js`
 
