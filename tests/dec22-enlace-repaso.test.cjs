@@ -1,3 +1,4 @@
+const { VERSION_APP_RE } = require("./helpers/version-app.cjs");
 // DEC-22 (décima auditoría, 20/11/2026): el aviso del domingo del calendario (el repaso semanal, 13/11) lleva un enlace que abre la app
 // directamente en el repaso. El recordatorio llegaba; la puerta no. Sin importes ni datos en el enlace: es la dirección de la app y una marca.
 const test = require("node:test");
@@ -90,7 +91,7 @@ test("versiones y Novedades: el fichero hay que descargarlo otra vez para tener 
     assert.match(html, new RegExp(`<script defer src="${file.replace(/[./]/g, (c) => `\\${c}`)}\\?v=20261120dec22"></script>`), file);
   });
   // app.js pasó a 20261121dn23 con D-N23 (el acuerdo sustituye a la cuota de hoy desde su mes).
-  assert.match(html, /<script defer src="app\.js\?v=(?:20261120dec22|20261121dn23|20261122resize|20261122und11|20261123duo04|20261124duod1|20261124duod3|20261124dn38|20261124duod6|20261125dn40)"><\/script>/);
+  assert.match(html, VERSION_APP_RE);
   const novedad = require("../novedades.js").find((entry) => entry.id === "2026-11-20-repaso-desde-calendario");
   assert.ok(novedad, "línea en Novedades");
   assert.match(novedad.texto, /Descargad otra vez los recordatorios/);

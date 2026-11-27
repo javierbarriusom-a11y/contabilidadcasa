@@ -1,0 +1,1845 @@
+{
+  "_que": "CAT-01 (decimocuarta auditoría): una entrada por cosa que el hogar puede HACER, no por pantalla, con sus sinónimos y dónde se hace. Se generó el 27/11/2026 desde las 224 líneas de Novedades (novedades.js).",
+  "_regla": "Cada PR que añade una línea a Novedades (novedades.js) la lleva aquí: o en las «novedades» de una capacidad (nueva o existente) o en «noSonCapacidad» con su porqué (un arreglo, un formato, una mudanza). Lo comprueba tests/cat01-capacidades.test.cjs. Antes de proponer una función, buscadla aquí (regla 4 de la Propuesta final §7).",
+  "capacidades": [
+    {
+      "id": "ver-disponible",
+      "verbo": "Ver cuánto podéis gastar hasta cobrar",
+      "sinonimos": [
+        "disponible",
+        "cuánto queda",
+        "liquidez",
+        "saldo de hoy",
+        "fin de mes"
+      ],
+      "donde": "#home › la cifra de Hoy",
+      "origen": [
+        "S5",
+        "P9"
+      ],
+      "novedades": [
+        "2026-10-02-s5",
+        "2026-10-02-p9",
+        "2026-11-01-hoy-fecha",
+        "2026-11-05-reserva-liquidez",
+        "2026-11-06-hoy-fin-de-mes"
+      ]
+    },
+    {
+      "id": "ver-novedades",
+      "verbo": "Ver qué ha cambiado en la app y qué versión usáis",
+      "sinonimos": [
+        "novedades",
+        "versión",
+        "qué hay de nuevo",
+        "te sirve"
+      ],
+      "donde": "Menú › Novedades",
+      "origen": [
+        "WP-01"
+      ],
+      "novedades": [
+        "2026-10-03-wp01",
+        "2026-11-21-te-sirve"
+      ]
+    },
+    {
+      "id": "medir-uso",
+      "verbo": "Medir cuánto usáis la app y cada función",
+      "sinonimos": [
+        "uso de la app",
+        "medidor",
+        "prueba de 30 segundos",
+        "estadísticas",
+        "desplegables abiertos",
+        "versiones anteriores"
+      ],
+      "donde": "#ajustes › Uso de la app",
+      "origen": [
+        "WP-02",
+        "WP-03",
+        "XGO-02"
+      ],
+      "novedades": [
+        "2026-10-03-wp02",
+        "2026-10-03-wp03",
+        "2026-10-22-xgo02-medidor",
+        "2026-11-18-versiones-anteriores-uso",
+        "2026-11-18-desplegables-uso"
+      ]
+    },
+    {
+      "id": "dia-de-cargo",
+      "verbo": "Indicar o aprender el día de cobro de cada gasto",
+      "sinonimos": [
+        "día de cargo",
+        "día de cobro",
+        "cuándo se cobra",
+        "fecha del recibo"
+      ],
+      "donde": "#planificacion-partidas › día de cargo",
+      "origen": [
+        "WP-04",
+        "WP-08"
+      ],
+      "novedades": [
+        "2026-10-03-wp04",
+        "2026-10-04-wp08"
+      ]
+    },
+    {
+      "id": "firmar-mes",
+      "verbo": "Cerrar y firmar el mes",
+      "sinonimos": [
+        "cierre",
+        "cerrar mes",
+        "firmar",
+        "conciliar",
+        "saldo de cierre",
+        "por clasificar"
+      ],
+      "donde": "#cierre › Firmar",
+      "origen": [
+        "WP-09",
+        "C3"
+      ],
+      "novedades": [
+        "2026-10-04-wp09",
+        "2026-10-29-cierre-mes",
+        "2026-10-29-cierre-reales",
+        "2026-11-03-por-clasificar",
+        "2026-11-04-cierre-mes-anterior",
+        "2026-11-04-cierre-nuevo"
+      ]
+    },
+    {
+      "id": "cerrar-meses-atrasados",
+      "verbo": "Cerrar un mes atrasado con los saldos de su extracto",
+      "sinonimos": [
+        "mes atrasado",
+        "agosto",
+        "septiembre",
+        "sin firmar",
+        "cerrar mes pasado"
+      ],
+      "donde": "#cierre › meses sin firmar",
+      "origen": [
+        "CIE-01"
+      ],
+      "novedades": [
+        "2026-11-26-cerrar-meses-atrasados"
+      ]
+    },
+    {
+      "id": "guia-cierre",
+      "verbo": "Seguir la guía paso a paso del cierre de mes",
+      "sinonimos": [
+        "guía del cierre",
+        "pasos del cierre",
+        "qué falta para cerrar"
+      ],
+      "donde": "#cierre › Guía",
+      "origen": [
+        "C3"
+      ],
+      "novedades": [
+        "2026-10-29-cierre-guia"
+      ]
+    },
+    {
+      "id": "coste-cierre",
+      "verbo": "Saber cuánto os lleva cada cierre",
+      "sinonimos": [
+        "minutos del cierre",
+        "coste del cierre",
+        "tiempo de cierre"
+      ],
+      "donde": "#cierre › coste",
+      "origen": [
+        "WP-09"
+      ],
+      "novedades": [
+        "2026-11-04-coste-cierre"
+      ]
+    },
+    {
+      "id": "carta-mes",
+      "verbo": "Leer la carta del mes",
+      "sinonimos": [
+        "carta",
+        "resumen del mes",
+        "informe mensual",
+        "desviación"
+      ],
+      "donde": "#cierre › Carta del mes",
+      "origen": [
+        "WP-29"
+      ],
+      "novedades": [
+        "2026-10-12-wp29",
+        "2026-11-16-carta-prevision"
+      ]
+    },
+    {
+      "id": "plan-b",
+      "verbo": "Acordar, firmar y vigilar un plan B del hogar",
+      "sinonimos": [
+        "plan b",
+        "plan de contingencia",
+        "emergencia",
+        "qué hacer si"
+      ],
+      "donde": "#plan › Previsión › Plan B",
+      "origen": [
+        "WP-38"
+      ],
+      "novedades": [
+        "2026-10-09-wp38",
+        "2026-10-13-wp38b"
+      ]
+    },
+    {
+      "id": "avisos-cierre",
+      "verbo": "Recibir en el cierre los avisos del mes",
+      "sinonimos": [
+        "financiación nueva",
+        "caída de la cartera",
+        "previsión cambia",
+        "dato viejo"
+      ],
+      "donde": "#cierre › avisos",
+      "origen": [
+        "WP-41",
+        "WP-43",
+        "WP-44",
+        "WP-46"
+      ],
+      "novedades": [
+        "2026-10-13-wp41b",
+        "2026-10-13-wp43b",
+        "2026-10-14-wp44b",
+        "2026-10-14-wp46b"
+      ]
+    },
+    {
+      "id": "cobertura-prevision",
+      "verbo": "Saber qué parte de los gastos tiene día conocido",
+      "sinonimos": [
+        "cobertura",
+        "calidad de la previsión",
+        "días conocidos"
+      ],
+      "donde": "#prevision › cobertura",
+      "origen": [
+        "WP-10"
+      ],
+      "novedades": [
+        "2026-10-04-wp10"
+      ]
+    },
+    {
+      "id": "escribir-importes",
+      "verbo": "Escribir y pegar importes como en España",
+      "sinonimos": [
+        "importe",
+        "coma decimal",
+        "signo",
+        "pegar cifra"
+      ],
+      "donde": "#registrar › importe",
+      "origen": [
+        "WP-11"
+      ],
+      "novedades": [
+        "2026-10-04-wp11"
+      ]
+    },
+    {
+      "id": "atajo-iphone",
+      "verbo": "Apuntar un gasto desde un Atajo del iPhone",
+      "sinonimos": [
+        "atajo",
+        "shortcut",
+        "enlace de registro",
+        "apuntar rápido"
+      ],
+      "donde": "#registrar › enlaces de registro",
+      "origen": [
+        "WP-25"
+      ],
+      "novedades": [
+        "2026-10-04-wp25"
+      ]
+    },
+    {
+      "id": "asignacion-personal",
+      "verbo": "Dar una asignación personal a cada uno",
+      "sinonimos": [
+        "paga",
+        "asignación",
+        "dinero de bolsillo",
+        "gasto personal"
+      ],
+      "donde": "#planificacion-partidas › asignación personal",
+      "origen": [
+        "WP-24"
+      ],
+      "novedades": [
+        "2026-10-04-wp24"
+      ]
+    },
+    {
+      "id": "pulso-saldos",
+      "verbo": "Confirmar o corregir el saldo de cada cuenta",
+      "sinonimos": [
+        "pulso de saldos",
+        "saldo",
+        "coincide",
+        "corregir saldo"
+      ],
+      "donde": "#registrar › Saldos",
+      "origen": [
+        "WP-26"
+      ],
+      "novedades": [
+        "2026-10-04-wp26-pulso"
+      ]
+    },
+    {
+      "id": "importar-extracto",
+      "verbo": "Importar un extracto del banco (CSV o Excel)",
+      "sinonimos": [
+        "importar",
+        "extracto",
+        "csv",
+        "excel",
+        "banco",
+        "duplicados",
+        "perfil de banco"
+      ],
+      "donde": "#datos-importar",
+      "origen": [
+        "WP-26",
+        "WP-51",
+        "A4"
+      ],
+      "novedades": [
+        "2026-10-04-wp26-extracto",
+        "2026-10-11-wp51",
+        "2026-10-21-redis-a4-importar",
+        "2026-10-25-importar-un-toque",
+        "2026-10-29-importar-ya-estaban",
+        "2026-11-01-mes-a-mes",
+        "2026-11-01-excel-repetidos",
+        "2026-11-02-duplicados"
+      ]
+    },
+    {
+      "id": "importar-pdf",
+      "verbo": "Importar un extracto en PDF pegando su texto",
+      "sinonimos": [
+        "pdf",
+        "pegar texto",
+        "extracto pdf"
+      ],
+      "donde": "#datos-importar › texto del PDF",
+      "origen": [
+        "XDA-03"
+      ],
+      "novedades": [
+        "2026-10-26-texto-pdf"
+      ]
+    },
+    {
+      "id": "cobertura-extractos",
+      "verbo": "Ver qué periodos cubren los extractos y qué falta importar",
+      "sinonimos": [
+        "cobertura",
+        "huecos",
+        "90 días",
+        "periodo del extracto"
+      ],
+      "donde": "#movements › cobertura",
+      "origen": [
+        "XDA-04"
+      ],
+      "novedades": [
+        "2026-10-26-cobertura-extractos",
+        "2026-11-16-cobertura-90-dias"
+      ]
+    },
+    {
+      "id": "emparejar-manual",
+      "verbo": "Emparejar lo anotado a mano con su movimiento del banco",
+      "sinonimos": [
+        "efectivo",
+        "anotado a mano",
+        "emparejar",
+        "real aparte"
+      ],
+      "donde": "#datos-importar › emparejar",
+      "origen": [
+        "WP-53"
+      ],
+      "novedades": [
+        "2026-10-11-wp53",
+        "2026-10-29-reales-aparte"
+      ]
+    },
+    {
+      "id": "acierto-caja",
+      "verbo": "Medir cuánto acierta la previsión de caja a fin de mes",
+      "sinonimos": [
+        "acierto",
+        "backtest",
+        "precisión de la previsión"
+      ],
+      "donde": "#prevision › Acierto de la caja",
+      "origen": [
+        "WP-12"
+      ],
+      "novedades": [
+        "2026-10-05-wp12"
+      ]
+    },
+    {
+      "id": "tarjetas-credito",
+      "verbo": "Dar de alta las tarjetas de crédito y anotar sus compras",
+      "sinonimos": [
+        "tarjeta",
+        "corte",
+        "cargo de tarjeta",
+        "compra con tarjeta"
+      ],
+      "donde": "#planificacion-partidas › Tarjetas de crédito",
+      "origen": [
+        "WP-30"
+      ],
+      "novedades": [
+        "2026-10-05-wp30-tarjetas",
+        "2026-10-05-wp30-hoja"
+      ]
+    },
+    {
+      "id": "ritmo-variable",
+      "verbo": "Ver a qué ritmo va el gasto variable frente a lo previsto",
+      "sinonimos": [
+        "gasto variable",
+        "ritmo",
+        "real frente a previsto",
+        "en curso"
+      ],
+      "donde": "#plan › Mes y Previsión",
+      "origen": [
+        "XPR-04",
+        "FX-14",
+        "PRV-01"
+      ],
+      "novedades": [
+        "2026-10-05-real-parcial",
+        "2026-11-16-ritmo-variable",
+        "2026-11-14-gasto-variable-medido",
+        "2026-11-14-gasto-variable-a-la-vista"
+      ]
+    },
+    {
+      "id": "valorar-cartera",
+      "verbo": "Actualizar la valoración de la cartera",
+      "sinonimos": [
+        "valoración",
+        "valor de la cartera",
+        "precio",
+        "posiciones"
+      ],
+      "donde": "#inversion-cartera › Actualizar valoración",
+      "origen": [
+        "WP-15"
+      ],
+      "novedades": [
+        "2026-10-06-wp15"
+      ]
+    },
+    {
+      "id": "campana-fiscal",
+      "verbo": "Preparar la campaña fiscal de fin de año",
+      "sinonimos": [
+        "fiscal",
+        "impuestos",
+        "fin de año",
+        "deducción",
+        "hacienda"
+      ],
+      "donde": "#herramientas-fiscal › Campaña fiscal",
+      "origen": [
+        "WP-23"
+      ],
+      "novedades": [
+        "2026-10-06-wp23",
+        "2026-10-16-wp23b",
+        "2026-10-16-wp23c",
+        "2026-10-23-wp23-fuentes",
+        "2026-10-27-fiscal-vivienda"
+      ]
+    },
+    {
+      "id": "cono-escenarios",
+      "verbo": "Leer el cono de confianza de un escenario",
+      "sinonimos": [
+        "bandas de confianza",
+        "cono",
+        "abanico de escenario"
+      ],
+      "donde": "#new-life-simulation › Bandas de confianza",
+      "origen": [
+        "WP-28"
+      ],
+      "novedades": [
+        "2026-10-06-wp28"
+      ]
+    },
+    {
+      "id": "banda-caja",
+      "verbo": "Ver la probabilidad de bajar del suelo en 30 días",
+      "sinonimos": [
+        "banda de caja",
+        "probabilidad",
+        "30 días",
+        "qué mueve cada día"
+      ],
+      "donde": "#prevision › Banda de caja",
+      "origen": [
+        "WP-16"
+      ],
+      "novedades": [
+        "2026-10-07-wp16",
+        "2026-10-26-que-mueve-cada-dia"
+      ]
+    },
+    {
+      "id": "recordatorios-calendario",
+      "verbo": "Añadir avisos al calendario del móvil",
+      "sinonimos": [
+        "calendario",
+        "ics",
+        "recordatorio",
+        "aviso",
+        "domingo"
+      ],
+      "donde": "#ajustes › Recordatorios",
+      "origen": [
+        "WP-32"
+      ],
+      "novedades": [
+        "2026-10-07-wp32",
+        "2026-10-07-wp20b",
+        "2026-10-13-wp40b",
+        "2026-11-13-recordatorio-repaso",
+        "2026-11-20-repaso-desde-calendario"
+      ]
+    },
+    {
+      "id": "contestar-esperados",
+      "verbo": "Contestar si ha llegado la nómina o un recibo",
+      "sinonimos": [
+        "nómina",
+        "recibo no ha llegado",
+        "esperados",
+        "bandeja",
+        "llegará tarde"
+      ],
+      "donde": "#movements › bandeja",
+      "origen": [
+        "WP-14"
+      ],
+      "novedades": [
+        "2026-10-07-wp14",
+        "2026-10-07-wp14b",
+        "2026-10-24-hoy-esperados-movimientos",
+        "2026-11-19-esperados-solos"
+      ]
+    },
+    {
+      "id": "indices-referencia",
+      "verbo": "Consultar el Euribor, el €STR y el IPC con su fecha",
+      "sinonimos": [
+        "euribor",
+        "índice",
+        "ipc",
+        "estr"
+      ],
+      "donde": "#deuda-contratos › Índices de referencia",
+      "origen": [
+        "WP-13"
+      ],
+      "novedades": [
+        "2026-10-07-wp13"
+      ]
+    },
+    {
+      "id": "revision-tipo",
+      "verbo": "Prever la revisión del tipo variable de la hipoteca",
+      "sinonimos": [
+        "revisión",
+        "hipoteca",
+        "tipo variable",
+        "cuota nueva"
+      ],
+      "donde": "#deuda-contratos › Revisión del tipo",
+      "origen": [
+        "WP-20"
+      ],
+      "novedades": [
+        "2026-10-07-wp20",
+        "2026-11-16-revision-tres-caminos"
+      ]
+    },
+    {
+      "id": "camino-deuda-cero",
+      "verbo": "Ver cuándo acabáis la deuda poniendo un extra al mes",
+      "sinonimos": [
+        "deuda cero",
+        "extra al mes",
+        "amortizar",
+        "intereses ahorrados"
+      ],
+      "donde": "#deuda-ruta › Camino a deuda cero",
+      "origen": [
+        "WP-19"
+      ],
+      "novedades": [
+        "2026-10-08-wp19"
+      ]
+    },
+    {
+      "id": "nominas-retenciones",
+      "verbo": "Apuntar las nóminas y sumar las retenciones del año",
+      "sinonimos": [
+        "nómina",
+        "retención",
+        "irpf",
+        "sueldo"
+      ],
+      "donde": "#herramientas-fiscal › Nóminas y retenciones",
+      "origen": [
+        "WP-31"
+      ],
+      "novedades": [
+        "2026-10-08-wp31"
+      ]
+    },
+    {
+      "id": "cosas-raras",
+      "verbo": "Revisar cargos raros: duplicados, devoluciones y comisiones",
+      "sinonimos": [
+        "cosas raras",
+        "anomalías",
+        "duplicado",
+        "comisión",
+        "recibo devuelto"
+      ],
+      "donde": "#movements › Cosas raras",
+      "origen": [
+        "WP-36"
+      ],
+      "novedades": [
+        "2026-10-09-wp36",
+        "2026-10-12-wp36b"
+      ]
+    },
+    {
+      "id": "deshacer-al-quitar",
+      "verbo": "Deshacer al quitar un dato",
+      "sinonimos": [
+        "deshacer",
+        "borrar",
+        "quitar",
+        "eliminar"
+      ],
+      "donde": "#ajustes y #deuda-contratos › Deshacer",
+      "origen": [
+        "WP-37"
+      ],
+      "novedades": [
+        "2026-10-09-wp37",
+        "2026-10-13-wp37b"
+      ]
+    },
+    {
+      "id": "politica-inversion",
+      "verbo": "Firmar la política de inversión y comparar la cartera con ella",
+      "sinonimos": [
+        "política",
+        "perfil de inversión",
+        "reglas de inversión"
+      ],
+      "donde": "#inversion-rebalanceo › Política",
+      "origen": [
+        "WP-39"
+      ],
+      "novedades": [
+        "2026-10-09-wp39",
+        "2026-10-13-wp39b"
+      ]
+    },
+    {
+      "id": "cirbe",
+      "verbo": "Conciliar la CIRBE con vuestros contratos",
+      "sinonimos": [
+        "cirbe",
+        "banco de españa",
+        "informe de riesgos"
+      ],
+      "donde": "#deuda-contratos › CIRBE",
+      "origen": [
+        "WP-40"
+      ],
+      "novedades": [
+        "2026-10-09-wp40"
+      ]
+    },
+    {
+      "id": "deuda-sombra",
+      "verbo": "Descubrir la deuda en la sombra",
+      "sinonimos": [
+        "financiación",
+        "sin intereses",
+        "tae real",
+        "móvil financiado"
+      ],
+      "donde": "#deuda-contratos › Deuda en la sombra",
+      "origen": [
+        "WP-41"
+      ],
+      "novedades": [
+        "2026-10-10-wp41",
+        "2026-10-21-wp41d"
+      ]
+    },
+    {
+      "id": "proximo-euro",
+      "verbo": "Decidir dónde va el próximo euro",
+      "sinonimos": [
+        "próximo euro",
+        "dónde invertir",
+        "colchón o deuda",
+        "dinero parado"
+      ],
+      "donde": "#deuda-ruta › ¿Dónde va el próximo euro?",
+      "origen": [
+        "WP-42"
+      ],
+      "novedades": [
+        "2026-10-10-wp42",
+        "2026-10-13-wp42b",
+        "2026-11-04-dinero-parado"
+      ]
+    },
+    {
+      "id": "puente-prevision",
+      "verbo": "Entender por qué cambió la previsión de fin de año",
+      "sinonimos": [
+        "puente",
+        "por qué cambió",
+        "fin de año"
+      ],
+      "donde": "#plan › Previsión › Por qué",
+      "origen": [
+        "WP-43"
+      ],
+      "novedades": [
+        "2026-10-10-wp43",
+        "2026-11-09-puente-en-por-que"
+      ]
+    },
+    {
+      "id": "calma-cartera",
+      "verbo": "Ver la caída de la cartera y qué parte del gasto cubre",
+      "sinonimos": [
+        "calma",
+        "caída",
+        "drawdown",
+        "cobertura de gastos"
+      ],
+      "donde": "#inversion-cartera › Calma",
+      "origen": [
+        "WP-44"
+      ],
+      "novedades": [
+        "2026-10-10-wp44"
+      ]
+    },
+    {
+      "id": "frescura-datos",
+      "verbo": "Ver la edad de cada dato y qué actualizar primero",
+      "sinonimos": [
+        "frescura",
+        "edad de los datos",
+        "datos viejos"
+      ],
+      "donde": "#registrar › Saldos › Frescura",
+      "origen": [
+        "WP-45"
+      ],
+      "novedades": [
+        "2026-10-10-wp45"
+      ]
+    },
+    {
+      "id": "patrimonio-neto",
+      "verbo": "Ver el patrimonio neto y su proyección",
+      "sinonimos": [
+        "patrimonio",
+        "neto",
+        "lo que tenemos",
+        "proyección a 10 años"
+      ],
+      "donde": "#inversion-cartera › Patrimonio neto",
+      "origen": [
+        "WP-46"
+      ],
+      "novedades": [
+        "2026-10-10-wp46"
+      ]
+    },
+    {
+      "id": "repartir-nomina",
+      "verbo": "Repartir la nómina en transferencias",
+      "sinonimos": [
+        "repartir nómina",
+        "transferencias",
+        "reparto"
+      ],
+      "donde": "#plan › Mes › Repartir la nómina",
+      "origen": [
+        "WP-47"
+      ],
+      "novedades": [
+        "2026-10-10-wp47",
+        "2026-10-14-wp47b"
+      ]
+    },
+    {
+      "id": "libro-operaciones",
+      "verbo": "Corregir compras y ventas de la cartera",
+      "sinonimos": [
+        "operaciones",
+        "compra",
+        "venta",
+        "plusvalía",
+        "recompra"
+      ],
+      "donde": "#inversion-cartera › Libro de operaciones",
+      "origen": [
+        "WP-48"
+      ],
+      "novedades": [
+        "2026-10-10-wp48",
+        "2026-10-15-venta-sin-importe",
+        "2026-10-26-vigia-recompra"
+      ]
+    },
+    {
+      "id": "mapa-pagos",
+      "verbo": "Ver los pagos grandes de los próximos 12 meses",
+      "sinonimos": [
+        "pagos grandes",
+        "anual",
+        "cada cuánto",
+        "seguro anual",
+        "ibi"
+      ],
+      "donde": "#plan › Previsión › Mapa de pagos",
+      "origen": [
+        "WP-49"
+      ],
+      "novedades": [
+        "2026-10-11-wp49",
+        "2026-11-03-cada-cuanto",
+        "2026-11-03-cada-cuanto-prevision"
+      ]
+    },
+    {
+      "id": "vivienda-indice",
+      "verbo": "Revalorizar la vivienda y el local con un índice",
+      "sinonimos": [
+        "vivienda",
+        "local",
+        "ltv",
+        "revalorizar"
+      ],
+      "donde": "#inversion-cartera › Vivienda por índice",
+      "origen": [
+        "WP-50"
+      ],
+      "novedades": [
+        "2026-10-11-wp50"
+      ]
+    },
+    {
+      "id": "base-cero",
+      "verbo": "Revisar las partidas desde cero",
+      "sinonimos": [
+        "base cero",
+        "revisar partidas",
+        "ajustar a lo real"
+      ],
+      "donde": "#planificacion-partidas › Revisión base cero",
+      "origen": [
+        "WP-34"
+      ],
+      "novedades": [
+        "2026-10-12-wp34"
+      ]
+    },
+    {
+      "id": "capas-mes",
+      "verbo": "Ver el mes en tres capas: comprometido, probable y discrecional",
+      "sinonimos": [
+        "capas",
+        "comprometido",
+        "discrecional"
+      ],
+      "donde": "#prevision › capas",
+      "origen": [
+        "WP-35"
+      ],
+      "novedades": [
+        "2026-10-12-wp35"
+      ]
+    },
+    {
+      "id": "ver-movimientos",
+      "verbo": "Ver los movimientos por día con su partida",
+      "sinonimos": [
+        "movimientos",
+        "lista",
+        "gastos",
+        "extracto"
+      ],
+      "donde": "#movements",
+      "origen": [
+        "A4"
+      ],
+      "novedades": [
+        "2026-10-21-redis-a4-movimientos"
+      ]
+    },
+    {
+      "id": "clasificar",
+      "verbo": "Clasificar los conceptos sin partida por lotes",
+      "sinonimos": [
+        "clasificar",
+        "sin partida",
+        "categoría",
+        "regla",
+        "nueva partida",
+        "recibo"
+      ],
+      "donde": "#movements › Clasificar",
+      "origen": [
+        "A5",
+        "XDA-05"
+      ],
+      "novedades": [
+        "2026-10-21-redis-a5-clasificar",
+        "2026-10-21-redis-a5-confianza",
+        "2026-10-26-clasificar-mide",
+        "2026-11-02-nueva-partida",
+        "2026-11-02-partida-serie",
+        "2026-11-02-octubre-primero",
+        "2026-11-15-reglas-por-palabras",
+        "2026-11-20-recibo-por-dia"
+      ]
+    },
+    {
+      "id": "reglas-lista",
+      "verbo": "Ver y quitar las reglas de clasificación",
+      "sinonimos": [
+        "reglas",
+        "por palabras",
+        "quitar regla"
+      ],
+      "donde": "#movements › reglas",
+      "origen": [
+        "A5"
+      ],
+      "novedades": [
+        "2026-11-16-reglas-por-palabras-a-la-vista"
+      ]
+    },
+    {
+      "id": "funciones-en-prueba",
+      "verbo": "Encender o apagar funciones en prueba",
+      "sinonimos": [
+        "laboratorio",
+        "funciones en prueba",
+        "tema",
+        "diseño nuevo",
+        "clásico"
+      ],
+      "donde": "#ajustes › Funciones en prueba",
+      "origen": [
+        "XGO-03"
+      ],
+      "novedades": [
+        "2026-10-22-xgo03-funciones-en-prueba"
+      ]
+    },
+    {
+      "id": "lo-que-pide",
+      "verbo": "Ver lo que la app os pide y cuánto cuesta mantenerlo",
+      "sinonimos": [
+        "lo que la app te pide",
+        "mantenimiento",
+        "datos que faltan"
+      ],
+      "donde": "#ajustes › Uso de la app",
+      "origen": [
+        "XDA-01"
+      ],
+      "novedades": [
+        "2026-10-26-lo-que-pide"
+      ]
+    },
+    {
+      "id": "ver-ejemplo",
+      "verbo": "Ver cómo quedaría una función con un hogar inventado",
+      "sinonimos": [
+        "ejemplo",
+        "demo",
+        "ver cómo quedaría"
+      ],
+      "donde": "#ajustes › Funciones en prueba",
+      "origen": [
+        "XUX-02"
+      ],
+      "novedades": [
+        "2026-10-27-ver-ejemplo"
+      ]
+    },
+    {
+      "id": "arreglo-descubierto",
+      "verbo": "Saber el arreglo más barato si la liquidez baja del suelo",
+      "sinonimos": [
+        "descubierto",
+        "arreglo",
+        "bajar del suelo",
+        "traspaso"
+      ],
+      "donde": "#plan › Previsión",
+      "origen": [
+        "XPR-07"
+      ],
+      "novedades": [
+        "2026-10-27-descubierto",
+        "2026-11-07-arreglo-en-prevision"
+      ]
+    },
+    {
+      "id": "antes-de-decidir",
+      "verbo": "Comprobar si unos datos viejos cambiarían una decisión",
+      "sinonimos": [
+        "antes de decidir",
+        "saldos antiguos",
+        "veredicto"
+      ],
+      "donde": "simuladores › Antes de decidir",
+      "origen": [
+        "XDA-10"
+      ],
+      "novedades": [
+        "2026-10-27-antes-de-decidir",
+        "2026-11-16-antes-de-decidir-pr2",
+        "2026-11-13-antes-de-decidir-pr3"
+      ]
+    },
+    {
+      "id": "aportado-twr",
+      "verbo": "Ver cuánto pusisteis y cuánto puso el mercado",
+      "sinonimos": [
+        "aportado",
+        "twr",
+        "xirr",
+        "rentabilidad"
+      ],
+      "donde": "#inversion-cartera › Aportado",
+      "origen": [
+        "NIN-03"
+      ],
+      "novedades": [
+        "2026-10-28-aportado"
+      ]
+    },
+    {
+      "id": "siguiente-paso-cartera",
+      "verbo": "Ver el siguiente paso de la cartera",
+      "sinonimos": [
+        "siguiente paso",
+        "qué hago con la cartera"
+      ],
+      "donde": "#inversion-cartera › Siguiente paso",
+      "origen": [
+        "WP-17"
+      ],
+      "novedades": [
+        "2026-10-28-siguiente-paso"
+      ]
+    },
+    {
+      "id": "repaso-semanal",
+      "verbo": "Hacer el repaso semanal en 5 minutos",
+      "sinonimos": [
+        "repaso",
+        "semana",
+        "rutina",
+        "domingo"
+      ],
+      "donde": "#movements › Repaso semanal",
+      "origen": [
+        "B5"
+      ],
+      "novedades": [
+        "2026-10-24-repaso-semanal",
+        "2026-10-24-hoy-repaso",
+        "2026-11-09-repaso-prevision",
+        "2026-11-30-repaso-hecho"
+      ]
+    },
+    {
+      "id": "ficha-movimiento",
+      "verbo": "Cambiar la partida o el tipo de un movimiento",
+      "sinonimos": [
+        "ficha",
+        "partida de un movimiento",
+        "tipo de acción"
+      ],
+      "donde": "#movements › ficha del movimiento",
+      "origen": [
+        "M-6",
+        "M-7"
+      ],
+      "novedades": [
+        "2026-11-03-ficha-movimiento"
+      ]
+    },
+    {
+      "id": "dividir-movimiento",
+      "verbo": "Dividir un movimiento entre partidas",
+      "sinonimos": [
+        "dividir",
+        "repartir",
+        "separar un ticket",
+        "bizum mixto"
+      ],
+      "donde": "#movements › ficha del movimiento › Dividir",
+      "origen": [
+        "DAT-07"
+      ],
+      "novedades": [
+        "2026-11-19-dividir-movimiento"
+      ]
+    },
+    {
+      "id": "plan-mes",
+      "verbo": "Ver el mes: lo sin asignar, el ritmo y las partidas",
+      "sinonimos": [
+        "plan del mes",
+        "sin asignar",
+        "presupuesto",
+        "ahorro del mes"
+      ],
+      "donde": "#plan › Mes",
+      "origen": [
+        "C1"
+      ],
+      "novedades": [
+        "2026-10-31-plan-nuevo",
+        "2026-11-05-ahorro-partida"
+      ]
+    },
+    {
+      "id": "datos-renta",
+      "verbo": "Preparar los datos de inversión para la Renta",
+      "sinonimos": [
+        "renta",
+        "declaración",
+        "dividendos",
+        "informe de renta",
+        "csv"
+      ],
+      "donde": "#inversion-cartera › Datos para la Renta",
+      "origen": [
+        "WP-21"
+      ],
+      "novedades": [
+        "2026-11-05-renta-datos",
+        "2026-11-05-renta-rendimientos",
+        "2026-11-05-informe-renta"
+      ]
+    },
+    {
+      "id": "punto-mas-bajo",
+      "verbo": "Ver el punto más bajo de la previsión y su día",
+      "sinonimos": [
+        "punto más bajo",
+        "previsión",
+        "mínimo",
+        "cascada"
+      ],
+      "donde": "#plan › Previsión",
+      "origen": [
+        "C2",
+        "FX-10"
+      ],
+      "novedades": [
+        "2026-11-06-prevision-una-cifra",
+        "2026-11-06-prevision-v2",
+        "2026-11-16-trayectoria-cosida",
+        "2026-11-16-resumen-periodo"
+      ]
+    },
+    {
+      "id": "supuestos",
+      "verbo": "Ver cuánto os quita cada supuesto si sale peor",
+      "sinonimos": [
+        "supuestos",
+        "inflación",
+        "sensibilidad"
+      ],
+      "donde": "#ajustes › Supuestos",
+      "origen": [
+        "FX-51"
+      ],
+      "novedades": [
+        "2026-11-06-supuestos-impacto",
+        "2026-11-09-supuestos-en-prevision"
+      ]
+    },
+    {
+      "id": "suelo",
+      "verbo": "Fijar el suelo y la reserva de la cuenta corriente",
+      "sinonimos": [
+        "suelo",
+        "reserva",
+        "mínimo",
+        "cuenta corriente",
+        "por cuenta"
+      ],
+      "donde": "#ajustes › Cuentas y reserva",
+      "origen": [
+        "FX-13"
+      ],
+      "novedades": [
+        "2026-11-06-suelo-cuenta-corriente",
+        "2026-11-06-reserva-en-cuenta",
+        "2026-11-08-suelo-inicial",
+        "2026-11-10-por-cuenta"
+      ]
+    },
+    {
+      "id": "pruebas-estres",
+      "verbo": "Probar qué pasa si falta un sueldo o sube el Euribor",
+      "sinonimos": [
+        "estrés",
+        "prueba",
+        "imprevisto",
+        "sueldo",
+        "euribor"
+      ],
+      "donde": "#plan › Previsión › Comparar con",
+      "origen": [
+        "FX-21"
+      ],
+      "novedades": [
+        "2026-11-06-pruebas-estres",
+        "2026-11-09-imprevisto-importe",
+        "2026-11-09-colchon-meses",
+        "2026-11-09-dos-pruebas",
+        "2026-11-09-pruebas-con-proyectos",
+        "2026-11-10-patrimonio-24m",
+        "2026-11-11-panel-y-centena"
+      ]
+    },
+    {
+      "id": "escenarios-guardados",
+      "verbo": "Guardar un escenario y compararlo con el plan",
+      "sinonimos": [
+        "escenario",
+        "guardar",
+        "comparar",
+        "archivar"
+      ],
+      "donde": "#escenario-guardados",
+      "origen": [
+        "FX-20"
+      ],
+      "novedades": [
+        "2026-11-06-comparar-un-escenario",
+        "2026-11-09-prueba-a-escenario",
+        "2026-11-09-limite-diez-deuda",
+        "2026-11-09-escenario-guardado-en-prevision",
+        "2026-11-09-comparar-pruebas"
+      ]
+    },
+    {
+      "id": "panel-dia",
+      "verbo": "Ver qué mueve cada día y cuánto fiarse de la previsión",
+      "sinonimos": [
+        "panel del día",
+        "confianza",
+        "insignia",
+        "punto de confianza"
+      ],
+      "donde": "#plan › Previsión › panel del día",
+      "origen": [
+        "FX-31"
+      ],
+      "novedades": [
+        "2026-11-07-panel-dia-confianza",
+        "2026-11-09-punto-confianza-hoy"
+      ]
+    },
+    {
+      "id": "de-verdad-libre",
+      "verbo": "Ver lo que es de verdad libre",
+      "sinonimos": [
+        "libre",
+        "devengado",
+        "de verdad libre"
+      ],
+      "donde": "#plan › Previsión",
+      "origen": [
+        "XPR-08"
+      ],
+      "novedades": [
+        "2026-11-07-de-verdad-libre"
+      ]
+    },
+    {
+      "id": "que-ha-cambiado",
+      "verbo": "Ver qué ha cambiado desde vuestra última visita",
+      "sinonimos": [
+        "qué ha cambiado",
+        "desde la última visita",
+        "por qué"
+      ],
+      "donde": "#plan › Previsión",
+      "origen": [
+        "FX-40"
+      ],
+      "novedades": [
+        "2026-11-09-que-ha-cambiado"
+      ]
+    },
+    {
+      "id": "lo-que-viene",
+      "verbo": "Ver lo que viene en los próximos días",
+      "sinonimos": [
+        "lo que viene",
+        "90 días",
+        "semana que viene",
+        "próximos pagos"
+      ],
+      "donde": "#plan › Previsión › Lo que viene",
+      "origen": [
+        "FX-12",
+        "DEC-30"
+      ],
+      "novedades": [
+        "2026-11-09-lo-que-viene",
+        "2026-11-21-semana-que-viene"
+      ]
+    },
+    {
+      "id": "me-lo-puedo-permitir",
+      "verbo": "Saber si os podéis permitir un gasto o aplazar un pago",
+      "sinonimos": [
+        "me lo puedo permitir",
+        "y si",
+        "aplazar",
+        "gasto único"
+      ],
+      "donde": "#home y #plan › ¿Y si…?",
+      "origen": [
+        "FX-22"
+      ],
+      "novedades": [
+        "2026-11-09-y-si",
+        "2026-11-10-aplazar-pago",
+        "2026-12-14-me-lo-puedo-permitir"
+      ]
+    },
+    {
+      "id": "cambiar-dia-recibo",
+      "verbo": "Saber a qué día pedir que os pasen un recibo",
+      "sinonimos": [
+        "días de cargo",
+        "mover recibo",
+        "cambiar día"
+      ],
+      "donde": "#plan › Previsión › Días de cargo",
+      "origen": [
+        "XPR-11"
+      ],
+      "novedades": [
+        "2026-11-16-dias-de-cargo"
+      ]
+    },
+    {
+      "id": "hasta-2036",
+      "verbo": "Ver la proyección a largo plazo hasta 2036",
+      "sinonimos": [
+        "proyección",
+        "largo plazo",
+        "2036",
+        "hitos"
+      ],
+      "donde": "#plan › Previsión › Hasta 2036",
+      "origen": [
+        "FX-50"
+      ],
+      "novedades": [
+        "2026-11-16-hasta-2036",
+        "2026-11-16-proyeccion-en-prevision"
+      ]
+    },
+    {
+      "id": "local-renta",
+      "verbo": "Calcular el local alquilado para la Renta",
+      "sinonimos": [
+        "local",
+        "alquiler",
+        "renta",
+        "amortización"
+      ],
+      "donde": "#herramientas-fiscal › Local",
+      "origen": [
+        "WP-21"
+      ],
+      "novedades": [
+        "2026-11-16-local-renta"
+      ]
+    },
+    {
+      "id": "rango-probable",
+      "verbo": "Ver el rango probable de la previsión",
+      "sinonimos": [
+        "rango",
+        "8 de cada 10",
+        "incertidumbre"
+      ],
+      "donde": "#plan › Previsión",
+      "origen": [
+        "FX-10"
+      ],
+      "novedades": [
+        "2026-11-16-rango-probable"
+      ]
+    },
+    {
+      "id": "prestamo-saldar",
+      "verbo": "Simular y comparar préstamos para saldar deudas",
+      "sinonimos": [
+        "préstamo",
+        "reunificar",
+        "consolidar",
+        "oferta de préstamo",
+        "seguros"
+      ],
+      "donde": "#deuda-prestamo",
+      "origen": [
+        "hogar 14/11/2026"
+      ],
+      "novedades": [
+        "2026-11-14-prestamo-saldar",
+        "2026-11-26-comparar-dos-prestamos"
+      ]
+    },
+    {
+      "id": "traspasos-propios",
+      "verbo": "Marcar los traspasos entre vuestras cuentas",
+      "sinonimos": [
+        "traspaso",
+        "entre cuentas",
+        "transferencia propia"
+      ],
+      "donde": "#movements › bandeja",
+      "origen": [
+        "DAT-05"
+      ],
+      "novedades": [
+        "2026-11-15-traspasos-propios"
+      ]
+    },
+    {
+      "id": "alta-contratos",
+      "verbo": "Dar de alta varios contratos de deuda a la vez",
+      "sinonimos": [
+        "alta",
+        "contratos",
+        "pegar lista"
+      ],
+      "donde": "#deuda-contratos › Alta",
+      "origen": [
+        "hogar 15/11/2026"
+      ],
+      "novedades": [
+        "2026-11-15-alta-varios-contratos"
+      ]
+    },
+    {
+      "id": "simulador-deuda",
+      "verbo": "Simular estrategias de deuda con vuestros contratos",
+      "sinonimos": [
+        "simulador",
+        "estrategia",
+        "acuerdo",
+        "quita",
+        "propuesta a la entidad"
+      ],
+      "donde": "#deuda-simulador",
+      "origen": [
+        "SVD"
+      ],
+      "novedades": [
+        "2026-11-17-simulador-deuda-contratos-reales",
+        "2026-11-17-simulador-deuda-lee-contratos",
+        "2026-11-17-simulador-esperar-paga-cuota",
+        "2026-11-17-simulador-acuerdo-aceptado",
+        "2026-11-17-simulador-escenario-propuesta",
+        "2026-11-18-simulador-desde-visita",
+        "2026-11-18-simulador-pantalla-nueva"
+      ]
+    },
+    {
+      "id": "cuotas-en-plan",
+      "verbo": "Comprobar que las cuotas y acuerdos están en el plan",
+      "sinonimos": [
+        "cuotas en el plan",
+        "acuerdo",
+        "liquidar"
+      ],
+      "donde": "#deuda-contratos",
+      "origen": [
+        "SVD"
+      ],
+      "novedades": [
+        "2026-11-17-cuotas-en-el-plan",
+        "2026-11-17-acuerdo-seguimiento"
+      ]
+    },
+    {
+      "id": "huella-extracto",
+      "verbo": "Compartir la huella anónima del extracto",
+      "sinonimos": [
+        "huella",
+        "anónimo",
+        "mejorar clasificar"
+      ],
+      "donde": "#ajustes › Uso de la app",
+      "origen": [
+        "DEC-13"
+      ],
+      "novedades": [
+        "2026-11-18-huella-extracto"
+      ]
+    },
+    {
+      "id": "meta-partida",
+      "verbo": "Ver qué parte del gasto tiene partida",
+      "sinonimos": [
+        "95 %",
+        "con partida",
+        "meta"
+      ],
+      "donde": "#movements › bandeja",
+      "origen": [
+        "DEC-18"
+      ],
+      "novedades": [
+        "2026-11-18-meta-con-partida"
+      ]
+    },
+    {
+      "id": "copia-seguridad",
+      "verbo": "Descargar una copia de seguridad",
+      "sinonimos": [
+        "copia",
+        "backup",
+        "exportar"
+      ],
+      "donde": "#ajustes › Datos",
+      "origen": [
+        "DEC-41"
+      ],
+      "novedades": [
+        "2026-11-18-copia-aviso"
+      ]
+    },
+    {
+      "id": "decidir-esta-semana",
+      "verbo": "Ver lo que toca decidir esta semana",
+      "sinonimos": [
+        "decidir",
+        "esta semana",
+        "avisos",
+        "alertas"
+      ],
+      "donde": "#home › Decidir esta semana",
+      "origen": [
+        "FX-41"
+      ],
+      "novedades": [
+        "2026-11-18-verbos-decidir",
+        "2026-11-23-avisos-prevision"
+      ]
+    },
+    {
+      "id": "nombres-hogar",
+      "verbo": "Poner los nombres del hogar",
+      "sinonimos": [
+        "nombres",
+        "persona 1",
+        "persona 2",
+        "titulares"
+      ],
+      "donde": "#ajustes › Hogar y cuentas",
+      "origen": [
+        "D-N25"
+      ],
+      "novedades": [
+        "2026-11-19-nombres-en-ajustes"
+      ]
+    },
+    {
+      "id": "sin-conexion",
+      "verbo": "Usar la app sin conexión",
+      "sinonimos": [
+        "sin conexión",
+        "offline",
+        "nube"
+      ],
+      "donde": "Cabecera › estado",
+      "origen": [
+        "DEC-39"
+      ],
+      "novedades": [
+        "2026-11-20-sin-conexion"
+      ]
+    },
+    {
+      "id": "hoy-por-areas",
+      "verbo": "Consultar Hoy por áreas",
+      "sinonimos": [
+        "áreas",
+        "caja",
+        "patrimonio y deuda",
+        "seguimiento"
+      ],
+      "donde": "#home › áreas",
+      "origen": [
+        "D-N29"
+      ],
+      "novedades": [
+        "2026-11-21-hoy-por-areas"
+      ]
+    },
+    {
+      "id": "plan-deuda",
+      "verbo": "Seguir el plan óptimo para saldar la deuda",
+      "sinonimos": [
+        "plan de deuda",
+        "orden",
+        "bola de nieve",
+        "avalancha",
+        "libres de deuda",
+        "ya lo he pagado"
+      ],
+      "donde": "#deuda-ruta › Plan",
+      "origen": [
+        "TRE-D1",
+        "TRE-D2"
+      ],
+      "novedades": [
+        "2026-11-21-plan-optimo-deuda",
+        "2026-11-21-deuda-orden-y-acuerdos",
+        "2026-11-22-plan-optimo-v2",
+        "2026-11-25-una-sola-fecha-deuda",
+        "2026-11-25-deuda-nueva",
+        "2026-11-25-ajustar-plan"
+      ]
+    },
+    {
+      "id": "comparar-formas-deuda",
+      "verbo": "Comparar el plan de deuda con otras formas",
+      "sinonimos": [
+        "comparar",
+        "otro orden",
+        "pagar con la caja",
+        "solo cuotas"
+      ],
+      "donde": "#deuda-ruta › Comparar con otras formas",
+      "origen": [
+        "TRE-D3c"
+      ],
+      "novedades": [
+        "2026-11-25-comparar-formas"
+      ]
+    },
+    {
+      "id": "kit-entidad",
+      "verbo": "Preparar la llamada o la carta a una entidad",
+      "sinonimos": [
+        "kit",
+        "carta",
+        "guion",
+        "certificado",
+        "entidad"
+      ],
+      "donde": "#deuda-contratos › Kit para la entidad",
+      "origen": [
+        "UND-13"
+      ],
+      "novedades": [
+        "2026-11-22-kit-entidad"
+      ]
+    },
+    {
+      "id": "contratos",
+      "verbo": "Ver y editar cada contrato de deuda",
+      "sinonimos": [
+        "contratos",
+        "ficha del contrato",
+        "% pagado"
+      ],
+      "donde": "#deuda-contratos",
+      "origen": [
+        "TRE-D4"
+      ],
+      "novedades": [
+        "2026-11-25-contratos-nuevos"
+      ]
+    },
+    {
+      "id": "ofertas",
+      "verbo": "Ver si una oferta del banco os compensa",
+      "sinonimos": [
+        "oferta",
+        "veredicto",
+        "banco ofrece"
+      ],
+      "donde": "#deuda-comparar › Ofertas",
+      "origen": [
+        "TRE-D5a"
+      ],
+      "novedades": [
+        "2026-11-25-ofertas-nuevas"
+      ]
+    },
+    {
+      "id": "ocultar-cifras",
+      "verbo": "Ocultar todas las cifras de la pantalla",
+      "sinonimos": [
+        "ocultar",
+        "privacidad",
+        "ojo",
+        "esconder"
+      ],
+      "donde": "Cabecera › ojo",
+      "origen": [
+        "UND-17",
+        "DEC-36"
+      ],
+      "novedades": [
+        "2026-11-22-ocultar-cifras"
+      ]
+    },
+    {
+      "id": "elegir-escenario",
+      "verbo": "Elegir el escenario del plan (Base, Prudente, Ahorro alto)",
+      "sinonimos": [
+        "escenario",
+        "prudente",
+        "ahorro alto",
+        "base"
+      ],
+      "donde": "#ajustes › Plan",
+      "origen": [
+        "D-N33"
+      ],
+      "novedades": [
+        "2026-11-23-escenario-ajustes"
+      ]
+    }
+  ],
+  "noSonCapacidad": [
+    {
+      "novedad": "2026-10-07-audit",
+      "porque": "Arreglo visual (barras y modo oscuro)"
+    },
+    {
+      "novedad": "2026-10-23-cierre-movil",
+      "porque": "Arreglo de maquetación en el móvil"
+    },
+    {
+      "novedad": "2026-10-24-graficos-tabla-movil",
+      "porque": "Arreglo de las tablas de gráficos en el móvil"
+    },
+    {
+      "novedad": "2026-10-24-fechas-legibles",
+      "porque": "Formato de fechas, en toda la app"
+    },
+    {
+      "novedad": "2026-10-24-plurales-decimales",
+      "porque": "Formato de plurales y decimales, en toda la app"
+    },
+    {
+      "novedad": "2026-10-28-cartera-porcentajes",
+      "porque": "Formato de porcentajes"
+    },
+    {
+      "novedad": "2026-11-03-casillas",
+      "porque": "Arreglo de las casillas"
+    },
+    {
+      "novedad": "2026-11-04-intro-dialogos",
+      "porque": "Arreglo de teclado en los diálogos"
+    },
+    {
+      "novedad": "2026-11-05-pulido-nielsen",
+      "porque": "Pulido de textos y pestañas"
+    },
+    {
+      "novedad": "2026-11-09-inflacion",
+      "porque": "Arreglo del recálculo con inflación"
+    },
+    {
+      "novedad": "2026-11-08-recalculo-fallido",
+      "porque": "Comportamiento ante fallos de recálculo, en toda la app"
+    },
+    {
+      "novedad": "2026-11-16-botones-quietos",
+      "porque": "Arreglo de botones que temblaban"
+    },
+    {
+      "novedad": "2026-11-22-ruta-y-grafico",
+      "porque": "Arreglo de textos en Deuda y Hoy"
+    },
+    {
+      "novedad": "2026-11-26-cabecera-ligera",
+      "porque": "Cabecera más ligera: cambio de diseño, no de lo que se puede hacer"
+    },
+    {
+      "novedad": "2026-11-21-deuda-tres-pestanas",
+      "porque": "Reorganización de Deuda en pestañas; las capacidades siguen en sus entradas"
+    },
+    {
+      "novedad": "2026-11-26-ofertas-solo-ofertas",
+      "porque": "Mudanza de funciones a su sitio; las capacidades siguen en sus entradas"
+    },
+    {
+      "novedad": "2026-11-22-ajustes-areas",
+      "porque": "Reorganización de Ajustes en el móvil"
+    }
+  ]
+}

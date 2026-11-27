@@ -1,3 +1,4 @@
+const { VERSION_APP_RE } = require("./helpers/version-app.cjs");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -32,5 +33,5 @@ test("E18 conserva recuperación, confirmación y shell offline en los flujos cr
   assert.match(app, /migrateBackupEnvelope\(sourceEnvelope\)/);
   assert.match(app, /migratePayload\(payload\)/);
   assert.match(worker, /finanzas-casa-shell-20260821-d1a1/);
-  assert.match(html, /app.js\?v=20261125dn40/);
+  assert.match(html, VERSION_APP_RE);
 });

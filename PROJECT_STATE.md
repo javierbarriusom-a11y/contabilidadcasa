@@ -113,6 +113,55 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 27 de noviembre de 2026 (556): coordinación de sesiones con #694 en rojo; CON-05 a CON-08 y el plan del sistema de diseño (D-N56); CAT-01, el inventario de capacidades; CAT-17, la versión de `app.js`
+
+- **El hogar** (27/11, conversación nueva): comprobar si #694 está fusionado y desplegado, coordinar las ramas de las otras sesiones y proponer cuatro funciones grandes, además de un plan para aplicar el sistema de diseño del PDF en todas las pantallas, conservando CON-01 a CON-04 y lo pendiente.
+- **#694 (R1 parte 2, PROJECT_STATE 555) no está fusionado.** Su CI 45967233019 sobre `8111f3c2` terminó en rojo a las 10:02 UTC: falló 1 de 111 pruebas de Safari, también al reintentar. Es `qa1-flujos-completos.spec.cjs:5944`, «panel del día e insignia de confianza»: esperaba «Martes 8 dic» y recibió «Sábado 19 dic», con el reloj fijado.
+  - En el run anterior de #694 (45937303234) fallaron o fueron intermitentes otras cuatro pruebas de Plan/Previsión en Safari, que en `main` (run 45949733528) pasan.
+  - Diagnóstico enviado a su sesión (`…QD8zu4f`), que sigue trabajando en ella. No se ha tocado su rama.
+- **Reparto acordado por mensaje:**
+  - `claude/great-ptolemy-fphgd4` → #694;
+  - `claude/zen-ritchie-a6e7u4` → #697 (documentos);
+  - `claude/zen-franklin-e1r1l2` → esta (documentos);
+  - R2 (D-N50) → rama nueva desde `main` con #694 ya dentro, porque toca el mismo marco.
+  - Orden de fusión: #694 → #697 → esta → R2. Números: esta toma PROJECT_STATE 556 y D-N56; R2, la 557.
+- **Nuevo `docs/PROPUESTA_CON05_CON08_Y_PLAN_DISENO_2026-11-27.md`:**
+  - **CON-05**, la ficha de un comercio o recibo: dentro de CAT-03.
+  - **CON-06**, una sola cola de avisos con «Posponer» y «No aplica»: ocho motores de aviso, sin poder posponer ninguno.
+  - **CON-07**, el arranque con tres extractos, el primer plan en 20 minutos: antes de WP-54, para que mida la app y no la configuración.
+  - **CON-08**, «¿Y si…?» desde cualquier cifra: al catálogo, con FX-25.
+- **Plan de diseño DS-0 a DS-5**, con lo medido en `tema-v2.css`:
+  - el color está bien tokenizado;
+  - hay **25 tamaños de letra** frente a 6 del sistema (185 declaraciones);
+  - hay 243 espaciados fuera de la rejilla 4/8 y 18 radios fuera de {12, 16, 24}.
+  - Propone tokens de escala y una **guardia de diseño en el CI como trinquete** (DS-0 y DS-1, F1) y migrar pantalla a pantalla.
+- **CAT-01 hecho** (F0, fila 4; el hogar pidió «continúa con la siguiente tarea que puedas mientras esperas»). Se eligió porque no toca pantallas ni el marco, que están en #694 y en R2.
+  - Nuevo `docs/gobierno/capacidades.json`: las 224 líneas de Novedades se reparten en **97 capacidades** y **17 que no lo son** (arreglos, formatos y mudanzas, cada una con su porqué).
+  - Cada capacidad lleva su verbo, sinónimos, dónde se hace y su sigla de origen. De las siglas de origen, unas 25 se comprobaron contra la cabecera de su módulo: 16 estaban mal y se corrigieron. Las 101 existen en el repositorio, pero la atribución del resto sale de leer Novedades y no está comprobada una a una.
+  - Guardia nueva, `tests/cat01-capacidades.test.cjs` (4 pruebas; la cuarta comprueba que cada ruta de «donde» existe en la app, para cuando CAT-02 navegue por ellas): cada línea de Novedades, una sola vez en el inventario; ninguna huérfana; y las cinco funciones que la decimocuarta auditoría no encontraba se encuentran por su palabra.
+  - Comprobado que la guardia salta: quitando una línea, 1 fallo con el mensaje de qué hacer; restaurada, 3/3.
+- **CAT-17 hecho** (F1, fila 7; adelantado porque no choca con #694 ni con R2). **El riesgo era real:** `app.js` cambió en cinco PR desde el 25/11 (TRE-D4, TRE-D5a, TRE-D5b, R1 y CIE-01) con el mismo `?v=20261125dn40`, porque ~30 pruebas fijaban ese valor.
+  - 28 pruebas pasan a comprobar el **formato** (`tests/helpers/version-app.cjs`, `AAAAMMDD` + sufijo). Las otras dos de la lista fijan otros ficheros y no se tocan. Ninguna comprobación se relaja: la que garantizaba algo (que la versión cambie con el fichero) es ahora la guardia.
+  - Guardia nueva, `tests/cat17-version-app.test.cjs`: `docs/gobierno/huella-app.json` guarda la sha256 de `app.js` por cada versión. Si el fichero cambia y la versión no, el CI se pone en rojo con el mensaje de qué hacer.
+  - Herramienta nueva, `tools/huella-app.mjs`: anota la huella y se niega si la versión ya se usó con otra huella.
+  - El historial empieza con `20261125dn40` (la huella de `app.js` en `76310f6`, sacada de git) y `20261127cat17`, la de hoy. **`app.js` pasa a `?v=20261127cat17`.**
+  - `tests/xgo01-codigo-app-pruebas.test.cjs`: la nueva prueba entra en la lista que ya admitía leer `app.js` como fichero (techo de líneas, minificado), porque necesita su huella.
+  - Comprobado que salta: con un comentario añadido a `app.js` sin subir la versión, 1 fallo; restaurado, 2/2. La herramienta, vuelta a `dn40`, se niega.
+  - **Para R2 y quien toque `app.js`:** subir el `?v=` y ejecutar `node tools/huella-app.mjs`. Dos ramas que lo hagan en paralelo chocan en `huella-app.json`; se resuelve dejando las dos entradas.
+- **Decisiones del hogar del 27/11** (en esta conversación, sobre el resumen de las tres). Registradas en la Propuesta final (§4, §5.1, §6 y §7), en `ESTADO.md` §4 y en el documento de CON-05 a CON-08:
+  - **D-N46: opción C**, y aplicarlo ya a la previsión. La base es la mediana de 12 meses; si el último trimestre se aparta más de un 20 % y 10 €, se enseñan las dos cifras. El 20 % es un parámetro. Hacen falta 6 meses con real para comparar; solo se aplana lo mensual y lo bloqueado no se toca. Las partidas se escriben a precios de hoy, porque la previsión ya aplica la inflación de Ajustes; sumarla en el plan la contaría dos veces. Lo aceptado se escribe en las partidas de 2027, que es lo que lee Previsión, tras «Qué ocurrirá». Se construye ya (CAT-11), sin esperar a diciembre.
+  - **D-N55:** CON-01 en **F1** (no en F0: agosto y septiembre se firman con CIE-01), CON-04 en F1, CON-02 y CON-03 al catálogo.
+  - **D-N56: sí a todo.** CON-05 dentro de CAT-03, CON-06 y CON-07 en F2, CON-08 al catálogo, DS-0/DS-1 en F1, tipografía (b) con un «cuerpo compacto» de 13,5 solo en tablas (desviación en `ESTADO.md` §4), y la **regla 8 de §7: cuatro propuestas como máximo por conversación**, aunque el prompt de arranque pida 6-10.
+  - **D-N53 sigue abierta;** lo adoptado entra como excepción explícita del hogar.
+  - Corregido en el documento de CON-05 a CON-08: CON-06 no tiene que ir antes que CON-04.
+  - **Siguiente decisión libre: D-N57.**
+- **La ventana del Plan 2027, medida en la app (27/11):** solo hay reales en los meses del plan, que empieza en julio de 2026. Con los datos de ejemplo, la ventana va de julio a octubre (4 meses; en diciembre, 5), así que el aviso del trimestre de la opción C no puede saltar este año. **El hogar eligió la opción 3:** el plan se hace ahora con la mediana de julio a noviembre, avisando de «poca historia», y se repite en marzo de 2027 con 8 meses (tarea H-38). Descartada la opción 2 (ampliar la ventana con los extractos anteriores a julio).
+- **El motor de CAT-11 ya está construido** (`canonical-plan-2027.js`, 17 pruebas). Además de lo anterior: no arrastra un plan que ya recoge una subida reciente, no vuelve a añadir lo que salió del plan, ignora diferencias triviales con los umbrales de base cero y solo escribe en los meses que tiene cada partida. Con permiso del hogar, la copia está en la rama `claude/zen-franklin-plan2027-copia` (sin PR), porque la guardia ARQ-3 no admite un motor sin pantalla.
+- **CAT-11 (Plan 2027), siguiente:** el motor se construye en local y se publica junto con su pantalla en un PR propio (PROJECT_STATE 558; la 557 es de R2) cuando #694 haya desplegado. La pantalla toca Plan › Mes, `index.html` y `tema-v2.css`, y la guardia ARQ-3 no admite un motor sin pantalla.
+- **También se cuestiona** el formato de pedir 6-10 funciones por conversación: se propone un máximo de 4, cada una sustituyendo algo o con fecha (D-N56 g).
+- **Validación** (documentos más un JSON y una prueba unitaria, sin pantallas, así que `npm test` y no `verify` ni la batería de navegador): sobre `main` `bcdfc927`, `npm test` **7.039/7.039** con los documentos y **7.042/7.042** con CAT-01 y **7.044/7.044** con CAT-17 y **7.045/7.045** con la guardia de rutas de CAT-01. Con `main` `3fcdef13` dentro (#694, fusionado a las ~12:45 UTC), `npm test` **7.049/7.049**; el choque en PROJECT_STATE se resolvió conservando las dos entradas, 556 y 555. Con `main` `eb434cb6` dentro (#697, traspaso), la fusión entra limpia y `npm test` sigue en **7.049/7.049**. Como CAT-17 cambia `index.html` (solo el `?v=` de `app.js`), además: `lint`, `typecheck`, `build:site` (con `app.js?v=20261127cat17` en `dist`), `test:privacy` y `test:smoke` en verde. Sin pantallas, así que no se pasa la batería de navegador; el CI la pasa entera. Un primer intento dio 11 fallos de build y de Playwright porque al contenedor le faltaba `node_modules`; tras `npm ci`, todo verde.
+- **Operativo:** rama `claude/zen-franklin-e1r1l2`, solo documentos. **No se fusiona hasta que #694 haya entrado y desplegado** (petición del hogar), ni antes de #697.
+
 ## Cierre de sesión — 27 de noviembre de 2026 (555): R1, segunda parte, fases A y B (el título a menos de 100 px), sobre la primera de #691
 
 - **Operativo:** dos sesiones de Claude hicieron por separado R1, primera parte, en la misma rama; la de la otra sesión (#691, `views/marco-v2.js`) es la que sigue, porque el punto lleva su palabra (WCAG 1.4.1) y lo que decía el recuadro «Estado» se lee en la guía. Se acordó entre las dos: #691 y #692 los fusiona la otra sesión; esta rehace la rama y **porta encima sus fases A y B**, y descarta su primera parte (queda en local, `local/r1-fases-ab`, sin publicar).

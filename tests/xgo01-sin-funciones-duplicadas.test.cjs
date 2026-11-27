@@ -1,3 +1,4 @@
+const { VERSION_APP_RE } = require("./helpers/version-app.cjs");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -89,7 +90,7 @@ test("el asistente de importar extracto vive fuera de app.js, en un script que s
   const html = read("index.html");
   const pos = (src) => html.search(new RegExp(`<script defer src="${src.replace(".", "\\.")}\\?`));
   assert.ok(pos("importar-extracto-ui.js") !== -1 && pos("importar-extracto-ui.js") < pos("app.js"), "se carga con defer antes que app.js");
-  assert.match(html, /<script defer src="app\.js\?v=20261125dn40">/, "app.js cambia de versión con el desalojo: un app.js viejo en la caché HTTP junto al script nuevo declararía dos veces lo mismo");
+  assert.match(html, VERSION_APP_RE, "app.js cambia de versión con el desalojo: un app.js viejo en la caché HTTP junto al script nuevo declararía dos veces lo mismo");
 });
 
 // XGO-01 · PR-4 (13/11/2026): Laboratorio (L-1…L-10, T-4, OPT-2) y el informe de uso de la app (ARQ-0) pasan a
