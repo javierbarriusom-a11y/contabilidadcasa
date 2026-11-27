@@ -146,7 +146,7 @@
         <div><p class="p27-kicker">Plan de ${año}</p><h2 id="p27Titulo">Preparar ${año} con lo real</h2></div>
         <button type="button" class="e19-btn e19-btn-secondary p27-cerrar" data-p27="cerrar" aria-label="Cerrar «Preparar ${año} con lo real»">×</button>
       </div>
-      <p class="p27-vista" aria-live="polite">Gastos de ${año}: <strong>${esc(euros(gastosNuevos))}</strong> frente a ${esc(euros(modelo.totales.gastos.previsto))} previstos hoy. Cambian ${ap.partidas} ${ap.partidas === 1 ? "partida" : "partidas"}.</p>
+      <p class="p27-vista" aria-live="polite">Gastos de ${año}: <strong>${esc(euros(gastosNuevos))}</strong> frente a ${esc(euros(modelo.totales.gastos.previsto))} previstos hoy. ${ap.partidas === 1 ? "Cambia 1 partida" : `Cambian ${ap.partidas} partidas`}.</p>
       ${historia}
       ${cambian.length ? `<section class="p27-grupo" aria-labelledby="p27Cambia"><h3 id="p27Cambia">Lo que cambia (${cambian.length})</h3><ul class="p27-lista">${cambian.map((i) => filaCambio(i, objetivo)).join("")}</ul></section>` : `<p class="p27-historia">Nada que cambiar: el plan de ${año} ya está en línea con lo real.</p>`}
       ${quedan.length ? `<details class="p27-grupo"><summary>Se queda como está (${quedan.length})</summary><ul class="p27-lista">${quedan.map((i) => `<li class="p27-fila"><p class="p27-fila-titulo"><strong>${esc(i.label)}</strong></p><p class="p27-fila-nota">${esc(i.porque)}</p></li>`).join("")}</ul></details>` : ""}

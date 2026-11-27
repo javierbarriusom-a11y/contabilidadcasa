@@ -115,7 +115,7 @@
       let aviso = null;
       let porDefecto = tipo === "mensual" ? "mediana" : "mantener";
       if (mensual) {
-        if (ev.n < MIN_MESES_COMPARAR) aviso = { id: "poca-historia", texto: `Poca historia (${ev.n} meses con real): no se compara con el último trimestre.` };
+        if (ev.n < MIN_MESES_COMPARAR) aviso = { id: "poca-historia", texto: "Poca historia: todavía no se compara con el último trimestre." };
         else {
           const trimestre = trimestreDe(partida, windowKeys);
           const gap = trimestre === null ? 0 : trimestre - mediana;

@@ -23,6 +23,12 @@
 
 .p27-entrada .link-button {
   min-height: 44px;
+  /* El enlace de siempre está pensado para el fondo de la página; sobre la tarjeta, en el clásico oscuro, se quedaba en 4,28:1. La tinta
+     contrasta en los dos temas y en claro y oscuro; el subrayado dice que es un enlace. */
+  color: var(--e19-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: 600;
 }
 
 dialog.p27 {
@@ -131,9 +137,7 @@ dialog.p27::backdrop {
 }
 
 .p27-grupo > summary {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
+  padding: 12px 0;
   cursor: pointer;
 }
 
@@ -190,6 +194,7 @@ dialog.p27::backdrop {
   margin: 4px 0 0;
   padding: 0;
   border: 0;
+  background: none;
   min-width: 0;
 }
 
@@ -207,7 +212,12 @@ dialog.p27::backdrop {
   align-items: center;
   gap: 8px;
   min-height: 44px;
+  margin: 0;
+  padding: 0;
+  background: none;
   font-size: 15px;
+  font-weight: 400;
+  color: var(--e19-ink);
   font-variant-numeric: tabular-nums;
 }
 

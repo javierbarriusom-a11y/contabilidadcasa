@@ -14223,7 +14223,8 @@ test.describe("CAT-11 · Preparar el plan de 2027 con lo real", () => {
       await expect(hoja.locator("#p27Titulo")).toHaveText("Preparar 2027 con lo real");
       await expect(hoja).toContainText("La base son 4 meses (jul–oct)");
       const vivienda = hoja.locator(".p27-fila", { hasText: "Vivienda" });
-      await expect(vivienda).toContainText("Poca historia (4 meses con real)");
+      await expect(vivienda).toContainText("Poca historia: todavía no se compara con el último trimestre.");
+      await expect(hoja.locator(".p27-vista")).toContainText("Cambia 1 partida.");
       await expect(vivienda.locator('input[value="mediana"]')).toBeChecked();
       await expect(vivienda.locator('input[value="trimestre"]')).toHaveCount(0);
       await expect(hoja.locator(".p27-pie")).toContainText("Se escriben 12 importes de 1 partida en el plan de 2027.");
