@@ -121,6 +121,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 - **La guardia:** `tests/cat14-oyentes-desde-la-carga.test.cjs` recorre todos los `attach*(doc)` y falla si uno atiende (en `input` o `change`) un campo de `index.html` y no se engancha al cargar. Comprobado que detecta la regresión (quitando el arreglo de Camino se pone en rojo con el motivo) y que sigue mirando los tres casos.
 - **Adaptada, sin relajar:** la prueba unitaria de DUO-D3 simulaba un documento con un solo oyente por tipo de evento; con Camino también escuchando `input` al cargar, ahora guarda y avisa a todos, como un navegador. Las mismas comprobaciones.
 - **Validación:** `npm test` **7.030/7.030**; `npm run verify` en verde; e2e de Camino, plan óptimo y DUO-D3/D5 en Chromium **22/22**.
+- **Versión de `camino-deuda-ui.js` a `20261127cat14`** (para que la caché no sirva el fichero sin el arreglo), añadida a la lista de versiones admitidas de UND-11/12. Tras traer `main` (#692): `npm test` **7.030/7.030** y `npm run verify` en verde.
 - **Operativo:** #692 (comparar dos préstamos) fusionado el 26/11 a las 23:59 UTC con su CI en verde (squash `36855ae`). Esta rama, `claude/cat14-oyentes-al-cargar`, con `main` dentro; su PR, en borrador, y fusión con su CI en verde.
 
 ## Cierre de sesión — 26 de noviembre de 2026 (550): Deuda › Préstamo · comparar dos ofertas (petición urgente del hogar); cerrar agosto, al backlog
