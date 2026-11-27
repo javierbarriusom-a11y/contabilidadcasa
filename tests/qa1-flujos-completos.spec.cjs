@@ -12298,6 +12298,8 @@ test.describe("DEC-39 · Sin conexión", () => {
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.goto("/index.html#ajustes");
     const aviso = page.locator("#conexionAviso");
+    // R1: con el tema v2 el chip está en la hoja del punto de estado; el aviso sin conexión, a la vista.
+    await page.locator("#estadoPunto").click();
     await expect(page.locator("#durabilityStatus")).toBeVisible({ timeout: 15000 });
     await expect(aviso).toBeHidden();
     await context.setOffline(true);
@@ -13102,12 +13104,19 @@ test.describe("Deuda › Ruta · plan óptimo de saldo", () => {
   }
 
   // D-N27 (21/11/2026, «ok, pero me preguntas antes y poder modificar»): la bola de nieve no se elige sola; el orden se guarda y se cambia.
+  // En el Safari del CI (#692 y #693, 27/11/2026) se quedó sin tiempo con la captura ya en el último paso (el margen a 80, marcado
+  // como no válido), y al repetirla pasó en 15 s: no es lentitud, algo se cuelga. El cronómetro por tramos dirá cuál si vuelve.
+  let reloj = null;
+  test.beforeEach(() => { reloj = null; }); // el de otra prueba del grupo no se cuenta como suyo
+  test.afterEach(async ({}, testInfo) => informarSiFalla(reloj, testInfo));
   for (const [nombre, viewport] of [["a 1280 px", { width: 1280, height: 900 }], ["a 390 px @safari", { width: 390, height: 844 }]]) {
     test(`pregunta antes de empezar por la más pequeña, recuerda lo elegido y se puede cambiar, ${nombre}`, async ({ page }) => {
       test.setTimeout(60000); // dos recargas y el alta de tres contratos: en Safari pasa de 30 s
+      reloj = cronometro();
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
       await conContratos(page, viewport, "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160\nFinanciera FICTICIA; préstamo; 900; 7; 75");
+      reloj.marca("tres contratos dados de alta y Deuda › Ruta pintada");
       const plan = page.locator("#planOptimoResultado");
       await page.fill("#planOptimoMensual", "200");
       // Con el margen de entrada puede no preguntar; con uno ancho (50 % o 100.000 €), sí.
@@ -13117,6 +13126,7 @@ test.describe("Deuda › Ruta · plan óptimo de saldo", () => {
       const pregunta = plan.locator(".plan-optimo-pregunta");
       await expect(pregunta).toContainText("¿Empezáis por la más pequeña?");
       await expect(pregunta).toContainText("Financiera FICTICIA");
+      reloj.marca("la pregunta, con el margen ancho");
       await expect(plan).toContainText("Orden recomendado: avalancha");
       await expect(page.locator('input[name="planOptimoOrden"][value="avalancha"]')).toBeChecked();
       await pregunta.getByRole("button", { name: "Sí, por la más pequeña" }).click();
@@ -13125,21 +13135,26 @@ test.describe("Deuda › Ruta · plan óptimo de saldo", () => {
       await expect(page.locator('input[name="planOptimoOrden"][value="bola-nieve"]')).toBeChecked();
       await expect(page.locator('input[name="planOptimoOrden"][value="bola-nieve"]')).toBeFocused();
       await expect(plan.locator(".plan-optimo-tramos li").first()).toContainText("Financiera FICTICIA");
+      reloj.marca("elegida la bola de nieve");
       // Se recuerda al volver, y no se pregunta otra vez.
       await page.reload();
       await page.evaluate(() => { location.hash = "deuda-ruta"; });
       await expect(plan).toContainText("Orden elegido: bola de nieve", { timeout: 20000 });
       await expect(plan.locator(".plan-optimo-pregunta")).toHaveCount(0);
       await expect(page.locator("#planOptimoMargenPct")).toHaveValue("50");
+      reloj.marca("recargada: se recuerda");
       // Y se cambia cuando se quiera.
       await page.locator('input[name="planOptimoOrden"][value="avalancha"]').check();
       await expect(plan).toContainText("Orden elegido: avalancha");
       await expect(page.locator("#planOptimoNota")).toContainText("Orden guardado: primero la más cara");
+      reloj.marca("cambiada a la avalancha");
       // Tras recargar, el plegable del margen vuelve cerrado (lo guardado sí sigue).
       await page.locator("#planOptimoMargen > summary").click();
       await page.fill("#planOptimoMargenPct", "80");
       await expect(page.locator("#planOptimoMargenPct")).toHaveAttribute("aria-invalid", "true");
+      reloj.marca("el margen a 80, no válido");
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      reloj.marca("sin desbordar");
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }
@@ -13493,6 +13508,11 @@ test.describe("TRE-D3c · Deuda › Comparar con otras formas", () => {
   const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
   // 26/11/2026: partida en dos pruebas (las formas; cada «Ver…» a su sitio). Junta, a 390 px en el WebKit del CI pasaba de los 150 s
   // aun llegando al final (#691: el resultado ya estaba en pantalla). Las mismas comprobaciones, ninguna menos; cada parte, su tiempo.
+  // «Cada Ver…», a 390 px en el Safari del CI (#693, 27/11/2026): sin tiempo a los 150 s con Préstamo ya en pantalla, y en 8 s al
+  // repetirla. El cronómetro por tramos dirá qué tramo se cuelga si vuelve a pasar; no cambia tiempos ni comprobaciones.
+  let relojVer = null;
+  test.beforeEach(() => { relojVer = null; });
+  test.afterEach(async ({}, testInfo) => informarSiFalla(relojVer, testInfo));
   async function abrirComparar(page, viewport) {
     await arrancarEnCaliente(page, { viewport });
     await page.evaluate(() => { location.hash = "deuda-ruta"; });
@@ -13538,15 +13558,18 @@ test.describe("TRE-D3c · Deuda › Comparar con otras formas", () => {
 
     test(`cada «Ver…» a su sitio de siempre, Escape devuelve el foco y «Probar un préstamo» lleva a Préstamo, a ${viewport.width} px${etiqueta}`, async ({ page }) => {
       test.setTimeout(150000);
+      relojVer = cronometro();
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
       const { vista, panel, abrir } = await abrirComparar(page, viewport);
+      relojVer.marca("Comparar abierto");
       // «Ver el camino»: lo de siempre, en su sitio (un toque desde aquí).
       await panel.locator('[data-dpv2-cmp="camino"]').click();
       await expect(panel).toBeHidden();
       await expect(page.locator("#caminoDeudaCard")).toBeVisible();
       await vista.locator('[data-dpv2="volver"]').click();
       await expect(vista.locator("#dpv2Fecha")).toBeVisible();
+      relojVer.marca("«Ver el camino» y de vuelta");
       // «Ver la ruta» de pagar con la caja, la más pequeña primero, abre «Orden de ataque» con esa pestaña.
       await abrir();
       const fila = panel.locator('[data-dpv2-cmp-fila="caja-bola-nieve"]');
@@ -13558,13 +13581,17 @@ test.describe("TRE-D3c · Deuda › Comparar con otras formas", () => {
         await expect(vista.locator("#dpv2Fecha")).toBeVisible();
         await abrir();
       }
+      relojVer.marca("«Ver la ruta» y de vuelta");
       // «Probar un préstamo» lleva a Ofertas › Préstamo; Escape cierra y devuelve el foco al acceso.
       await page.keyboard.press("Escape");
       await expect(panel).toBeHidden();
       await expect(vista.locator('[data-dpv2="comparar"]')).toBeFocused();
+      relojVer.marca("Escape, con el foco de vuelta");
       await abrir();
       await panel.locator('[data-dpv2-cmp-fila="consolidar"] [data-dpv2-cmp="prestamo"]').click();
+      relojVer.marca("pulsado «Probar un préstamo»");
       await expect(page.locator("#deuda-prestamo")).toBeVisible();
+      relojVer.marca("Préstamo a la vista");
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }
@@ -13899,6 +13926,91 @@ test.describe("TRE-D5b · lo que no eran ofertas, en su sitio", () => {
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }
+});
+
+// R1, primera parte (auditoría de diseño §4; 26/11/2026). Con el tema v2: las tres píldoras de estado pasan a un punto con una palabra
+// que abre la hoja de siempre (Escape la cierra y devuelve el foco); el recuadro «Estado · Guía de este flujo» deja de pintarse y su
+// enlace es «Guía», en la cabecera, que abre la guía con lo que decía el recuadro; y sin la tira de cinco cifras en Cierre, Deuda ›
+// Contratos y Deuda › Ofertas (D-N49). En el clásico, todo como estaba. Arranque en caliente, contratos FICTICIOS.
+test.describe("R1 · el marco común, primera parte", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+    const etiqueta = viewport.width === 390 ? " @safari" : "";
+    test(`el punto de estado, «Guía» en la cabecera y sin la tira en Cierre, Contratos y Ofertas, a ${viewport.width} px${etiqueta}`, async ({ page }) => {
+      test.setTimeout(150000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await arrancarEnCaliente(page, { viewport });
+      const tira = page.locator("#topbarStatusStrip");
+      const punto = page.locator("#estadoPunto");
+      const sinDesborde = () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
+      // Cierre (vista nueva por defecto): sin tira ni recuadro, con el punto y «Guía».
+      await page.evaluate(() => { location.hash = "cierre"; });
+      await expect(page.locator('#cierreV2[data-modo="v2"]')).toBeVisible({ timeout: 20000 });
+      await expect(tira).toBeHidden();
+      await expect(page.locator("#e17ViewGuide")).toBeHidden();
+      await expect(punto).toBeVisible();
+      await expect(punto).toHaveAccessibleName(/^Estado de los datos: (Sincronizado|Solo en este equipo|Revisar)$/);
+      await expect(punto).toHaveAttribute("data-tono", /^(cloud|local|warn)$/);
+      await expect(page.locator("#durabilityStatus")).toBeHidden();
+      expect(await sinDesborde()).toBe(true);
+      // El título de la pantalla, por encima de lo que medía con la tira y el recuadro (232 px a 1440; 380 a 390 con la tira).
+      const titulo = await page.locator("#cierre h2:visible").first().evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+      expect(titulo).toBeLessThan(viewport.width === 390 ? 200 : 120);
+      // El punto abre la hoja con lo de siempre; Escape la cierra y devuelve el foco; fuera de ella, también se cierra.
+      await punto.click();
+      await expect(punto).toHaveAttribute("aria-expanded", "true");
+      await expect(page.locator("#durabilityStatus")).toBeVisible();
+      await expect(page.locator("#dataNatureBadge")).toBeVisible();
+      await expect(page.locator("#sourceNote")).toContainText("Fuente:");
+      expect(await sinDesborde()).toBe(true);
+      await page.keyboard.press("Escape");
+      await expect(punto).toHaveAttribute("aria-expanded", "false");
+      await expect(page.locator("#durabilityStatus")).toBeHidden();
+      await expect(punto).toBeFocused();
+      // Tocar fuera: el antetítulo de la franja (a 390 px la hoja abierta tapa el título de la pantalla, como debe).
+      await punto.click();
+      await page.locator("#viewEyebrow").click();
+      await expect(punto).toHaveAttribute("aria-expanded", "false");
+      // «Guía» abre la guía con lo que decía el recuadro.
+      await page.locator("#topbarGuia").click();
+      const guia = page.locator("#e17FlowGuideDialog");
+      await expect(guia).toBeVisible();
+      await expect(guia.locator("#e17FlowGuideContexto")).toContainText("Para qué sirve");
+      await expect(guia.locator("#e17FlowGuideContexto")).toContainText(/Estado.*datos con fecha de análisis/);
+      await expect(guia.locator("#e17FlowGuideContexto")).toContainText("Siguiente paso");
+      await guia.getByRole("button", { name: "Volver al flujo" }).click();
+      await expect(guia).toBeHidden();
+      // Contratos y Ofertas con la vista nueva: sin tira. Con todo el detalle, la tira sigue (no tienen cifra protagonista).
+      await page.evaluate(() => { location.hash = "deuda-contratos"; });
+      await deudaContratosNueva(page);
+      await expect(page.locator("#deudaContratosV2 .dcv2-capacidad")).toBeVisible({ timeout: 20000 });
+      await expect(tira).toBeHidden();
+      await page.evaluate(() => { location.hash = "deuda-comparar"; });
+      await deudaOfertasNueva(page);
+      await expect(page.locator("#deudaOfertasV2")).toBeVisible({ timeout: 20000 });
+      await expect(tira).toBeHidden();
+      expect(await sinDesborde()).toBe(true);
+      // Hoy tiene su propia guía: ahí «Guía» no se repite en la cabecera. El punto, sí.
+      await page.evaluate(() => { location.hash = "home"; });
+      await expect(page.locator("#home")).toBeVisible({ timeout: 20000 });
+      await expect(page.locator("#topbarGuia")).toBeHidden();
+      await expect(punto).toBeVisible();
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+
+  test("con el tema clásico, la cabecera de siempre: las píldoras a la vista, el recuadro y la tira", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.goto("/index.html?tema=clasico#cierre");
+    await expect(page.locator("#durabilityStatus")).toBeVisible({ timeout: 20000 });
+    await expect(page.locator("#estadoPunto")).toBeHidden();
+    await expect(page.locator("#topbarGuia")).toBeHidden();
+    await expect(page.locator("#e17ViewGuide")).toBeVisible();
+    await expect(page.locator("#topbarStatusStrip")).toBeVisible();
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
 });
 
 // Deuda › Préstamo para saldar · «Comparar con otra oferta» (26/11/2026, petición urgente del hogar). Tarjeta INVENTADA al 21 % dada de
