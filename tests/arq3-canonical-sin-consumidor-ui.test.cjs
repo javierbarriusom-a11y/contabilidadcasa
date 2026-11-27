@@ -170,6 +170,8 @@ test("ARQ-3 · canonical-scenario-invariants.js sigue siendo solo una herramient
 // 134 → 135 (plan óptimo de saldo, 21/11/2026): canonical-debt-optimal-plan.js, con consumidor real (renderDeudaRuta en views/deuda.js se lo pasa a renderPlanOptimo de camino-deuda-ui.js)
 // 135 → 136 (TRE-D5a, Deuda › Ofertas como bandeja, 25/11/2026): canonical-debt-offers.js, con consumidor real (entrada y pintarAnadirVista en
 // views/deuda-ofertas-v2.js, que pinta renderDeudaComparar en views/deuda.js)
-test("ARQ-3 · el recuento de canonical-*.js sigue siendo 136 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
-  assert.equal(canonicalFiles.length, 136);
+// 136 → 137 (Deuda › Préstamo · comparar dos ofertas, 26/11/2026): canonical-loan-offers-compare.js, con consumidor real (renderDeudaPrestamo
+// en views/deuda.js se lo pasa a renderPrestamoDeuda de prestamo-deuda-ui.js, como el motor del préstamo)
+test("ARQ-3 · el recuento de canonical-*.js sigue siendo 137 (si cambia, revisa si el nuevo/borrado fichero necesita entrar en las listas de arriba)", () => {
+  assert.equal(canonicalFiles.length, 137);
 });

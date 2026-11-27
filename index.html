@@ -52,7 +52,7 @@
     <link rel="stylesheet" href="camino-deuda.css?v=20261122und11" />
     <link rel="stylesheet" href="salud-motor.css?v=20261123duo04" />
     <link rel="stylesheet" href="seguimiento-plan.css?v=20261124dn39" />
-    <link rel="stylesheet" href="prestamo-deuda.css?v=20261120dec38b" />
+    <link rel="stylesheet" href="prestamo-deuda.css?v=20261126pre2" />
     <link rel="stylesheet" href="nominas.css?v=20261008wp31a1" />
     <link rel="stylesheet" href="anomalias.css?v=20261012wp36a2" />
     <link rel="stylesheet" href="estados.css?v=20261009wp37a1" />
@@ -2360,6 +2360,8 @@
             <div class="pre-grid">
               <form class="e19-card pre-condiciones" id="prestamoForm" novalidate aria-labelledby="prestamoCondicionesTitulo">
                 <h3 class="escenario-motor-panel-title" id="prestamoCondicionesTitulo">Condiciones del préstamo</h3>
+                <label class="pre-campo"><span>Nombre de esta oferta</span>
+                  <input type="text" id="prestamoNombre" maxlength="40" autocomplete="off" placeholder="Oferta A (por ejemplo, el banco)" /></label>
                 <label class="pre-campo"><span>Quién lo pide</span>
                   <input type="text" id="prestamoTitular" maxlength="40" autocomplete="off" placeholder="Titular (opcional)" /></label>
                 <div class="pre-par">
@@ -2382,6 +2384,9 @@
                   <label class="pre-campo"><span>Comisión por amortizar antes (%)</span>
                     <input type="number" id="prestamoComisionAnticipada" min="0" max="5" step="0.1" inputmode="decimal" placeholder="si la hay" /></label>
                 </div>
+                <label class="pre-campo"><span>Seguros o vinculaciones que exige (€ al mes)</span>
+                  <input type="number" id="prestamoSeguro" min="0" max="1000" step="1" inputmode="decimal" placeholder="si los hay" aria-describedby="prestamoSeguroAyuda" />
+                  <small class="pre-ayuda" id="prestamoSeguroAyuda">La TAE no los incluye: seguro de protección de pagos, de vida o una cuenta con comisión que haya que abrir.</small></label>
                 <div class="pre-fila">
                   <label class="pre-campo"><span>Extra al mes para la deuda (€)</span>
                     <input type="number" id="prestamoExtra" min="0" max="100000" step="10" inputmode="decimal" /></label>
@@ -2390,6 +2395,31 @@
                 </div>
                 <label class="pre-casilla"><input type="checkbox" id="prestamoSeguir" /><span><strong>Plan agresivo:</strong> seguir pagando cada mes lo mismo que hoy y llevar la diferencia a la deuda más cara</span></label>
                 <label class="pre-casilla"><input type="checkbox" id="prestamoHipoteca" /><span>Contar la hipoteca</span></label>
+                <!-- 26/11/2026 (petición urgente del hogar): «Comparar con otra oferta». La segunda oferta pasa por el mismo motor, con las
+                     mismas deudas y los mismos supuestos de arriba; la comparación la hace canonical-loan-offers-compare.js. -->
+                <details class="pre-oferta-b" id="prestamoOfertaB">
+                  <summary>Comparar con otra oferta</summary>
+                  <p class="pre-ayuda">La segunda oferta se compara con la de arriba sobre las mismas deudas y con lo mismo de abajo (plan agresivo, extra, ingresos).</p>
+                  <label class="pre-campo"><span>Nombre de la otra oferta</span>
+                    <input type="text" id="prestamoBNombre" maxlength="40" autocomplete="off" placeholder="Oferta B" /></label>
+                  <div class="pre-fila">
+                    <label class="pre-campo"><span>¿Cuánto dinero? (€)</span>
+                      <input type="number" id="prestamoBCapital" min="500" max="200000" step="100" inputmode="decimal" /></label>
+                    <label class="pre-campo"><span>Meses</span>
+                      <input type="number" id="prestamoBPlazo" min="3" max="120" step="1" inputmode="numeric" /></label>
+                    <label class="pre-campo"><span>TIN (%)</span>
+                      <input type="number" id="prestamoBTin" min="0" max="30" step="0.01" inputmode="decimal" /></label>
+                  </div>
+                  <div class="pre-fila">
+                    <label class="pre-campo"><span>Comisión de apertura (%)</span>
+                      <input type="number" id="prestamoBComision" min="0" max="10" step="0.1" inputmode="decimal" /></label>
+                    <label class="pre-campo"><span>Comisión por amortizar antes (%)</span>
+                      <input type="number" id="prestamoBComisionAnticipada" min="0" max="5" step="0.1" inputmode="decimal" placeholder="si la hay" /></label>
+                    <label class="pre-campo"><span>Seguros o vinculaciones (€ al mes)</span>
+                      <input type="number" id="prestamoBSeguro" min="0" max="1000" step="1" inputmode="decimal" placeholder="si los hay" /></label>
+                  </div>
+                  <button type="button" class="e19-btn e19-btn-secondary" id="prestamoBQuitar">Quitar la otra oferta</button>
+                </details>
                 <p class="pre-error" id="prestamoError" role="alert" hidden></p>
                 <button type="button" class="e19-btn e19-btn-secondary" id="prestamoReset">Volver a la oferta de partida</button>
               </form>
@@ -8517,8 +8547,9 @@
     <script defer src="me-lo-puedo-permitir.js?v=20261122und08"></script>
     <script defer src="ajustes-areas.js?v=20261122und04b"></script>
     <script defer src="escenario-ui.js?v=20261124dn38"></script>
+    <script defer src="canonical-loan-offers-compare.js?v=20261126pre2"></script>
     <script defer src="canonical-loan-payoff-plan.js?v=20261114pre1"></script>
-    <script defer src="prestamo-deuda-ui.js?v=20261116cla1"></script>
+    <script defer src="prestamo-deuda-ui.js?v=20261126pre2"></script>
     <script defer src="canonical-payroll.js?v=20261008wp31a1"></script>
     <script defer src="nominas-ui.js?v=20261008wp31a1"></script>
     <script defer src="estados-ui.js?v=20261009wp37a1"></script>

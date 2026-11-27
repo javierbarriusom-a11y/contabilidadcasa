@@ -13491,23 +13491,29 @@ test.describe("TRE-D1 · Deuda › Plan nuevo", () => {
 // en una lista y cada «Ver…» a lo de siempre (todas las piezas del inventario a dos toques como mucho). Arranque en caliente, contratos FICTICIOS.
 test.describe("TRE-D3c · Deuda › Comparar con otras formas", () => {
   const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  // 26/11/2026: partida en dos pruebas (las formas; cada «Ver…» a su sitio). Junta, a 390 px en el WebKit del CI pasaba de los 150 s
+  // aun llegando al final (#691: el resultado ya estaba en pantalla). Las mismas comprobaciones, ninguna menos; cada parte, su tiempo.
+  async function abrirComparar(page, viewport) {
+    await arrancarEnCaliente(page, { viewport });
+    await page.evaluate(() => { location.hash = "deuda-ruta"; });
+    await deudaPlanNueva(page);
+    const vista = page.locator("#deudaPlanV2");
+    await expect(vista.locator("#dpv2Fecha")).toBeVisible({ timeout: 20000 });
+    const panel = page.locator("#deudaPlanV2Comparar");
+    const abrir = async () => {
+      await vista.locator('[data-dpv2="comparar"]').click();
+      await expect(panel.locator('[data-dpv2-cmp-fila="plan"]')).toBeVisible({ timeout: 15000 });
+    };
+    await abrir();
+    return { vista, panel, abrir };
+  }
   for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
     const etiqueta = viewport.width === 390 ? " @safari" : "";
-    test(`las formas con su fecha y su coste, y cada «Ver…» a su sitio de siempre, a ${viewport.width} px${etiqueta}`, async ({ page }) => {
+    test(`las formas con su fecha y su coste, sin campos, y «Guardar como escenario» sin aplicar, a ${viewport.width} px${etiqueta}`, async ({ page }) => {
       test.setTimeout(150000);
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
-      await arrancarEnCaliente(page, { viewport });
-      await page.evaluate(() => { location.hash = "deuda-ruta"; });
-      await deudaPlanNueva(page);
-      const vista = page.locator("#deudaPlanV2");
-      await expect(vista.locator("#dpv2Fecha")).toBeVisible({ timeout: 20000 });
-      const panel = page.locator("#deudaPlanV2Comparar");
-      const abrir = async () => {
-        await vista.locator('[data-dpv2="comparar"]').click();
-        await expect(panel.locator('[data-dpv2-cmp-fila="plan"]')).toBeVisible({ timeout: 15000 });
-      };
-      await abrir();
+      const { vista, panel } = await abrirComparar(page, viewport);
       // La fila del plan da la misma fecha que el héroe (sin plan guardado, la fecha única es la del plan).
       const heroe = (await vista.locator("#dpv2Fecha").textContent()).trim().toLowerCase();
       await expect(panel.locator('[data-dpv2-cmp-fila="plan"] .dpv2-cmp-dato strong').first()).toHaveText(new RegExp(`^${heroe}$`, "i"));
@@ -13527,6 +13533,14 @@ test.describe("TRE-D3c · Deuda › Comparar con otras formas", () => {
       await panel.locator('[data-dpv2-cmp-fila="caja-avalancha"] [data-dpv2-cmp="escenario"]').click();
       await expect(panel.locator(".dpv2-cmp-estado")).toContainText("No se ha aplicado nada");
       expect(await page.evaluate(() => loadEscenarioMotorSaved().length)).toBe(antes + 1);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+
+    test(`cada «Ver…» a su sitio de siempre, Escape devuelve el foco y «Probar un préstamo» lleva a Préstamo, a ${viewport.width} px${etiqueta}`, async ({ page }) => {
+      test.setTimeout(150000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      const { vista, panel, abrir } = await abrirComparar(page, viewport);
       // «Ver el camino»: lo de siempre, en su sitio (un toque desde aquí).
       await panel.locator('[data-dpv2-cmp="camino"]').click();
       await expect(panel).toBeHidden();
@@ -13555,6 +13569,7 @@ test.describe("TRE-D3c · Deuda › Comparar con otras formas", () => {
     });
   }
 });
+
 
 // TRE-D2 · «Ajustar el plan» (decimotercera §2.3; auditoría de diseño §5.2, PR 2): panel derecho en el escritorio y hoja inferior en el
 // móvil, con los controles del plan óptimo de siempre (los mismos nodos) y una vista previa que se mueve con ellos; al cerrar, todo
@@ -13881,6 +13896,78 @@ test.describe("TRE-D5b · lo que no eran ofertas, en su sitio", () => {
       await page.evaluate(() => { location.hash = "deuda-comparar"; });
       await expect(page.locator("#deuda-comparar")).toBeVisible({ timeout: 20000 });
       for (const sel of ["#proxEuroCard", "#nominaCard", ".deuda-capacidad-card"]) await expect(page.locator(`#deuda-comparar ${sel}`)).toHaveCount(0);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
+// Deuda › Préstamo para saldar · «Comparar con otra oferta» (26/11/2026, petición urgente del hogar). Tarjeta INVENTADA al 21 % dada de
+// alta en Contratos; dos ofertas INVENTADAS. Lo tecleado antes del primer pintado no se pierde (los oyentes, desde la carga).
+test.describe("Deuda › Préstamo · comparar dos ofertas", () => {
+  for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+    test(`el impacto de cada una frente a no pedir nada, quién gana cada criterio, quitar con deshacer y se recuerda (${viewport.width} px)`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(120000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#deuda-contratos");
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+      await page.reload();
+      await page.fill("#deudaContratosAddEntity", "Tarjeta Prueba");
+      await page.selectOption("#deudaContratosAddType", "Préstamo");
+      await page.fill("#deudaContratosAddPrincipal", "4000");
+      await page.fill("#deudaContratosAddApr", "21");
+      await page.fill("#deudaContratosAddPayment", "150");
+      await page.fill("#deudaContratosAddInstallments", "36");
+      await page.locator('#deudaContratosAddForm button[type="submit"]').click();
+      // Se escribe nada más entrar, sin esperar a que la pestaña se pinte.
+      await page.evaluate(() => { location.hash = "#deuda-prestamo"; });
+      await page.fill("#prestamoNombre", "Banco Uno FICTICIO");
+      const result = page.locator("#prestamoResultado");
+      await expect(result.locator(".pre-cuota")).toBeVisible({ timeout: 15000 });
+      await page.fill("#prestamoCapital", "4000");
+      await page.fill("#prestamoPlazo", "48");
+      await page.fill("#prestamoTin", "7.5");
+      // Sin la segunda oferta, no hay comparación.
+      await expect(page.locator("#prestamoComparar")).toHaveCount(0);
+      await page.locator("#prestamoOfertaB > summary").click();
+      await page.fill("#prestamoBNombre", "Banco Dos FICTICIO");
+      await page.fill("#prestamoBCapital", "4000");
+      await page.fill("#prestamoBPlazo", "60");
+      await page.fill("#prestamoBTin", "6.9");
+      await page.fill("#prestamoBSeguro", "15");
+      const card = page.locator("#prestamoComparar");
+      await expect(card).toBeVisible({ timeout: 10000 });
+      await expect(card.locator(".pre-comparar-titulo")).toHaveText(/^(La más conveniente: Banco (Uno|Dos) FICTICIO|Sin una ganadora clara)$/);
+      await expect(card.locator(".pre-comparar-frase")).toContainText(/es la más barata en total: [\d.]+ € menos que/);
+      // Frente a no pedir nada: las dos, con el signo en palabras.
+      await expect(card.locator(".pre-impacto")).toHaveCount(2);
+      await expect(card.locator(".pre-impacto").first()).toContainText("Banco Uno FICTICIO");
+      for (const linea of await card.locator(".pre-impacto-linea").all()) await expect(linea.locator(".pre-impacto-signo")).toHaveText(/^(Mejor|Peor|Igual)$/);
+      await expect(card.locator(".pre-impacto").first()).toContainText(/Os (ahorra|cuesta) [\d.,]+\s€/);
+      // La tabla: seis criterios con ganadora y cinco filas de información; la mejor de cada fila, marcada.
+      await expect(card.locator(".pre-comparar-tabla tbody tr")).toHaveCount(11);
+      expect(await card.locator('.pre-comparar-tabla td[data-gana="1"]').count()).toBeGreaterThanOrEqual(5);
+      await expect(card).toContainText("Coste efectivo anual (TAE con seguros)");
+      // El seguro de la otra oferta sube su coste efectivo por encima de su TAE.
+      const efectivo = await page.evaluate(() => {
+        const s = JSON.parse(storageGet(storageKey("deuda-prestamo-saldar"), "{}"));
+        return { b: s.offerB, label: s.label };
+      });
+      expect(efectivo.label).toBe("Banco Uno FICTICIO");
+      expect(efectivo.b).toMatchObject({ label: "Banco Dos FICTICIO", capital: 4000, months: 60, tinPct: 6.9, insuranceMonthly: 15 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "sin desbordar en horizontal").toBe(true);
+      // Se recuerda al recargar, con el desplegable abierto.
+      await page.reload();
+      await page.evaluate(() => { location.hash = "#deuda-prestamo"; });
+      await expect(page.locator("#prestamoComparar")).toBeVisible({ timeout: 15000 });
+      await expect(page.locator("#prestamoOfertaB")).toHaveAttribute("open", "");
+      await expect(page.locator("#prestamoBTin")).toHaveValue("6.9");
+      // Quitar la otra oferta, con deshacer.
+      await page.locator("#prestamoBQuitar").click();
+      await expect(page.locator("#prestamoComparar")).toHaveCount(0);
+      await page.locator("#undoToastButton").click();
+      await expect(page.locator("#prestamoComparar")).toBeVisible();
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }
