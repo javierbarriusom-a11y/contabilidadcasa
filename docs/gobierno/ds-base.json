@@ -1,0 +1,245 @@
+{
+  "nota": "DS-1: trinquete de la escala de diseño. Generado por tools/ds-medida.mjs; no se edita a mano.",
+  "totales": {
+    "tipografia": 547,
+    "espaciado": 1614,
+    "radios": 286,
+    "redondeo": 138
+  },
+  "ficheros": {
+    "a5-model-evaluation.js": {
+      "redondeo": 3
+    },
+    "anomalias.css": {
+      "tipografia": 0,
+      "espaciado": 4,
+      "radios": 0
+    },
+    "app.js": {
+      "redondeo": 75
+    },
+    "base-cero.css": {
+      "tipografia": 0,
+      "espaciado": 3,
+      "radios": 2
+    },
+    "calma.css": {
+      "tipografia": 12,
+      "espaciado": 23,
+      "radios": 0
+    },
+    "camino-deuda.css": {
+      "tipografia": 0,
+      "espaciado": 16,
+      "radios": 3
+    },
+    "canonical-debt-comparator.js": {
+      "redondeo": 3
+    },
+    "canonical-e14-debt-adapter.js": {
+      "redondeo": 1
+    },
+    "canonical-payroll.js": {
+      "redondeo": 2
+    },
+    "canonical-reminders.js": {
+      "redondeo": 1
+    },
+    "canonical-statement-anomalies.js": {
+      "redondeo": 1
+    },
+    "capas.css": {
+      "tipografia": 0,
+      "espaciado": 5,
+      "radios": 3
+    },
+    "captura-duplicados.css": {
+      "tipografia": 0,
+      "espaciado": 1,
+      "radios": 0
+    },
+    "carta-mes.css": {
+      "tipografia": 1,
+      "espaciado": 1,
+      "radios": 0
+    },
+    "chart-kit.css": {
+      "tipografia": 0,
+      "espaciado": 10,
+      "radios": 0
+    },
+    "cirbe.css": {
+      "tipografia": 0,
+      "espaciado": 7,
+      "radios": 0
+    },
+    "contingencia.css": {
+      "tipografia": 0,
+      "espaciado": 8,
+      "radios": 1
+    },
+    "datos.css": {
+      "tipografia": 1,
+      "espaciado": 5,
+      "radios": 0
+    },
+    "design-tokens.css": {
+      "tipografia": 13,
+      "espaciado": 303,
+      "radios": 12
+    },
+    "deuda-tipo.css": {
+      "tipografia": 0,
+      "espaciado": 5,
+      "radios": 0
+    },
+    "escalera.css": {
+      "tipografia": 1,
+      "espaciado": 18,
+      "radios": 2
+    },
+    "estados.css": {
+      "tipografia": 1,
+      "espaciado": 1,
+      "radios": 3
+    },
+    "extracto-pdf-ui.js": {
+      "redondeo": 1
+    },
+    "extracto-perfiles.css": {
+      "tipografia": 0,
+      "espaciado": 6,
+      "radios": 1
+    },
+    "ficha-movimiento-ui.js": {
+      "redondeo": 1
+    },
+    "fiscal-campana.css": {
+      "tipografia": 0,
+      "espaciado": 30,
+      "radios": 0
+    },
+    "indice-vivienda.css": {
+      "tipografia": 0,
+      "espaciado": 5,
+      "radios": 1
+    },
+    "informe-renta-ui.js": {
+      "redondeo": 1
+    },
+    "local-renta-ui.js": {
+      "redondeo": 1
+    },
+    "mapa-pagos.css": {
+      "tipografia": 0,
+      "espaciado": 14,
+      "radios": 1
+    },
+    "nomina.css": {
+      "tipografia": 0,
+      "espaciado": 11,
+      "radios": 1
+    },
+    "nominas.css": {
+      "tipografia": 0,
+      "espaciado": 6,
+      "radios": 0
+    },
+    "operaciones.css": {
+      "tipografia": 0,
+      "espaciado": 8,
+      "radios": 1
+    },
+    "p2.css": {
+      "tipografia": 11,
+      "espaciado": 19,
+      "radios": 10
+    },
+    "partidas-ui.js": {
+      "redondeo": 9
+    },
+    "patrimonio.css": {
+      "tipografia": 1,
+      "espaciado": 7,
+      "radios": 0
+    },
+    "politica.css": {
+      "tipografia": 0,
+      "espaciado": 11,
+      "radios": 2
+    },
+    "prestamo-deuda-ui.js": {
+      "redondeo": 2
+    },
+    "prestamo-deuda.css": {
+      "tipografia": 1,
+      "espaciado": 39,
+      "radios": 1
+    },
+    "puente.css": {
+      "tipografia": 0,
+      "espaciado": 6,
+      "radios": 0
+    },
+    "recordatorios.css": {
+      "tipografia": 0,
+      "espaciado": 7,
+      "radios": 0
+    },
+    "registrar-ui.js": {
+      "redondeo": 1
+    },
+    "renta-datos-ui.js": {
+      "redondeo": 1
+    },
+    "salud-motor.css": {
+      "tipografia": 0,
+      "espaciado": 0,
+      "radios": 1
+    },
+    "seguimiento-plan.css": {
+      "tipografia": 0,
+      "espaciado": 6,
+      "radios": 5
+    },
+    "sombra.css": {
+      "tipografia": 0,
+      "espaciado": 17,
+      "radios": 0
+    },
+    "styles.css": {
+      "tipografia": 357,
+      "espaciado": 706,
+      "radios": 208
+    },
+    "tema-v2.css": {
+      "tipografia": 148,
+      "espaciado": 306,
+      "radios": 28
+    },
+    "ux-shell.js": {
+      "redondeo": 2
+    },
+    "views/analisis.js": {
+      "redondeo": 3
+    },
+    "views/debt-control.js": {
+      "redondeo": 1
+    },
+    "views/deuda.js": {
+      "redondeo": 9
+    },
+    "views/escenarios.js": {
+      "redondeo": 6
+    },
+    "views/executive-advisor.js": {
+      "redondeo": 4
+    },
+    "views/hoy-v2.js": {
+      "redondeo": 8
+    },
+    "views/new-life-simulation.js": {
+      "redondeo": 2
+    }
+  }
+}
