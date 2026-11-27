@@ -13104,12 +13104,19 @@ test.describe("Deuda › Ruta · plan óptimo de saldo", () => {
   }
 
   // D-N27 (21/11/2026, «ok, pero me preguntas antes y poder modificar»): la bola de nieve no se elige sola; el orden se guarda y se cambia.
+  // En el Safari del CI (#692 y #693, 27/11/2026) se quedó sin tiempo con la captura ya en el último paso (el margen a 80, marcado
+  // como no válido), y al repetirla pasó en 15 s: no es lentitud, algo se cuelga. El cronómetro por tramos dirá cuál si vuelve.
+  let reloj = null;
+  test.beforeEach(() => { reloj = null; }); // el de otra prueba del grupo no se cuenta como suyo
+  test.afterEach(async ({}, testInfo) => informarSiFalla(reloj, testInfo));
   for (const [nombre, viewport] of [["a 1280 px", { width: 1280, height: 900 }], ["a 390 px @safari", { width: 390, height: 844 }]]) {
     test(`pregunta antes de empezar por la más pequeña, recuerda lo elegido y se puede cambiar, ${nombre}`, async ({ page }) => {
       test.setTimeout(60000); // dos recargas y el alta de tres contratos: en Safari pasa de 30 s
+      reloj = cronometro();
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
       await conContratos(page, viewport, "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160\nFinanciera FICTICIA; préstamo; 900; 7; 75");
+      reloj.marca("tres contratos dados de alta y Deuda › Ruta pintada");
       const plan = page.locator("#planOptimoResultado");
       await page.fill("#planOptimoMensual", "200");
       // Con el margen de entrada puede no preguntar; con uno ancho (50 % o 100.000 €), sí.
@@ -13119,6 +13126,7 @@ test.describe("Deuda › Ruta · plan óptimo de saldo", () => {
       const pregunta = plan.locator(".plan-optimo-pregunta");
       await expect(pregunta).toContainText("¿Empezáis por la más pequeña?");
       await expect(pregunta).toContainText("Financiera FICTICIA");
+      reloj.marca("la pregunta, con el margen ancho");
       await expect(plan).toContainText("Orden recomendado: avalancha");
       await expect(page.locator('input[name="planOptimoOrden"][value="avalancha"]')).toBeChecked();
       await pregunta.getByRole("button", { name: "Sí, por la más pequeña" }).click();
@@ -13127,21 +13135,26 @@ test.describe("Deuda › Ruta · plan óptimo de saldo", () => {
       await expect(page.locator('input[name="planOptimoOrden"][value="bola-nieve"]')).toBeChecked();
       await expect(page.locator('input[name="planOptimoOrden"][value="bola-nieve"]')).toBeFocused();
       await expect(plan.locator(".plan-optimo-tramos li").first()).toContainText("Financiera FICTICIA");
+      reloj.marca("elegida la bola de nieve");
       // Se recuerda al volver, y no se pregunta otra vez.
       await page.reload();
       await page.evaluate(() => { location.hash = "deuda-ruta"; });
       await expect(plan).toContainText("Orden elegido: bola de nieve", { timeout: 20000 });
       await expect(plan.locator(".plan-optimo-pregunta")).toHaveCount(0);
       await expect(page.locator("#planOptimoMargenPct")).toHaveValue("50");
+      reloj.marca("recargada: se recuerda");
       // Y se cambia cuando se quiera.
       await page.locator('input[name="planOptimoOrden"][value="avalancha"]').check();
       await expect(plan).toContainText("Orden elegido: avalancha");
       await expect(page.locator("#planOptimoNota")).toContainText("Orden guardado: primero la más cara");
+      reloj.marca("cambiada a la avalancha");
       // Tras recargar, el plegable del margen vuelve cerrado (lo guardado sí sigue).
       await page.locator("#planOptimoMargen > summary").click();
       await page.fill("#planOptimoMargenPct", "80");
       await expect(page.locator("#planOptimoMargenPct")).toHaveAttribute("aria-invalid", "true");
+      reloj.marca("el margen a 80, no válido");
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      reloj.marca("sin desbordar");
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }
@@ -13495,6 +13508,11 @@ test.describe("TRE-D3c · Deuda › Comparar con otras formas", () => {
   const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
   // 26/11/2026: partida en dos pruebas (las formas; cada «Ver…» a su sitio). Junta, a 390 px en el WebKit del CI pasaba de los 150 s
   // aun llegando al final (#691: el resultado ya estaba en pantalla). Las mismas comprobaciones, ninguna menos; cada parte, su tiempo.
+  // «Cada Ver…», a 390 px en el Safari del CI (#693, 27/11/2026): sin tiempo a los 150 s con Préstamo ya en pantalla, y en 8 s al
+  // repetirla. El cronómetro por tramos dirá qué tramo se cuelga si vuelve a pasar; no cambia tiempos ni comprobaciones.
+  let relojVer = null;
+  test.beforeEach(() => { relojVer = null; });
+  test.afterEach(async ({}, testInfo) => informarSiFalla(relojVer, testInfo));
   async function abrirComparar(page, viewport) {
     await arrancarEnCaliente(page, { viewport });
     await page.evaluate(() => { location.hash = "deuda-ruta"; });
@@ -13540,15 +13558,18 @@ test.describe("TRE-D3c · Deuda › Comparar con otras formas", () => {
 
     test(`cada «Ver…» a su sitio de siempre, Escape devuelve el foco y «Probar un préstamo» lleva a Préstamo, a ${viewport.width} px${etiqueta}`, async ({ page }) => {
       test.setTimeout(150000);
+      relojVer = cronometro();
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(String(error)));
       const { vista, panel, abrir } = await abrirComparar(page, viewport);
+      relojVer.marca("Comparar abierto");
       // «Ver el camino»: lo de siempre, en su sitio (un toque desde aquí).
       await panel.locator('[data-dpv2-cmp="camino"]').click();
       await expect(panel).toBeHidden();
       await expect(page.locator("#caminoDeudaCard")).toBeVisible();
       await vista.locator('[data-dpv2="volver"]').click();
       await expect(vista.locator("#dpv2Fecha")).toBeVisible();
+      relojVer.marca("«Ver el camino» y de vuelta");
       // «Ver la ruta» de pagar con la caja, la más pequeña primero, abre «Orden de ataque» con esa pestaña.
       await abrir();
       const fila = panel.locator('[data-dpv2-cmp-fila="caja-bola-nieve"]');
@@ -13560,13 +13581,17 @@ test.describe("TRE-D3c · Deuda › Comparar con otras formas", () => {
         await expect(vista.locator("#dpv2Fecha")).toBeVisible();
         await abrir();
       }
+      relojVer.marca("«Ver la ruta» y de vuelta");
       // «Probar un préstamo» lleva a Ofertas › Préstamo; Escape cierra y devuelve el foco al acceso.
       await page.keyboard.press("Escape");
       await expect(panel).toBeHidden();
       await expect(vista.locator('[data-dpv2="comparar"]')).toBeFocused();
+      relojVer.marca("Escape, con el foco de vuelta");
       await abrir();
       await panel.locator('[data-dpv2-cmp-fila="consolidar"] [data-dpv2-cmp="prestamo"]').click();
+      relojVer.marca("pulsado «Probar un préstamo»");
       await expect(page.locator("#deuda-prestamo")).toBeVisible();
+      relojVer.marca("Préstamo a la vista");
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }

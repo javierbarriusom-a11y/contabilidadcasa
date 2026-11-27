@@ -140,13 +140,15 @@ test("DUO-D3 · si el Euribor ±1 punto no mueve el mes de fin, también se dice
 // CI de #690 (26/11/2026), DUO-D3 en Safari: lo escrito en «Al mes de más» antes del primer pintado de Deuda › Plan se perdía, porque los
 // oyentes del plan solo se enganchaban al pintarlo. Ahora se enganchan al cargar el script; y lo escrito se guarda aunque aún no haya plan.
 test("DUO-D3 · los oyentes del plan óptimo, desde la carga: lo escrito antes del primer pintado no se pierde", () => {
+  // Como un navegador: varios oyentes por tipo, todos reciben el evento (desde CAT-14, «Camino» también escucha `input` al cargar).
   const oyentes = {};
-  const documento = { addEventListener: (tipo, fn) => { oyentes[tipo] = fn; }, getElementById: () => null, activeElement: null };
+  const documento = { addEventListener: (tipo, fn) => { (oyentes[tipo] ||= []).push(fn); }, getElementById: () => null, activeElement: null };
+  const emitir = (tipo, evento) => (oyentes[tipo] || []).forEach((fn) => fn(evento));
   const ui = cargarCamino({ document: documento });
   assert.equal(documento.__planOptimoAttached, true, "enganchados al cargar, sin esperar a pintar");
   assert.deepEqual(Object.keys(oyentes).sort(), ["change", "click", "input"]);
   assert.equal(ui.attachPlanOptimo(documento), false, "y una sola vez: el pintado no los vuelve a enganchar");
-  oyentes.input({ target: { id: "planOptimoMensual", value: "300", dataset: {}, setAttribute() {}, removeAttribute() {} } });
+  emitir("input", { target: { id: "planOptimoMensual", value: "300", dataset: {}, setAttribute() {}, removeAttribute() {} } });
   assert.equal(vm.runInContext("planOptimoMensual", ui), 300);
   assert.equal(vm.runInContext("planOptimoModo", ui), "fijo");
 });
