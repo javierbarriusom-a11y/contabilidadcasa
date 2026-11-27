@@ -18,6 +18,11 @@ function marcarCierreEsperado() {
   cierreEsperado = true;
 }
 
+// La opción `reducedMotion` del proyecto no es un fixture: se lee de la configuración del proyecto de la prueba en curso.
+function pideMenosMovimiento(browserName) {
+  return browserName === "webkit" && base.test.info().project.use?.reducedMotion === "reduce";
+}
+
 const test = base.test.extend({
   browser: [
     async ({ browser, playwright, browserName }, use) => {
@@ -48,6 +53,22 @@ const test = base.test.extend({
     },
     { scope: "worker", timeout: 0 },
   ],
+  // WebKit (26.5, el del proyecto «safari») no aplica la opción de contexto `reducedMotion: "reduce"`: dentro de la página,
+  // `matchMedia("(prefers-reduced-motion: reduce)")` da `false` y sigue el `html { scroll-behavior: smooth }` de styles.css. Cada
+  // desplazamiento de Playwright antes de un clic se animaba: la página seguía moviéndose cuando tocaba, y el toque caía en el
+  // elemento de al lado (el radio de «bola de nieve» en vez del de «avalancha», la barra de arriba, la tarjeta). En el CI de #692,
+  // #693 y #694 colgó «plan óptimo · pregunta antes», TRE-D3c y las de Plan › Previsión. `page.emulateMedia` sí lo aplica: se pide
+  // lo mismo que ya dice la configuración, en cada página que se abre.
+  context: async ({ context, browserName }, use) => {
+    if (pideMenosMovimiento(browserName)) {
+      context.on("page", (nueva) => { nueva.emulateMedia({ reducedMotion: "reduce" }).catch(() => {}); });
+    }
+    await use(context);
+  },
+  page: async ({ page, browserName }, use) => {
+    if (pideMenosMovimiento(browserName)) await page.emulateMedia({ reducedMotion: "reduce" });
+    await use(page);
+  },
 });
 
 module.exports = { ...base, test, marcarCierreEsperado };
