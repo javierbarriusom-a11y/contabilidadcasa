@@ -73,5 +73,5 @@ test("UND-06 · en la pestaña, medido al abrir un área con indicador, con su C
   assert.match(css, /:root\[data-tema="v2"\] \.hoy-v2-insignia\.is-rojo \{[^}]*color: var\(--e19-surface\);/);
   const html = read("index.html");
   assert.match(html, /views\/hoy-v2\.js\?v=(?:20261122und0[68]|20261123duo04|20261124duod1|20261124dn39)/);
-  assert.match(html, /tema-v2\.css\?v=(?:20261122und0[68]|20261125tred1|20261125tred2|20261125tre3c|20261125tred4|20261125tred4b|20261125tred5|20261126tred5b|20261126tred5c|20261126r1a)/);
+  assert.match(html, /tema-v2\.css\?v=(?:20261122und0[68]|20261125tred1|20261125tred2|20261125tre3c|20261125tred4|20261125tred4b|20261125tred5|20261126tred5b|20261126tred5c|20261126r1[ab])/);
 });

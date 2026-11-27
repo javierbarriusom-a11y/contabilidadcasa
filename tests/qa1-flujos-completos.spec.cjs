@@ -13968,10 +13968,20 @@ test.describe("R1 · el marco común, primera parte", () => {
       await expect(punto).toHaveAttribute("aria-expanded", "false");
       await expect(page.locator("#durabilityStatus")).toBeHidden();
       await expect(punto).toBeFocused();
-      // Tocar fuera: el antetítulo de la franja (a 390 px la hoja abierta tapa el título de la pantalla, como debe).
+      // Tocar fuera: el nombre de la marca (a 390 px la hoja abierta tapa el título de la pantalla, como debe; el antetítulo de la franja,
+      // que repetía el título, ya no sale: R1, segunda parte).
       await punto.click();
-      await page.locator("#viewEyebrow").click();
+      await page.locator(".sidebar .brand-block strong").click();
       await expect(punto).toHaveAttribute("aria-expanded", "false");
+      // R1, segunda parte: en el móvil el punto es la insignia de la marca FC y la franja (con «Guía») sale solo con algo que decir, como
+      // abrir el punto; en el escritorio, el punto y «Guía» siguen a la vista en la franja.
+      if (viewport.width === 390) {
+        await expect(page.locator(".sidebar .brand-mark #estadoPunto")).toBeVisible();
+        await expect(page.locator("#topbarGuia")).toBeHidden();
+        await punto.click();
+      } else {
+        await expect(page.locator(".topbar #estadoPunto")).toBeVisible();
+      }
       // «Guía» abre la guía con lo que decía el recuadro.
       await page.locator("#topbarGuia").click();
       const guia = page.locator("#e17FlowGuideDialog");
@@ -14081,6 +14091,57 @@ test.describe("Deuda › Préstamo · comparar dos ofertas", () => {
       await page.locator("#undoToastButton").click();
       await expect(page.locator("#prestamoComparar")).toBeVisible();
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
+// R1, segunda parte (auditoría de diseño §4: el título a menos de 100 px del borde; 26/11/2026). Con el tema v2, la tira de cinco cifras y
+// las pestañas de la pantalla (con su «Anterior / Siguiente») van debajo del título que se ve; el antetítulo de la franja, que lo repetía,
+// fuera; en el móvil, el punto es la insignia de la marca FC y la franja solo sale con algo que decir. Hoy (el aviso de primeros pasos,
+// TRE-09) y Movimientos y las vistas nuevas de Deuda con pestañas propias (fase C) no entran aún.
+test.describe("R1 · El título arriba", () => {
+  const rutas = ["plan", "cierre", "registrar", "ajustes", "faqs-ayuda", "inversion-cartera", "inversion-fiscal", "deuda-prestamo", "deuda-simulador"];
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+    const etiqueta = viewport.width === 390 ? " @safari" : "";
+    test(`Plan, Cierre, Registrar, Ajustes, FAQs, Inversión, Préstamo y Simulador con el título a menos de 100 px; las pestañas y la tira debajo, a ${viewport.width} px${etiqueta}`, async ({ page }) => {
+      test.setTimeout(150000);
+      await page.setViewportSize(viewport);
+      for (const ruta of rutas) {
+        await page.goto(`/index.html#${ruta}`);
+        const seccion = page.locator(`#${ruta}`);
+        await expect(seccion).toBeVisible({ timeout: 15000 });
+        // Medido cuando la pantalla ha terminado de pintarse (aria-busy fuera; la vista nueva de Cierre llega después de lo de siempre).
+        await expect(seccion).not.toHaveAttribute("aria-busy", "true", { timeout: 20000 });
+        const medir = () => page.evaluate((id) => {
+          const sec = document.getElementById(id);
+          const titulo = [...sec.querySelectorAll("h1:not(.sr-only), h2")].find((h) => h.getClientRects().length);
+          const tira = document.getElementById("topbarStatusStrip");
+          const tiraVisible = tira.getClientRects().length > 0;
+          const pestanas = [...sec.querySelectorAll(':scope > nav[id$="ScreenTabs"], :scope > nav[id$="OfertasTabs"], :scope > nav[id$="FlowNav"]')].filter((n) => n.getClientRects().length);
+          return {
+            top: Math.round(titulo.getBoundingClientRect().top + scrollY),
+            pestanasDebajo: pestanas.every((n) => Boolean(titulo.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING)),
+            tiraDebajo: !tiraVisible || Boolean(titulo.compareDocumentPosition(tira) & Node.DOCUMENT_POSITION_FOLLOWING),
+            desborda: document.documentElement.scrollWidth > window.innerWidth + 1,
+          };
+        }, ruta);
+        await expect.poll(async () => (await medir()).top, { message: `${ruta}: el título`, timeout: 15000 }).toBeLessThan(100);
+        const medida = await medir();
+        expect(medida.tiraDebajo, `${ruta}: la tira, debajo del título`).toBe(true);
+        expect(medida.pestanasDebajo, `${ruta}: las pestañas, debajo del título`).toBe(true);
+        expect(medida.desborda, `${ruta}: sin desbordar`).toBe(false);
+      }
+      // El punto: con su palabra en la franja en el escritorio; en el móvil, la insignia de la marca, con la palabra en su nombre accesible.
+      const punto = page.locator("#estadoPunto");
+      await expect(punto).toBeVisible();
+      await expect(punto).toHaveAccessibleName(/^Estado de los datos: (Sincronizado|Solo en este equipo|Revisar)$/);
+      if (viewport.width === 390) {
+        await expect(page.locator(".sidebar .brand-mark > #estadoPunto")).toHaveCount(1);
+        await expect(page.locator(".topbar")).toHaveJSProperty("offsetHeight", 0);
+      } else {
+        await expect(page.locator(".topbar #estadoPunto")).toHaveCount(1);
+        await expect(page.locator("#estadoPuntoTexto")).toBeVisible();
+      }
     });
   }
 });

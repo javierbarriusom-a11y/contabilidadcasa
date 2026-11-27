@@ -271,7 +271,18 @@
     if (!doc || doc.__ckAttached) return false;
     doc.__ckAttached = true;
     const scrubOf = (event) => (event.target && event.target.closest ? event.target.closest(".ck-scrub") : null);
+    // Dónde estaba el puntero la última vez. Un «pointermove» en el mismo punto de la pantalla no es la persona moviendo el ratón:
+    // es la página desplazándose por debajo (WebKit lo manda así, p. ej. al llevar el foco al gráfico con «Volver al punto más bajo»).
+    // Sin esto, el gráfico tomaba el día que quedaba bajo un puntero quieto y lo elegido se perdía (CI de #694, Safari).
+    // Por tipo de puntero: el ratón y el dedo son punteros distintos.
+    const ultimo = {};
+    const quieto = (event) => {
+      const antes = ultimo[event.pointerType];
+      ultimo[event.pointerType] = { x: event.clientX, y: event.clientY };
+      return Boolean(antes) && antes.x === event.clientX && antes.y === event.clientY;
+    };
     doc.addEventListener("pointerdown", (event) => {
+      ultimo[event.pointerType] = { x: event.clientX, y: event.clientY };
       const slider = scrubOf(event);
       if (!slider) return;
       slider.dataset.ckActive = "1";
@@ -279,10 +290,11 @@
       moveToPointer(slider, event);
     });
     doc.addEventListener("pointermove", (event) => {
+      const sinMoverse = quieto(event);
       const slider = scrubOf(event);
       if (!slider) return;
-      // El ratón lee con solo pasar; el dedo, solo mientras está apoyado (si no, el gesto es desplazar la página).
-      if (event.pointerType === "mouse" || slider.dataset.ckActive === "1") moveToPointer(slider, event);
+      // El ratón lee con solo pasar (si de verdad se ha movido); el dedo, solo mientras está apoyado (si no, el gesto es desplazar la página).
+      if ((event.pointerType === "mouse" && !sinMoverse) || slider.dataset.ckActive === "1") moveToPointer(slider, event);
     });
     const release = (event) => {
       const slider = scrubOf(event);

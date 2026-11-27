@@ -193,6 +193,25 @@ test("recorrido con el dedo: lee mientras está apoyado, no al pasar; el ratón 
   assert.equal(attrs["aria-valuenow"], "0");
 });
 
+test("recorrido con el ratón: un «pointermove» en el mismo punto de la pantalla (la página se desplaza debajo) no cambia el día", () => {
+  const doc = fakeDocument();
+  kit.attach(doc);
+  const { slider, attrs } = fakeSlider(["a", "b", "c"], [0, 50, 100]);
+  const raton = (clientX, clientY = 10) => ({ target: slider, clientX, clientY, pointerId: 1, pointerType: "mouse" });
+  doc.fire("pointermove", raton(200)); // pasa por la mitad
+  assert.equal(attrs["aria-valuenow"], "1");
+  doc.fire("keydown", { target: slider, key: "ArrowRight", preventDefault() {} }); // el teclado lo lleva al final
+  assert.equal(attrs["aria-valuenow"], "2");
+  doc.fire("pointermove", raton(200)); // el ratón no se ha movido: la página se ha desplazado debajo (WebKit lo manda así)
+  assert.equal(attrs["aria-valuenow"], "2", "lo elegido no se pierde por un puntero quieto");
+  doc.fire("pointermove", raton(100)); // ahora sí se mueve
+  assert.equal(attrs["aria-valuenow"], "0");
+  // Fuera del gráfico también cuenta como la última posición: volver luego al mismo punto encima del gráfico tampoco es moverse.
+  doc.fire("pointermove", { target: { closest: () => null }, clientX: 300, clientY: 10, pointerType: "mouse" });
+  doc.fire("pointermove", raton(300));
+  assert.equal(attrs["aria-valuenow"], "0");
+});
+
 test("recorrido con teclado: flechas, inicio y fin mueven; preventDefault solo en teclas del gráfico", () => {
   const doc = fakeDocument();
   kit.attach(doc);
