@@ -84,7 +84,7 @@ test("versiones y Novedades: el fichero hay que descargarlo otra vez para tener 
   const html = read("index.html");
   // views/repaso-v2.js siguió a 20261120dec23 con DEC-23 (los grupos clasificados de cada repaso).
   assert.match(html, /<script defer src="views\/repaso-v2\.js\?v=(?:20261120dec2[23]|20261121foco2?)"><\/script>/);
-  assert.match(html, /<script defer src="novedades\.js\?v=(?:20261120dec2[23]|20261121dec30|20261121dec45|20261121areas|20261121dn27|20261121dn28|20261122und|20261122und11|20261122und17|20261122und13|20261122und08|20261122und04|20261122undn33|20261125dn40|20261125tred2|20261125tre3c|20261125tred4|20261125tred5|20261126tred5c|20261124dn38|20261126r1a|20261127r2)"><\/script>/); // 21/11: DEC-30, la semana que viene; DEC-45, «¿te sirve?»
+  assert.match(html, /<script defer src="novedades\.js\?v=(?:20261120dec2[23]|20261121dec30|20261121dec45|20261121areas|20261121dn27|20261121dn28|20261122und|20261122und11|20261122und17|20261122und13|20261122und08|20261122und04|20261122undn33|20261125dn40|20261125tred2|20261125tre3c|20261125tred4|20261125tred5|20261126tred5c|20261124dn38|20261126r1a|20261127cat11|20261127r2b)"><\/script>/); // 21/11: DEC-30, la semana que viene; DEC-45, «¿te sirve?»
   // medidor-utilidad.js pasó a 20261121dec45 con «¿te sirve?» en Novedades (DEC-45).
   assert.match(html, /<script defer src="medidor-utilidad\.js\?v=(?:20261121dec45|20261122und|20261122und17|20261122und13|20261122und08|20261122und04|20261122undn33|20261124dn38|20261125tred1|20261125tred2|20261125tre3c|20261125tred4|20261125tred5)"><\/script>/);
   ["canonical-reminders.js", "recordatorios-ui.js"].forEach((file) => {

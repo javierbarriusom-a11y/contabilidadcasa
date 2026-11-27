@@ -29263,6 +29263,7 @@ function planMesCopyHtml(month) {
 
 function renderPlanMes() {
   if (!qs("planMesTables") || !baseData?.monthlyPlanning?.months?.length) return;
+  globalThis.renderPlan2027Entrada?.(globalThis.FinanceCanonicalPlan2027); // CAT-11 (D-N46): «Preparar el plan de 2027», en los dos temas
   const months = cuadroMandosAllMonths();
   const month = planMesSelectedMonth();
   planMesPopulateMonths(months, month);
