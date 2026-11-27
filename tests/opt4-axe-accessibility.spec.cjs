@@ -2763,6 +2763,37 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// R2 (D-N50, 27/11/2026): el menú de cinco destinos (con el «Más» de un destino abierto y el pie) a 1440 px, y la barra inferior y el
+// menú del móvil a 390 px, en claro y en oscuro.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`R2 · Cinco destinos en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    test("#navDestinosV2 y #navPieV2 a 1440 px: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      test.setTimeout(90000);
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto("/index.html#deuda-contratos");
+      await expect(page.locator('#navDestinosV2 .nav-v2-mas a[aria-current="page"]')).toBeVisible({ timeout: 20000 });
+      await page.mouse.move(0, 0);
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const r = await new AxeBuilder({ page }).include("#navDestinosV2").include("#navPieV2").include(".family-context-card").analyze();
+      expect(fmt(r), fmt(r).slice(0, 5).join("\n")).toEqual([]);
+    });
+    test("#barraDestinosV2 y el menú abierto a 390 px: sin fallos de contraste ni de accesibilidad", async ({ page }) => {
+      test.setTimeout(90000);
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto("/index.html#plan");
+      await expect(page.locator("#barraDestinosV2")).toBeVisible({ timeout: 20000 });
+      const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+      const barra = await new AxeBuilder({ page }).include("#barraDestinosV2").analyze();
+      expect(fmt(barra), fmt(barra).slice(0, 5).join("\n")).toEqual([]);
+      await page.locator("#mobileNavToggle").click();
+      await expect(page.locator("#navDestinosV2")).toBeVisible();
+      const menu = await new AxeBuilder({ page }).include("#navDestinosV2").include("#navPieV2").analyze();
+      expect(fmt(menu), fmt(menu).slice(0, 5).join("\n")).toEqual([]);
+    });
+  });
+}
+
 // CAT-11 (D-N46, 27/11/2026): la línea «Preparar el plan de 2027» y su hoja abierta, con el desplegable abierto, en claro y en oscuro,
 // a 1280 y a 390 px, en el tema v2 y en el clásico (mismas funciones en los dos).
 for (const scheme of ["light", "dark"]) {

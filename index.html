@@ -96,6 +96,9 @@
           <button class="mobile-nav-toggle" id="mobileNavToggle" type="button" aria-expanded="false" aria-controls="primarySidebar">Menú</button>
         </div>
 
+        <!-- R2 · D-N50 (27/11/2026): con el tema v2, el buscador y los cinco destinos con su pregunta (views/navegacion-v2.js). El menú de
+             siempre sigue debajo, entero: sus entradas principales no se ven en el v2 y «Herramientas avanzadas» pasa a «Más pantallas». -->
+        <nav class="nav-destinos-v2" id="navDestinosV2" aria-label="Destinos" hidden></nav>
         <nav class="side-nav" aria-label="Áreas de la aplicación">
           <p class="nav-section-label">Día a día</p>
           <a href="#home" class="nav-primary-link active">
@@ -309,6 +312,9 @@
           </div>
         </div>
 
+        <!-- R2: el pie del menú del diseño (Ajustes con el estado de guardado, y la ayuda), solo con el tema v2. -->
+        <nav class="nav-pie-v2" id="navPieV2" aria-label="Ajustes y ayuda" hidden></nav>
+
         <!-- WP-01 (NXP-02): sello de la versión que corre en este dispositivo y «Novedades», una línea
              por cada cambio visible desplegado (novedades.js). Lo pinta ux-shell.js, fuera del script principal. -->
         <details class="version-stamp" id="versionStamp">
@@ -320,6 +326,8 @@
           <ul class="version-stamp-list" id="novedadesList"></ul>
         </details>
       </aside>
+      <!-- R2 · D-N50: la barra inferior del móvil con los cinco destinos (DUO-05 rehecha: se esconde al bajar). Solo con el tema v2. -->
+      <nav class="barra-destinos-v2" id="barraDestinosV2" aria-label="Destinos" hidden></nav>
 
       <div class="workspace">
         <!-- Rendimiento (30/09/2026): la cabecera nace ya en su estado final —eyebrow oculto y <h1> solo para
@@ -8512,7 +8520,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20261119priv4"></script>
-    <script defer src="novedades.js?v=20261127cat11"></script>
+    <script defer src="novedades.js?v=20261127r2b"></script>
     <script defer src="ux-shell.js?v=20261121dec45"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -8635,6 +8643,7 @@
     <script defer src="canonical-debt-offers.js?v=20261125tred5"></script>
     <script defer src="views/deuda-ofertas-v2.js?v=20261125tred5"></script>
     <script defer src="views/marco-v2.js?v=20261126r1b"></script>
+    <script defer src="views/navegacion-v2.js?v=20261127r2"></script>
     <script defer src="views/movimientos-v2.js?v=20261119dat07"></script>
     <script defer src="views/importar-v2.js?v=20261116xda04b"></script>
     <script defer src="views/clasificar-v2.js?v=20261120dec14"></script>
@@ -8660,7 +8669,7 @@
     <script defer src="siguiente-paso-ui.js?v=20261028wp17"></script>
     <script defer src="cierre-guia-ui.js?v=20261104cierreC3"></script>
     <script defer src="antes-de-decidir-ui.js?v=20261113xda10pr3"></script>
-    <script defer src="app.js?v=20261127cat11"></script>
+    <script defer src="app.js?v=20261127r2b"></script>
     <script defer src="p2-ui.js?v=20261119priv4"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
