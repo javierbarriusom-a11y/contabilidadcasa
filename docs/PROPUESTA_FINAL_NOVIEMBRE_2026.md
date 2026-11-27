@@ -353,6 +353,7 @@ gana cada criterio.
 - **Inflación:** las partidas de 2027 se escriben **a precios de hoy** (la mediana). La previsión ya sube los gastos con la inflación de Ajustes › Supuestos mes a mes (`app.js`, `expenseMultiplier`); sumarla también en el plan la contaría dos veces. La pantalla enseña aparte cuánto añade esa inflación en 2027.
 - **«Aplicar ya como previsión»:** lo aceptado se escribe en las partidas de 2027 del plan, que es lo que lee Previsión, tras «Qué ocurrirá» y con deshacer entero (decisión 6 de `ESTADO.md` §3). No espera a diciembre. La app no lo aplica sola: lo hace el hogar.
 - **Queda fuera** lo que depende de piezas sin hacer: «los recibos que suben» (CAT-03).
+- **La ventana real es corta (medido el 27/11):** la app solo tiene reales en los meses del plan, que empieza en julio de 2026. En diciembre, la «mediana de 12 meses» sale de julio a noviembre (5 meses), sin invierno, y el aviso del trimestre no puede saltar (hacen falta 6). **El hogar eligió el 27/11 la opción 3:** el Plan 2027 se hace ahora con esa mediana, con el aviso de «poca historia» en cada partida, y **se repite en marzo de 2027** con 8 meses (H-38, abajo). La opción 2, ampliar la ventana con los extractos anteriores a julio, quedó descartada.
 
 ### 5.2 Tareas del hogar con fecha (las que mueven la 1.0)
 
@@ -368,6 +369,7 @@ gana cada criterio.
 | H-36 | Datos del local en la app | 31/1 |
 | H-26 | Tres tiempos de carga en el iPhone | Antes de F3 |
 | H-34 | Desplegar el buzón de extractos (opcional) | Sin fecha |
+| **H-38** (27/11) | Repetir el Plan 2027 con 8 meses de historia (D-N46, opción 3): Plan › Mes, «Preparar el plan de 2027», con el aviso del trimestre ya activo | Marzo de 2027, tras firmar febrero |
 
 ---
 
