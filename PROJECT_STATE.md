@@ -113,7 +113,7 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
-## Cierre de sesión — 27 de noviembre de 2026 (556): coordinación de sesiones con #694 en rojo; CON-05 a CON-08 y el plan del sistema de diseño (D-N56)
+## Cierre de sesión — 27 de noviembre de 2026 (556): coordinación de sesiones con #694 en rojo; CON-05 a CON-08 y el plan del sistema de diseño (D-N56); CAT-01, el inventario de capacidades
 
 - **El hogar** (27/11, conversación nueva): comprobar si #694 está fusionado y desplegado, coordinar las ramas de las otras sesiones y proponer cuatro funciones grandes, además de un plan para aplicar el sistema de diseño del PDF en todas las pantallas, conservando CON-01 a CON-04 y lo pendiente.
 - **#694 (R1 parte 2, PROJECT_STATE 555) no está fusionado.** Su CI 45967233019 sobre `8111f3c2` terminó en rojo a las 10:02 UTC: falló 1 de 111 pruebas de Safari, también al reintentar. Es `qa1-flujos-completos.spec.cjs:5944`, «panel del día e insignia de confianza»: esperaba «Martes 8 dic» y recibió «Sábado 19 dic», con el reloj fijado.
@@ -135,9 +135,14 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
   - hay **25 tamaños de letra** frente a 6 del sistema (185 declaraciones);
   - hay 243 espaciados fuera de la rejilla 4/8 y 18 radios fuera de {12, 16, 24}.
   - Propone tokens de escala y una **guardia de diseño en el CI como trinquete** (DS-0 y DS-1, F1) y migrar pantalla a pantalla.
+- **CAT-01 hecho** (F0, fila 4; el hogar pidió «continúa con la siguiente tarea que puedas mientras esperas»). Se eligió porque no toca pantallas ni el marco, que están en #694 y en R2.
+  - Nuevo `docs/gobierno/capacidades.json`: las 224 líneas de Novedades se reparten en **97 capacidades** y **17 que no lo son** (arreglos, formatos y mudanzas, cada una con su porqué).
+  - Cada capacidad lleva su verbo, sinónimos, dónde se hace y su sigla de origen. Las siglas se comprobaron contra la cabecera de cada módulo: 16 de las escritas de memoria estaban mal y se corrigieron.
+  - Guardia nueva, `tests/cat01-capacidades.test.cjs` (3 pruebas): cada línea de Novedades, una sola vez en el inventario; ninguna huérfana; y las cinco funciones que la decimocuarta auditoría no encontraba se encuentran por su palabra.
+  - Comprobado que la guardia salta: quitando una línea, 1 fallo con el mensaje de qué hacer; restaurada, 3/3.
 - **Decisión pedida: D-N56**, con la tabla de la Propuesta final §5.1. **Siguiente decisión libre: D-N57.**
 - **También se cuestiona** el formato de pedir 6-10 funciones por conversación: se propone un máximo de 4, cada una sustituyendo algo o con fecha (D-N56 g).
-- **Validación** (solo documentos, así que `npm test` y no `verify` completo): sobre `main` `bcdfc927`, `npm test` **7.039/7.039**. Un primer intento dio 11 fallos de build y de Playwright porque al contenedor le faltaba `node_modules`; tras `npm ci`, todo verde.
+- **Validación** (documentos más un JSON y una prueba unitaria, sin pantallas, así que `npm test` y no `verify` ni la batería de navegador): sobre `main` `bcdfc927`, `npm test` **7.039/7.039** con los documentos y **7.042/7.042** con CAT-01. Un primer intento dio 11 fallos de build y de Playwright porque al contenedor le faltaba `node_modules`; tras `npm ci`, todo verde.
 - **Operativo:** rama `claude/zen-franklin-e1r1l2`, solo documentos. **No se fusiona hasta que #694 haya entrado y desplegado** (petición del hogar), ni antes de #697.
 
 ## Cierre de sesión — 27 de noviembre de 2026 (554): documentos de la decimocuarta auditoría y la Propuesta final en `main`; CON-01 a CON-04 (D-N55)

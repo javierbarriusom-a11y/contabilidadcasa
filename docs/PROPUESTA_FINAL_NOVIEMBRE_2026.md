@@ -170,7 +170,7 @@ Cruce de la decimotercera (§7.4), actualizado con la decimocuarta.
 | CAT-06 (R2) | 5 destinos, barra inferior con «+» | **F2** |
 | CAT-07 | Un solo «+» para meter datos | **F2** |
 | CAT-08 | Hoy, primera pantalla del iPhone | **F0** |
-| CAT-01 / CAT-02 | Inventario de capacidades y «Buscar o hacer» | **F0** (01) y **F2** (02) |
+| CAT-01 / CAT-02 | Inventario de capacidades y «Buscar o hacer» | **CAT-01 hecho** (27/11: `docs/gobierno/capacidades.json`, 97 capacidades, y su guardia en el CI); **F2** (02) |
 | CAT-03 | Recibos y suscripciones en Movimientos | **F1** |
 | CAT-04 | «Apuntar gasto» desde el inicio del teléfono | **F2** |
 | CAT-09 / CAT-10 | Pantallas gigantes y Partidas | **F2** (Inversión, Ajustes, Partidas) y **F3** (Apalancamiento, simulador) |
@@ -205,7 +205,7 @@ anterior en rojo**, salvo lo que espere un dato del hogar.
 | 1 | Publicar #691 (R1 parte 1) | Hecho y validado; su CI está en marcha |
 | 2 | **CAT-14:** oyentes enganchados al pintar (patrón DUO-D3) | El mismo fallo puede estar en otras pantallas y aparecer en el cierre |
 | 3 | **CAT-08:** Hoy en la primera pantalla del iPhone | La pantalla más vista; es pequeño |
-| 4 | **CAT-01:** inventario de capacidades | Evita volver a proponer lo que ya existe |
+| 4 | **CAT-01:** inventario de capacidades | Evita volver a proponer lo que ya existe. **Hecho el 27/11** (PROJECT_STATE 556) |
 | 5 | Arreglos de lo que salga del cierre de noviembre | Lo que mande el uso real |
 | 6 | **CIE-01 · Cerrar agosto y septiembre** (petición del hogar, 26/11: «cerrar el mes de agosto, que sigue abierto») | Ver abajo |
 
