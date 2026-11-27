@@ -1,3 +1,4 @@
+const { VERSION_APP_RE } = require("./helpers/version-app.cjs");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -168,5 +169,5 @@ test("INTEG-1 · los botones de exportar viven en Presupuesto del mes y se piden
 
 test("INTEG-1 · el chunk de presupuesto-mes viaja versionado", () => {
   assert.match(app, /views\/presupuesto-mes\.js\?v=20261105pulido1/);
-  assert.match(html, /app.js\?v=20261125dn40/);
+  assert.match(html, VERSION_APP_RE);
 });

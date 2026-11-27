@@ -1,0 +1,13 @@
+{
+  "_que": "CAT-17: la huella (sha256) de app.js con cada versión (?v= de index.html) con la que se publicó. La comprueba tests/cat17-version-app.test.cjs; la escribe tools/huella-app.mjs. Si cambiáis app.js: subid su ?v= en index.html y ejecutad node tools/huella-app.mjs.",
+  "historial": [
+    {
+      "version": "20261125dn40",
+      "sha256": "d5f2ac2acf6098f95a282eaa8bbec826178dd3c7aa0f394a1ad55b045aeaf4ee"
+    },
+    {
+      "version": "20261127cat17",
+      "sha256": "eadecc69d64bdfc67f1da458461ea78ccfef77cd2f19ec18206cfb4b7d749cd7"
+    }
+  ]
+}

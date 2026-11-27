@@ -11,8 +11,8 @@ const { codigoApp, FICHEROS_APP } = require("./helpers/codigo-app.cjs");
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 
-// Pruebas que tratan app.js como fichero (su techo de líneas, su versión minificada): esas sí lo leen directamente.
-const LEEN_APP_JS_COMO_FICHERO = new Set(["arq4-techo-app-js.test.cjs", "opt3-minify-dist.test.cjs"]);
+// Pruebas que tratan app.js como fichero (su techo de líneas, su versión minificada, su huella de CAT-17): esas sí lo leen directamente.
+const LEEN_APP_JS_COMO_FICHERO = new Set(["arq4-techo-app-js.test.cjs", "opt3-minify-dist.test.cjs", "cat17-version-app.test.cjs"]);
 
 test("ninguna prueba lee app.js con fs.readFileSync salvo las que lo tratan como fichero", () => {
   const lecturaDirecta = /readFileSync\(\s*(?:path\.(?:join|resolve)\([^)]*["']\.?\.?\/?app\.js["']\s*\)|require\.resolve\(\s*["']\.\.\/app\.js["']\s*\))/;

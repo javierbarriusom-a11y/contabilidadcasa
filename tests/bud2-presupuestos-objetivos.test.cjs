@@ -1,3 +1,4 @@
+const { VERSION_APP_RE } = require("./helpers/version-app.cjs");
 /**
  * tests/bud2-presupuestos-objetivos.test.cjs
  *
@@ -474,5 +475,5 @@ test("BUD-2 · \"goal\" es una fuente válida en el esquema de presupuestos", ()
 test("BUD-2 · el chunk de presupuesto-mes viaja versionado tras el cambio", () => {
   const html = read("index.html");
   assert.match(app, /views\/presupuesto-mes\.js\?v=20261105pulido1/);
-  assert.match(html, /app.js\?v=20261125dn40/);
+  assert.match(html, VERSION_APP_RE);
 });

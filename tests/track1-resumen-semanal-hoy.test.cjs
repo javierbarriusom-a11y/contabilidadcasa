@@ -1,3 +1,4 @@
+const { VERSION_APP_RE } = require("./helpers/version-app.cjs");
 /**
  * tests/track1-resumen-semanal-hoy.test.cjs
  *
@@ -166,5 +167,5 @@ test("TRACK-1 · renderHomeBudgetGlance consulta homeBudgetWeekSummary()", () =>
 
 test("TRACK-1 · la versión de app.js está actualizada en index.html", () => {
   const html = read("index.html");
-  assert.match(html, /<script defer src="app.js\?v=20261125dn40"><\/script>/);
+  assert.match(html, VERSION_APP_RE);
 });

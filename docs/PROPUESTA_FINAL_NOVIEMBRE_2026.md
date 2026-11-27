@@ -176,7 +176,7 @@ Cruce de la decimotercera (§7.4), actualizado con la decimocuarta.
 | CAT-09 / CAT-10 | Pantallas gigantes y Partidas | **F2** (Inversión, Ajustes, Partidas) y **F3** (Apalancamiento, simulador) |
 | CAT-11 / 12 / 13 | Plan 2027, reglas, comercio limpio | **F1** (11, 12) y **F2** (13) |
 | CAT-14 / CAT-15 | Oyentes al cargar; medir la experiencia | **F0** (14) y **F1** (15) |
-| CAT-16 / CAT-17 | Carga diferida de lo antiguo; versión de `app.js` | **F3** (16) y **F1** (17) |
+| CAT-16 / CAT-17 | Carga diferida de lo antiguo; versión de `app.js` | **F3** (16); **CAT-17 hecho** (27/11: huella de `app.js` en `docs/gobierno/huella-app.json` y su guardia) |
 | Pantallas sin rediseñar | Patrimonio, Inversión, Decidir (Escenarios), Ajustes | **F2** |
 | Graduar y retirar el tema clásico | Pantalla a pantalla, con confirmación del hogar (P9) | **F3** |
 | Versiones anteriores (10 rutas) | Fuera del menú (D-N45) tras la revisión del 14/12 | **F1** |
@@ -245,7 +245,7 @@ gana cada criterio.
 | 4 | **Revisión trimestral del 14/12** (D-N38): graduar o retirar; **D-N45** (Versiones anteriores fuera del menú), **D-N52** y **D-N53** | Con datos del medidor, no con hipótesis |
 | 5 | **CAT-03:** recibos y suscripciones (reaprovecha A16-3 + P8) | Alimenta el Plan 2027 |
 | 6 | **CAT-12 / TRE-14:** reglas de clasificación | Acorta el cierre de diciembre |
-| 7 | **CAT-17:** la versión de `app.js` | Pequeño; quita un riesgo de caché |
+| 7 | **CAT-17:** la versión de `app.js` | Pequeño; quita un riesgo de caché. **Hecho el 27/11** (PROJECT_STATE 556) |
 
 - **Del hogar:** H-26 (tres tiempos de carga en el iPhone), H-12 (política de inversión y plan B, 18/12) y H-13 (5 personas para
   WP-54, antes del 15/12).
