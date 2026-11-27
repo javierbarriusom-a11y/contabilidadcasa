@@ -1,3 +1,4 @@
+const { VERSION_APP_RE } = require("./helpers/version-app.cjs");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -56,5 +57,5 @@ test("V4-6 · el lanzador sigue encontrando Movimientos, esté el grupo encendid
 
 test("V4-6 · el grupo relegado viaja en el shell offline versionado", () => {
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app.js\?v=20261125dn40/);
+  assert.match(html, VERSION_APP_RE);
 });
