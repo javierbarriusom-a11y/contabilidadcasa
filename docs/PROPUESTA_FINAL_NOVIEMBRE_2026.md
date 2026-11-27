@@ -240,7 +240,7 @@ gana cada criterio.
 | Orden | Paquete | Nota |
 |---|---|---|
 | 1 | **CAT-05:** R1 parte 2 (cabecera única) + **CAT-15** (sus medidas en el CI) | Criterio C2 |
-| 2 | **CAT-11 / TRE-12:** Plan 2027 desde lo real de 2026 | D-N46 decidida el 27/11 (C); se adelanta, en cuanto #694 despliegue |
+| 2 | **CAT-11 / TRE-12:** Plan 2027 desde lo real de 2026 | D-N46 decidida el 27/11 (C). **Construido el 27/11** (PROJECT_STATE 558): una hoja desde Plan › Mes, aplicar con «Qué ocurrirá» y deshacer; se repite en marzo (H-38) |
 | 3 | **WP-23:** acciones de la campaña fiscal antes del 31/12 (H-14) | Dinero en juego con fecha fija |
 | 4 | **Revisión trimestral del 14/12** (D-N38): graduar o retirar; **D-N45** (Versiones anteriores fuera del menú), **D-N52** y **D-N53** | Con datos del medidor, no con hipótesis |
 | 5 | **CAT-03:** recibos y suscripciones (reaprovecha A16-3 + P8), **con CON-05**, la ficha del comercio o recibo (D-N56) | Alimenta el Plan 2027 |
