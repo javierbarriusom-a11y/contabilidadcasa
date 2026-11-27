@@ -30,7 +30,9 @@
   //     últimos tres meses cubiertos tampoco se propone (¿ha terminado?);
   //   · solo se escriben celdas en los meses en que la partida existe (`futureMonths` de cada partida);
   //   · A PRECIOS DE HOY: la previsión ya sube los gastos con la inflación de Ajustes mes a mes (app.js, expenseMultiplier); meterla
-  //     también aquí la contaría dos veces. `inflacionTexto` solo dice cuánto añadirá la previsión.
+  //     también aquí la contaría dos veces. `inflacionTexto` solo dice cuánto añadirá la previsión, contando desde el PRIMER MES
+  //     DEL PLAN (baseModelStartDate en app.js), que es desde donde la previsión la compone;
+  //   · los meses ya cerrados no se tocan (en marzo, H-38, enero y febrero lo estarán): `cambios` los salta y `aplicable` los cuenta.
 
   const UMBRAL_PCT = 20;
   const UMBRAL_EUR = 10;
@@ -145,10 +147,11 @@
   /**
    * Lo que el hogar acepta, en celdas del plan. `elecciones[key]`: "mediana" (por defecto en lo mensual), "trimestre" (solo si hay
    * alternativa) o "mantener". Solo devuelve celdas que cambian; lo bloqueado, sin historia o no mensual nunca se toca.
-   * @param {any} model @param {Record<string, string>} [elecciones]
+   * @param {any} model @param {Record<string, string>} [elecciones] @param {{mesesCerrados?: string[]}} [opciones]
    * @returns {Array<{key: string, monthKey: string, from: number, to: number}>}
    */
-  function cambios(model, elecciones = {}) {
+  function cambios(model, elecciones = {}, opciones = {}) {
+    const cerrados = new Set(Array.isArray(opciones.mesesCerrados) ? opciones.mesesCerrados : []);
     if (!model || !model.calculable) return [];
     const out = [];
     model.items.forEach((item) => {
@@ -158,7 +161,7 @@
       if (item.tipo === "en-linea" && !(eleccion === "trimestre" && item.alternativa)) return;
       const to = eleccion === "trimestre" && item.alternativa ? item.alternativa.importe : item.mediana;
       model.targetMonths.forEach((monthKey, index) => {
-        if (!item.meses.includes(monthKey)) return;
+        if (!item.meses.includes(monthKey) || cerrados.has(monthKey)) return;
         const from = item.previsto[index];
         if (Math.abs(to - from) >= 0.005) out.push({ key: item.key, monthKey, from, to });
       });
@@ -166,12 +169,19 @@
     return out;
   }
 
+  /** Cuántas celdas cambiarían y cuántas se saltan por estar su mes cerrado. */
+  function aplicable(model, elecciones = {}, mesesCerrados = []) {
+    const todas = cambios(model, elecciones);
+    const abiertas = cambios(model, elecciones, { mesesCerrados });
+    return { celdas: abiertas.length, saltadas: todas.length - abiertas.length, partidas: new Set(abiertas.map((c) => c.key)).size };
+  }
+
   /** Cuánto añadirá la previsión a los gastos propuestos con la inflación de Ajustes (no se escribe en el plan). */
-  // Como la previsión: cada mes, (1 + p)^(meses desde hoy / 12), contando desde el mes de `model.today`.
-  function inflacionTexto(model, inflacionAnualPct) {
+  // Como la previsión: cada mes, (1 + p)^(meses desde el primer mes del plan / 12).
+  function inflacionTexto(model, inflacionAnualPct, inicioPlan) {
     const pct = Number(inflacionAnualPct);
-    if (!model || !model.calculable || !Number.isFinite(pct) || pct === 0 || !/^\d{4}-\d{2}/.test(String(model.today || ""))) return "";
-    const [y0, m0] = model.today.slice(0, 7).split("-").map(Number);
+    if (!model || !model.calculable || !Number.isFinite(pct) || pct === 0 || !isMonth(String(inicioPlan || ""))) return "";
+    const [y0, m0] = String(inicioPlan).split("-").map(Number);
     const mensual = model.totales.gastos.propuesto / 12;
     const extra = Math.round(model.targetMonths.reduce((total, monthKey) => {
       const [y, m] = monthKey.split("-").map(Number);
@@ -181,5 +191,5 @@
     return `A precios de hoy. Con la inflación de Ajustes (${String(pct).replace(".", ",")} % al año), la previsión le suma unos ${euros(extra)} a lo largo del año.`;
   }
 
-  return { UMBRAL_PCT, UMBRAL_EUR, MIN_MESES_COMPARAR, MIN_MESES_REAL, CUOTA_MENSUAL, ELECCIONES, buildModel, cambios, inflacionTexto };
+  return { UMBRAL_PCT, UMBRAL_EUR, MIN_MESES_COMPARAR, MIN_MESES_REAL, CUOTA_MENSUAL, ELECCIONES, buildModel, cambios, aplicable, inflacionTexto };
 });

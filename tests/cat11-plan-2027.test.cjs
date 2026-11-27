@@ -125,12 +125,13 @@ test("totales: real de 12 meses, previsto y propuesto por ingresos y gastos", ()
 test("a precios de hoy: la inflación no se escribe en el plan; el texto dice cuánto añade la previsión", () => {
   const m = modelo([super12]);
   assert.ok(plan.cambios(m).length === 12 && plan.cambios(m).every((c) => c.to === 500), "las celdas, a precios de hoy");
-  const texto = plan.inflacionTexto(m, 2);
+  const texto = plan.inflacionTexto(m, 2, "2026-07");
   assert.match(texto, /^A precios de hoy\. Con la inflación de Ajustes \(2 % al año\)/);
-  // 500 €/mes en 2027, a 2-13 meses de noviembre de 2026: unos 90 € en el año.
+  // Como la previsión, desde el primer mes del plan (julio de 2026): 500 €/mes en 2027, a 6-17 meses (media 11,5): unos 115 € en el año.
   const extra = Number(texto.match(/unos ([\d.]+) €/)[1].replace(".", ""));
-  assert.ok(extra > 70 && extra < 110, `extra ${extra}`);
-  assert.equal(plan.inflacionTexto(m, 0), "");
+  assert.ok(extra >= 105 && extra <= 125, `extra ${extra}`);
+  assert.equal(plan.inflacionTexto(m, 0, "2026-07"), "");
+  assert.equal(plan.inflacionTexto(m, 2), "", "sin el primer mes del plan no se adivina");
 });
 
 test("el plan ya recoge un cambio reciente (más cerca del trimestre que de la mediana): por defecto se mantiene", () => {
@@ -171,4 +172,13 @@ test("solo escribe en los meses en que la partida existe", () => {
   const c = plan.cambios(m).filter((x) => x.key === "extra");
   assert.deepEqual(c.map((x) => x.monthKey), AÑO.slice(0, 6));
   assert.equal(m.items.find((i) => i.key === "extra").propuestoAnual, 1200);
+});
+
+test("H-38 (marzo): los meses ya cerrados no se tocan y se cuentan aparte", () => {
+  const ropa = partida("ropa", "expense", cada(AÑO, 100), cada(VENTANA, 150));
+  const m = modelo([super12, ropa]);
+  const cerrados = ["2027-01", "2027-02"];
+  const c = plan.cambios(m, {}, { mesesCerrados: cerrados });
+  assert.ok(c.every((x) => !cerrados.includes(x.monthKey)));
+  assert.deepEqual(plan.aplicable(m, {}, cerrados), { celdas: 20, saltadas: 4, partidas: 2 });
 });
