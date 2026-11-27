@@ -12298,6 +12298,8 @@ test.describe("DEC-39 · Sin conexión", () => {
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     await page.goto("/index.html#ajustes");
     const aviso = page.locator("#conexionAviso");
+    // R1: con el tema v2 el chip está en la hoja del punto de estado; el aviso sin conexión, a la vista.
+    await page.locator("#estadoPunto").click();
     await expect(page.locator("#durabilityStatus")).toBeVisible({ timeout: 15000 });
     await expect(aviso).toBeHidden();
     await context.setOffline(true);
@@ -13924,6 +13926,91 @@ test.describe("TRE-D5b · lo que no eran ofertas, en su sitio", () => {
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }
+});
+
+// R1, primera parte (auditoría de diseño §4; 26/11/2026). Con el tema v2: las tres píldoras de estado pasan a un punto con una palabra
+// que abre la hoja de siempre (Escape la cierra y devuelve el foco); el recuadro «Estado · Guía de este flujo» deja de pintarse y su
+// enlace es «Guía», en la cabecera, que abre la guía con lo que decía el recuadro; y sin la tira de cinco cifras en Cierre, Deuda ›
+// Contratos y Deuda › Ofertas (D-N49). En el clásico, todo como estaba. Arranque en caliente, contratos FICTICIOS.
+test.describe("R1 · el marco común, primera parte", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+    const etiqueta = viewport.width === 390 ? " @safari" : "";
+    test(`el punto de estado, «Guía» en la cabecera y sin la tira en Cierre, Contratos y Ofertas, a ${viewport.width} px${etiqueta}`, async ({ page }) => {
+      test.setTimeout(150000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await arrancarEnCaliente(page, { viewport });
+      const tira = page.locator("#topbarStatusStrip");
+      const punto = page.locator("#estadoPunto");
+      const sinDesborde = () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
+      // Cierre (vista nueva por defecto): sin tira ni recuadro, con el punto y «Guía».
+      await page.evaluate(() => { location.hash = "cierre"; });
+      await expect(page.locator('#cierreV2[data-modo="v2"]')).toBeVisible({ timeout: 20000 });
+      await expect(tira).toBeHidden();
+      await expect(page.locator("#e17ViewGuide")).toBeHidden();
+      await expect(punto).toBeVisible();
+      await expect(punto).toHaveAccessibleName(/^Estado de los datos: (Sincronizado|Solo en este equipo|Revisar)$/);
+      await expect(punto).toHaveAttribute("data-tono", /^(cloud|local|warn)$/);
+      await expect(page.locator("#durabilityStatus")).toBeHidden();
+      expect(await sinDesborde()).toBe(true);
+      // El título de la pantalla, por encima de lo que medía con la tira y el recuadro (232 px a 1440; 380 a 390 con la tira).
+      const titulo = await page.locator("#cierre h2:visible").first().evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+      expect(titulo).toBeLessThan(viewport.width === 390 ? 200 : 120);
+      // El punto abre la hoja con lo de siempre; Escape la cierra y devuelve el foco; fuera de ella, también se cierra.
+      await punto.click();
+      await expect(punto).toHaveAttribute("aria-expanded", "true");
+      await expect(page.locator("#durabilityStatus")).toBeVisible();
+      await expect(page.locator("#dataNatureBadge")).toBeVisible();
+      await expect(page.locator("#sourceNote")).toContainText("Fuente:");
+      expect(await sinDesborde()).toBe(true);
+      await page.keyboard.press("Escape");
+      await expect(punto).toHaveAttribute("aria-expanded", "false");
+      await expect(page.locator("#durabilityStatus")).toBeHidden();
+      await expect(punto).toBeFocused();
+      // Tocar fuera: el antetítulo de la franja (a 390 px la hoja abierta tapa el título de la pantalla, como debe).
+      await punto.click();
+      await page.locator("#viewEyebrow").click();
+      await expect(punto).toHaveAttribute("aria-expanded", "false");
+      // «Guía» abre la guía con lo que decía el recuadro.
+      await page.locator("#topbarGuia").click();
+      const guia = page.locator("#e17FlowGuideDialog");
+      await expect(guia).toBeVisible();
+      await expect(guia.locator("#e17FlowGuideContexto")).toContainText("Para qué sirve");
+      await expect(guia.locator("#e17FlowGuideContexto")).toContainText(/Estado.*datos con fecha de análisis/);
+      await expect(guia.locator("#e17FlowGuideContexto")).toContainText("Siguiente paso");
+      await guia.getByRole("button", { name: "Volver al flujo" }).click();
+      await expect(guia).toBeHidden();
+      // Contratos y Ofertas con la vista nueva: sin tira. Con todo el detalle, la tira sigue (no tienen cifra protagonista).
+      await page.evaluate(() => { location.hash = "deuda-contratos"; });
+      await deudaContratosNueva(page);
+      await expect(page.locator("#deudaContratosV2 .dcv2-capacidad")).toBeVisible({ timeout: 20000 });
+      await expect(tira).toBeHidden();
+      await page.evaluate(() => { location.hash = "deuda-comparar"; });
+      await deudaOfertasNueva(page);
+      await expect(page.locator("#deudaOfertasV2")).toBeVisible({ timeout: 20000 });
+      await expect(tira).toBeHidden();
+      expect(await sinDesborde()).toBe(true);
+      // Hoy tiene su propia guía: ahí «Guía» no se repite en la cabecera. El punto, sí.
+      await page.evaluate(() => { location.hash = "home"; });
+      await expect(page.locator("#home")).toBeVisible({ timeout: 20000 });
+      await expect(page.locator("#topbarGuia")).toBeHidden();
+      await expect(punto).toBeVisible();
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+
+  test("con el tema clásico, la cabecera de siempre: las píldoras a la vista, el recuadro y la tira", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.goto("/index.html?tema=clasico#cierre");
+    await expect(page.locator("#durabilityStatus")).toBeVisible({ timeout: 20000 });
+    await expect(page.locator("#estadoPunto")).toBeHidden();
+    await expect(page.locator("#topbarGuia")).toBeHidden();
+    await expect(page.locator("#e17ViewGuide")).toBeVisible();
+    await expect(page.locator("#topbarStatusStrip")).toBeVisible();
+    expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+  });
 });
 
 // Deuda › Préstamo para saldar · «Comparar con otra oferta» (26/11/2026, petición urgente del hogar). Tarjeta INVENTADA al 21 % dada de

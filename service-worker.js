@@ -273,6 +273,7 @@ const SHELL_URLS = [
   "./views/deuda-simulador-v2.js",
   "./views/deuda-plan-v2.js",
   "./views/componentes-v2.js",
+  "./views/marco-v2.js",
   "./views/deuda-contratos-v2.js",
   "./canonical-debt-offers.js",
   "./views/deuda-ofertas-v2.js",
