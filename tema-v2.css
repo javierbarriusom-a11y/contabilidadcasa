@@ -7266,3 +7266,118 @@
     flex-basis: 100%;
   }
 }
+
+/* ---------- R1, segunda parte · el título arriba (auditoría de diseño §4: a menos de 100 px del borde; 26/11/2026) ----------
+   Lo que separaba el título del borde: la franja de la cabecera (57 px), la tira de cinco cifras (71 px en el escritorio, 205 en el móvil)
+   y, en Deuda e Inversión, sus pestañas encima del título. views/marco-v2.js trae la tira y las pestañas debajo de la cabecera que se ve y,
+   en el móvil, el punto a la esquina de la marca FC.
+   1. El antetítulo de la franja repetía el título de la pantalla: fuera (el <h1> de la página, solo para lectores de pantalla, sigue). */
+:root[data-tema="v2"] .topbar #viewEyebrow {
+  display: none;
+}
+
+/* 2. La tira, debajo del título: una raya fina arriba y abajo en vez de su caja; en el móvil, una fila que se desliza (90 px en vez de 205). */
+:root[data-tema="v2"] main #topbarStatusStrip {
+  margin: 4px 0 20px;
+  padding: 12px 0;
+  border-top: 1px solid var(--e19-border);
+  border-bottom: 1px solid var(--e19-border);
+  background: transparent;
+}
+
+@media (max-width: 860px) {
+  :root[data-tema="v2"] #topbarStatusStrip {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 20px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  :root[data-tema="v2"] #topbarStatusStrip > * {
+    flex: 0 0 auto;
+    max-width: 70vw;
+  }
+
+  /* 3. En el móvil, la franja solo cuando tiene algo que decir: abierta desde el punto, sin conexión o un escenario distinto de Base (los
+     avisos que la primera parte deja a la vista; la marca de simulación va en la hoja). Sin nada, se pliega a cero pero no se quita: dentro va el <h1> de la página (con `display: none`
+     la página se queda sin él; axe, page-has-heading-one). «Guía» sale con ella, al abrir el punto. */
+  :root[data-tema="v2"] .topbar:not(:has([data-estado-abierto], #conexionAviso:not([hidden]), #escenarioAviso:not([hidden]))) {
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  :root[data-tema="v2"] .topbar:not(:has([data-estado-abierto], #conexionAviso:not([hidden]), #escenarioAviso:not([hidden]))) > .topbar-status {
+    display: none;
+  }
+
+  /* 4. El punto, como insignia en la esquina de la marca FC (no ocupa columna: con una propia, «Menú» bajaba de fila). Además del color, un
+     signo: lleno con ✓, sincronizado; hueco, solo en este equipo; lleno con !, revisar (WCAG 1.4.1). Su palabra sigue en su nombre
+     accesible y en la hoja. Área de toque de 24 px (WCAG 2.5.8). */
+  :root[data-tema="v2"] .brand-mark:has(> .estado-punto) {
+    position: relative;
+  }
+
+  :root[data-tema="v2"] .brand-mark > .estado-punto {
+    position: absolute;
+    right: -9px;
+    bottom: -9px;
+    justify-content: center;
+    width: 24px;
+    min-height: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  :root[data-tema="v2"] .brand-mark > .estado-punto .estado-punto-texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  :root[data-tema="v2"] .brand-mark > .estado-punto .estado-punto-marca {
+    display: grid;
+    place-items: center;
+    width: 15px;
+    height: 15px;
+    box-sizing: border-box;
+    border: 3px solid var(--e19-warning);
+    background: var(--e19-surface);
+    outline: 2px solid var(--e19-surface);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  :root[data-tema="v2"] .brand-mark > .estado-punto[data-tono="cloud"] .estado-punto-marca {
+    border: 0;
+    background: var(--e19-success);
+  }
+
+  :root[data-tema="v2"] .brand-mark > .estado-punto[data-tono="cloud"] .estado-punto-marca::after {
+    content: "✓";
+  }
+
+  :root[data-tema="v2"] .brand-mark > .estado-punto[data-tono="warn"] .estado-punto-marca {
+    border: 0;
+    background: var(--e19-danger);
+  }
+
+  :root[data-tema="v2"] .brand-mark > .estado-punto[data-tono="warn"] .estado-punto-marca::after {
+    content: "!";
+  }
+
+  /* «Finanzas Casa» (lo dice la marca FC) sobra en la barra del móvil: con él, el nombre partía en dos líneas y la barra crecía. */
+  :root[data-tema="v2"] .sidebar .brand-block > div:not(.brand-mark) > p {
+    display: none;
+  }
+}

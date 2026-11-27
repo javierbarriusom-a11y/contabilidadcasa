@@ -57,7 +57,7 @@
       if (event.key === "Escape" && abierta()) abrirHoja(false, { devolverFoco: true });
     });
     doc().addEventListener("click", (event) => {
-      if (abierta() && !event.target.closest("#topbarStatus")) abrirHoja(false);
+      if (abierta() && !event.target.closest("#topbarStatus, #estadoPunto")) abrirHoja(false);
     });
     root.addEventListener?.("hashchange", () => abrirHoja(false));
   }
@@ -86,12 +86,100 @@
     destino.hidden = false;
   }
 
-  if (doc()) {
-    if (doc().readyState === "loading") doc().addEventListener("DOMContentLoaded", cablear);
-    else cablear();
+  // --- R1, segunda parte · el título arriba (auditoría de diseño §4: a menos de 100 px del borde) -------------------------------------
+  // Lo que separaba el título de la pantalla del borde: la franja de la cabecera (57 px), la tira de cinco cifras (71 px en el escritorio,
+  // 205 en el móvil) y, en Deuda e Inversión, sus pestañas encima del título. Con el tema v2:
+  //  - En el móvil, el punto va como insignia en la esquina de la marca FC (`colocarPunto`) y la franja solo sale con algo que decir
+  //    (tema-v2.css). En el escritorio, el punto se queda con su palabra en la franja.
+  //  - La tira y las pestañas de la pantalla (con su «Anterior / Siguiente») se traen justo debajo de la cabecera que se ve
+  //    (`colocarBajoCabecera`). Son los mismos nodos: sus ids, su pintado y sus manejadores no cambian; donde la pantalla no tiene
+  //    cabecera a la vista (las vistas nuevas que la ocultan), vuelven a su sitio de siempre.
+  const ESTRECHO = "(max-width: 860px)";
+  const esV2 = () => doc()?.documentElement?.dataset?.tema === "v2";
+
+  function hueco(nodo, texto) {
+    if (!nodo.__hueco) {
+      nodo.__hueco = doc().createComment(texto);
+      nodo.before(nodo.__hueco);
+    }
+    return nodo.__hueco;
   }
 
-  const api = { TEXTOS, tonoDelPunto, pintarEstadoPunto, abrirHoja, filasDeGuia, rellenarGuia };
+  function devolver(nodo) {
+    if (nodo?.__hueco && nodo.__hueco.nextSibling !== nodo) nodo.__hueco.after(nodo);
+  }
+
+  /** En el móvil, el punto a la esquina de la marca FC; en el escritorio, en su sitio de la franja. */
+  function colocarPunto() {
+    const punto = $("estadoPunto");
+    const marca = doc()?.querySelector?.(".sidebar .brand-mark");
+    if (!punto || !marca) return;
+    const estrecho = esV2() && typeof root.matchMedia === "function" && root.matchMedia(ESTRECHO).matches;
+    if (estrecho) {
+      hueco(punto, "R1: el sitio del punto en la franja");
+      if (punto.parentElement !== marca) marca.append(punto);
+    } else devolver(punto);
+  }
+
+  /** La cabecera de la pantalla, si se ve. */
+  function cabeceraDe(seccion) {
+    const cabecera = seccion?.querySelector?.(":scope > .section-title") || null;
+    return cabecera && cabecera.getClientRects().length ? cabecera : null;
+  }
+
+  /** Las navegaciones de una pantalla que van encima de su título: sus pestañas y su «Anterior / Siguiente», en su orden. */
+  function pestanasDe(seccion) {
+    if (!seccion?.querySelectorAll) return [];
+    return [...seccion.querySelectorAll(':scope > nav[id$="ScreenTabs"], :scope > nav[id$="OfertasTabs"], :scope > nav[id$="FlowNav"], :scope > [data-r1-movida]')]
+      .filter((nav, i, todas) => todas.indexOf(nav) === i);
+  }
+
+  function colocarBajoCabecera() {
+    const main = $("mainContent");
+    const tira = $("topbarStatusStrip");
+    if (!main || !tira || !esV2()) return;
+    hueco(tira, "R1: el sitio de siempre de la tira");
+    // La que se ve: la primera sección sin `hidden` puede estar dentro de otra oculta (Movimientos).
+    const seccion = [...main.querySelectorAll("section.view-section:not([hidden])")].find((s) => s.getClientRects().length) || null;
+    main.querySelectorAll("[data-r1-movida]").forEach((nodo) => { if (!seccion || !seccion.contains(nodo)) devolver(nodo); });
+    const cabecera = cabeceraDe(seccion);
+    if (!cabecera) {
+      seccion?.querySelectorAll?.(":scope > [data-r1-movida]").forEach(devolver);
+      devolver(tira);
+      return;
+    }
+    let ultimo = cabecera;
+    pestanasDe(seccion).forEach((nav) => {
+      hueco(nav, `R1: el sitio de siempre de #${nav.id}`);
+      nav.setAttribute("data-r1-movida", "");
+      if (ultimo.nextElementSibling !== nav) ultimo.after(nav);
+      ultimo = nav;
+    });
+    if (ultimo.nextElementSibling !== tira) ultimo.after(tira);
+  }
+
+  function arrancarSegundaParte() {
+    if (!esV2()) return;
+    colocarPunto();
+    root.matchMedia?.(ESTRECHO)?.addEventListener?.("change", colocarPunto);
+    const main = $("mainContent");
+    if (main && typeof root.MutationObserver === "function") {
+      const vigia = new root.MutationObserver(colocarBajoCabecera);
+      main.querySelectorAll("section.view-section").forEach((seccion) => vigia.observe(seccion, { attributes: true, attributeFilter: ["hidden"] }));
+    }
+    colocarBajoCabecera();
+  }
+
+  if (doc()) {
+    const arrancar = () => {
+      cablear();
+      arrancarSegundaParte();
+    };
+    if (doc().readyState === "loading") doc().addEventListener("DOMContentLoaded", arrancar);
+    else arrancar();
+  }
+
+  const api = { TEXTOS, tonoDelPunto, pintarEstadoPunto, abrirHoja, filasDeGuia, rellenarGuia, colocarPunto, cabeceraDe, pestanasDe, colocarBajoCabecera };
   root.FinanceMarcoV2 = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);
