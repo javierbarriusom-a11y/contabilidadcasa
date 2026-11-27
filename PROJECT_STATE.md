@@ -113,6 +113,16 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 27 de noviembre de 2026 (554): documentos de la decimocuarta auditoría y la Propuesta final en `main`; CON-01 a CON-04 (D-N55)
+
+- **El hogar** (27/11): seguir con el traspaso y proponer cuatro funciones grandes de uso y experiencia, conservando lo pendiente de los backlogs anteriores.
+- **Publicado (solo documentos):** `docs/PROPUESTA_DECIMOCUARTA_AUDITORIA_2026-11-26.md`, `docs/PROPUESTA_FINAL_NOVIEMBRE_2026.md`, los traspasos `2026-11-26_traspaso-2.md` y `2026-11-27_traspaso.md` y la línea de `BACKLOG_INDICE.md`. Vienen de la rama `claude/compassionate-cannon-3xgwu2`. Esa rama partía de una base antigua y arrastraba código que ya está en `main` por #691-#693, así que solo se traen esos cinco ficheros.
+- **Propuesta final, §10 nuevo:** CON-01 (mapa de meses y extractos en Cierre), CON-02 («¿De dónde sale?» igual en toda la app), CON-03 (diario de cambios con deshacer) y CON-04 (decisiones y tareas del hogar en «Decidir esta semana»). Ninguna añade superficie: cada una junta piezas que ya existen y dice qué retira, porque D-N53 pide no añadir funciones hasta el 14/1. Se pide **D-N55** (recomendación: sí a CON-01 en F0 y a CON-04 en F1). **Siguiente decisión libre: D-N56.**
+- **Lo pendiente de los backlogs anteriores** sigue en la Propuesta final §3 (destino F0-F4) y §6 (disparador posterior a la 1.0); no se ha perdido nada.
+- **CIE-01:** lo llevaba otra sesión en paralelo, que es quien abrió #695. Esta se retiró de esa rama para no reiniciar su CI. Sobre el mismo código, con `main` `5cb9c75` dentro, la batería **completa** e2e + a11y + perf-screens en Chromium dio **605/605** (32,8 min); además, `npm test` 7.039/7.039 y `test:mobile-overflow` con 415 visitas sin nada cortado.
+- **Validación de este PR** (solo documentos, sobre `main` `5cb9c75`): `npm run verify` en verde, `npm test` **7.036/7.036**.
+- **Operativo:** rama `claude/zen-ritchie-a6e7u4`. Se fusiona **después** de #695, trayendo `main`, para no cancelar su despliegue.
+
 ## Cierre de sesión — 26 de noviembre de 2026 (551): CAT-14, los oyentes de los campos de index.html se enganchan al cargar
 
 - **El hogar** (26/11, noche): «continúa con lo que sigue si puedes». Siguiente de F0 (`docs/PROPUESTA_FINAL_NOVIEMBRE_2026.md`): **CAT-14**, buscar el patrón del fallo de DUO-D3 en toda la app.
