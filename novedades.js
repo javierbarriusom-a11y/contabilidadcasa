@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-26-comparar-dos-prestamos",
+      fecha: "2026-11-26",
+      texto: "Préstamo para saldar: comparad dos ofertas, con seguros incluidos, y ved cuánto os ahorra o cuesta cada una frente a no pedir nada.",
+      href: "#deuda-prestamo",
+    },
+    {
       id: "2026-11-26-cabecera-ligera",
       fecha: "2026-11-26",
       texto: "Arriba, menos ruido: el estado es un punto que se abre al tocarlo y «Guía», un enlace. Sin cifras repetidas en Cierre, Contratos y Ofertas.",

@@ -2734,3 +2734,28 @@ for (const scheme of ["light", "dark"]) {
     }
   });
 }
+
+// Deuda › Préstamo · «Comparar con otra oferta» (26/11/2026): la tarjeta de la comparación, en claro y en oscuro, a 1280 y a 390 px.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`Préstamo · comparar dos ofertas en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      test(`#prestamoComparar y el desplegable a ${viewport.width} px: sin fallos de contraste ni de accesibilidad`, async ({ page }) => {
+        test.setTimeout(90000);
+        await page.setViewportSize(viewport);
+        await page.goto("/index.html#deuda-prestamo");
+        await expect(page.locator("#prestamoResultado .pre-oferta")).toBeVisible({ timeout: 15000 });
+        await page.locator("#prestamoOfertaB > summary").click();
+        await page.fill("#prestamoBCapital", "12000");
+        await page.fill("#prestamoBPlazo", "60");
+        await page.fill("#prestamoBTin", "6.9");
+        await page.fill("#prestamoBSeguro", "15");
+        await expect(page.locator("#prestamoComparar")).toBeVisible({ timeout: 10000 });
+        await page.mouse.move(0, 0);
+        const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+        const r = await new AxeBuilder({ page }).include("#prestamoComparar").include("#prestamoOfertaB").analyze();
+        expect(fmt(r), fmt(r).slice(0, 5).join("\n")).toEqual([]);
+      });
+    }
+  });
+}
