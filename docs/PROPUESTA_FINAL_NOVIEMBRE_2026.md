@@ -350,7 +350,7 @@ gana cada criterio.
 - **Solo se aplana lo que es mensual.** Una partida cuyo importe cambia de un mes a otro (un seguro anual, las pagas extra) conserva su forma mes a mes. Una partida con real solo en pocos de los meses cubiertos no se multiplica por 12. Las que manda otra cosa (fórmula, contrato de deuda, tarjeta, asignación personal) no se tocan: sus cambios de 2027 ya vienen de su contrato.
 - **Aviso por partida:** si el último trimestre se aparta de la mediana más de un **20 %** y más de **10 €** al mes, se enseñan las dos cifras y el hogar elige. Nunca se elige sola la del trimestre. **El 20 % es un parámetro, no una medida.**
 - **Con poca historia no se compara:** hacen falta al menos 6 meses con real para que el trimestre sea distinto del resto. Con menos, la partida dice «poca historia» y se queda con la mediana. Hoy, con agosto-noviembre aún por clasificar (H-37), muchas partidas estarán así.
-- **Inflación:** la de Ajustes › Supuestos, solo en gastos; los ingresos no suben solos.
+- **Inflación:** las partidas de 2027 se escriben **a precios de hoy** (la mediana). La previsión ya sube los gastos con la inflación de Ajustes › Supuestos mes a mes (`app.js`, `expenseMultiplier`); sumarla también en el plan la contaría dos veces. La pantalla enseña aparte cuánto añade esa inflación en 2027.
 - **«Aplicar ya como previsión»:** lo aceptado se escribe en las partidas de 2027 del plan, que es lo que lee Previsión, tras «Qué ocurrirá» y con deshacer entero (decisión 6 de `ESTADO.md` §3). No espera a diciembre. La app no lo aplica sola: lo hace el hogar.
 - **Queda fuera** lo que depende de piezas sin hacer: «los recibos que suben» (CAT-03).
 
