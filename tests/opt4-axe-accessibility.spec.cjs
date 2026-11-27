@@ -2708,6 +2708,33 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// R1, primera parte (26/11/2026): la cabecera con «Guía» y el punto de estado, con la hoja abierta, y la guía con lo que decía el
+// recuadro, en claro y en oscuro, a 1440 y a 390 px.
+for (const scheme of ["light", "dark"]) {
+  test.describe(`R1 · la cabecera con el punto de estado y la guía en modo ${scheme}`, () => {
+    test.use({ colorScheme: scheme });
+    for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+      test(`.topbar con #estadoHoja abierta y #e17FlowGuideDialog a ${viewport.width} px: sin fallos de contraste ni de accesibilidad`, async ({ page }) => {
+        test.setTimeout(120000);
+        await page.setViewportSize(viewport);
+        await page.goto("/index.html#cierre");
+        await expect(page.locator("#estadoPunto")).toBeVisible({ timeout: 20000 });
+        await page.locator("#estadoPunto").click();
+        await expect(page.locator("#durabilityStatus")).toBeVisible();
+        await page.mouse.move(0, 0);
+        const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
+        const cabecera = await new AxeBuilder({ page }).include(".topbar").analyze();
+        expect(fmt(cabecera), fmt(cabecera).slice(0, 5).join("\n")).toEqual([]);
+        await page.keyboard.press("Escape");
+        await page.locator("#topbarGuia").click();
+        await expect(page.locator("#e17FlowGuideContexto")).toBeVisible();
+        const guia = await new AxeBuilder({ page }).include("#e17FlowGuideDialog").analyze();
+        expect(fmt(guia), fmt(guia).slice(0, 5).join("\n")).toEqual([]);
+      });
+    }
+  });
+}
+
 // Deuda › Préstamo · «Comparar con otra oferta» (26/11/2026): la tarjeta de la comparación, en claro y en oscuro, a 1280 y a 390 px.
 for (const scheme of ["light", "dark"]) {
   test.describe(`Préstamo · comparar dos ofertas en modo ${scheme}`, () => {
