@@ -53,7 +53,7 @@ test("UND-17 · CSS en los dos temas: el ojo de 44 px (34 a 195 px), tachado al 
   assert.match(bloque, /\.cifras-ocultas input\[type="number"\]:not\(:focus\) \{\s*filter: blur\(6px\);/);
   assert.match(bloque, /@media \(width < 260px\) \{[\s\S]*min-width: 34px;[\s\S]*\.mobile-nav-toggle \{\s*grid-column: 4;/);
   assert.doesNotMatch(bloque, /data-tema/, "no cuelga del tema v2: también en el clásico");
-  assert.match(read("index.html"), /styles\.css\?v=20261122und(?:1[37]|04)/);
+  assert.match(read("index.html"), /styles\.css\?v=2026112(?:2und(?:1[37]|04)|6r1a)/);
 });
 
 test("UND-17 · la preferencia es del dispositivo (no viaja en la copia) y el medidor la cuenta", () => {

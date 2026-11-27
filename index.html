@@ -42,7 +42,7 @@
          nativo de PWA (criterio de instalabilidad exige al menos un icono) y la pestaña mostraba el
          icono en blanco por defecto. `icon.svg` es el mismo icono para las dos cosas. -->
     <link rel="icon" href="icon.svg?v=20260919t11a1" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=20261122und04c" />
+    <link rel="stylesheet" href="styles.css?v=20261126r1a" />
     <link rel="stylesheet" href="p2.css?v=20260918t7a1" />
     <link rel="stylesheet" href="design-tokens.css?v=20261120dec38b" />
     <link rel="stylesheet" href="fiscal-campana.css?v=20261120dec38b" />
@@ -76,7 +76,7 @@
     <link rel="stylesheet" href="patrimonio.css?v=20261014wp46b2" />
     <link rel="stylesheet" href="cierre-a11y.css?v=20261015d1" />
     <!-- Rediseño fase A: tema v2 detrás de bandera (?tema=v2). Va el último para poder redefinir tokens. -->
-    <link rel="stylesheet" href="tema-v2.css?v=20261126tred5c" />
+    <link rel="stylesheet" href="tema-v2.css?v=20261126r1a" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -331,7 +331,15 @@
             <p class="eyebrow" id="viewEyebrow" hidden>Cuadro de mandos</p>
             <h1 id="viewTitle" tabindex="-1" class="sr-only">Planifica liquidez, ahorro y refinanciación desde la fecha de análisis</h1>
           </div>
-          <div class="topbar-status">
+          <div class="topbar-status" id="topbarStatus">
+            <!-- R1 (auditoría de diseño §4, 26/11/2026), solo con el tema v2: el recuadro «Estado · Guía de este flujo» pasa a este
+                 enlace, y las tres píldoras de estado (dato, guardado, fuente) a un punto que las abre (#estadoHoja). En el clásico,
+                 los dos botones no se ven y la hoja se pinta como siempre (display: contents). -->
+            <span class="topbar-acciones">
+              <button type="button" class="link-button topbar-guia" id="topbarGuia" data-e17-open="guide">Guía</button>
+              <button type="button" class="estado-punto" id="estadoPunto" data-tono="local" aria-expanded="false" aria-controls="estadoHoja"><span class="estado-punto-marca" aria-hidden="true"></span><span class="sr-only">Estado de los datos: </span><span class="estado-punto-texto" id="estadoPuntoTexto">Solo en este equipo</span></button>
+            </span>
+            <div class="estado-hoja" id="estadoHoja">
             <!-- UX2: "dato real / simulación / decisión aplicada", siempre visible — lleva el rigor
                  previsto/real/usado (A6/A3-8) al cromado compartido, fuera de <main> igual que el
                  chip de sincronización, así que ninguna de las ~40 pantallas se queda sin él. -->
@@ -342,11 +350,12 @@
               <strong id="durabilityText">Datos guardados en este equipo</strong>
               <small id="durabilityTime"></small>
             </div>
+            <div class="source-note" id="sourceNote"></div>
+            </div>
             <!-- DEC-39: sin red, «Sin conexión · los datos son los de este dispositivo» (sin-conexion-ui.js); oculta con red. -->
             <p class="conexion-aviso" id="conexionAviso" role="status" hidden></p>
             <!-- D-N33: si el escenario de supuestos no es «Base», todas las cifras cambian; se dice aquí, en todas las pantallas (escenario-ui.js). -->
             <p class="escenario-aviso" id="escenarioAviso" role="status" hidden></p>
-            <div class="source-note" id="sourceNote"></div>
           </div>
         </header>
         <!-- H-8: tira de cuatro cifras vivas, en la cabecera de las ocho vistas que no son Hoy
@@ -8400,6 +8409,8 @@
     <dialog class="e17-dialog" id="e17FlowGuideDialog" aria-labelledby="e17FlowGuideTitle">
       <div class="e17-dialog-head"><div><p class="panel-kicker">Guía offline</p><h2 id="e17FlowGuideTitle">Guía operativa</h2></div><button type="button" data-e17-close aria-label="Cerrar">×</button></div>
       <p id="e17FlowGuideBody"></p>
+      <!-- R1: con el tema v2 el recuadro «Estado» de la cabecera no se pinta; lo que decía (para qué sirve, estado y siguiente paso) se lee aquí. -->
+      <dl class="e17-guia-contexto" id="e17FlowGuideContexto" hidden></dl>
       <div class="dialog-actions"><button type="button" data-e17-close>Volver al flujo</button></div>
     </dialog>
 
@@ -8497,7 +8508,7 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20261119priv4"></script>
-    <script defer src="novedades.js?v=20261126tred5c"></script>
+    <script defer src="novedades.js?v=20261126r1a"></script>
     <script defer src="ux-shell.js?v=20261121dec45"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
@@ -8534,7 +8545,7 @@
     <script defer src="revision-tipo-ui.js?v=20261007wp20a1"></script>
     <script defer src="canonical-debt-payoff-path.js?v=20261124duod8"></script>
     <script defer src="canonical-debt-optimal-plan.js?v=20261125tred3"></script>
-    <script defer src="camino-deuda-ui.js?v=20261126tred5d"></script>
+    <script defer src="camino-deuda-ui.js?v=20261127cat14"></script>
     <script defer src="kit-entidad-ui.js?v=20261124duod6"></script>
     <script defer src="salud-motor.js?v=20261123duo04"></script>
     <script defer src="salud-motor-ui.js?v=20261123duo04"></script>
@@ -8617,6 +8628,7 @@
     <script defer src="views/deuda-contratos-v2.js?v=20261126tred5c"></script>
     <script defer src="canonical-debt-offers.js?v=20261125tred5"></script>
     <script defer src="views/deuda-ofertas-v2.js?v=20261125tred5"></script>
+    <script defer src="views/marco-v2.js?v=20261126r1a"></script>
     <script defer src="views/movimientos-v2.js?v=20261119dat07"></script>
     <script defer src="views/importar-v2.js?v=20261116xda04b"></script>
     <script defer src="views/clasificar-v2.js?v=20261120dec14"></script>
