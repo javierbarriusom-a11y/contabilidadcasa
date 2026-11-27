@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-27-plan-2027",
+      fecha: "2026-11-27",
+      texto: "Plan › Mes: preparad el plan de 2027 con lo real de 2026, partida a partida. Previsión lo usa al momento y se puede deshacer.",
+      href: "#plan",
+    },
+    {
       id: "2026-11-26-cerrar-meses-atrasados",
       fecha: "2026-11-26",
       texto: "Cierre: los meses atrasados sin firmar se pueden cerrar ya, con los saldos de su extracto y no con los de hoy.",

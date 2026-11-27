@@ -125,7 +125,7 @@ test("DEC-45 · estilos, versiones y su línea de Novedades", () => {
   const html = read("index.html");
   assert.ok(html.includes("ux-shell.js?v=20261121dec45"), "ux-shell.js");
   assert.match(html, /medidor-utilidad\.js\?v=(?:20261121dec45|20261122und|20261124dn38|20261125tred1|20261125tred2|20261125tre3c|20261125tred4|20261125tred5)/, "medidor-utilidad.js (a 20261122und con UND-23, UND-26 y UND-02)");
-  assert.match(html, /novedades\.js\?v=2026112(?:1(?:dec45|areas|dn27|dn28)|2und|5dn40|5tred2|5tre3c|5tred4|5tred5|6tred5c|6r1a)/, "novedades.js siguió a 20261121areas con Hoy por áreas");
+  assert.match(html, /novedades\.js\?v=2026112(?:1(?:dec45|areas|dn27|dn28)|2und|5dn40|5tred2|5tre3c|5tred4|5tred5|6tred5c|6r1a|7cat11)/, "novedades.js siguió a 20261121areas con Hoy por áreas");
   assert.match(html, /styles\.css\?v=2026112(?:1(?:dec45|dec38c|dec38d|areas|d658)|2und|5dn40|6r1a)/, "styles.css siguió a 20261121dec38c y dec38d con DEC-38 a 195 px");
   assert.ok(html.indexOf('src="medidor-utilidad.js?v=') < html.indexOf('src="ux-shell.js?v='), "el medidor carga antes que la lista");
   const novedad = NOVEDADES.find((entry) => entry.id === "2026-11-21-te-sirve");

@@ -14187,3 +14187,80 @@ test.describe("CIE-01 · Cerrar un mes atrasado", () => {
     });
   }
 });
+
+// CAT-11 · Plan 2027 con lo real (D-N46, 27/11/2026, opción C con la ventana de la opción 3). Con el reloj el 27/11/2026, la demo
+// (plan desde julio de 2026) da 4 meses de historia: julio a octubre. Se siembran los reales de «Vivienda» (previsto 750 €): mediana
+// 865 €, un 15 % más, «poca historia» y sin comparar con el trimestre. «Aplicar» escribe los 12 meses de 2027 en el plan guardado,
+// la previsión de 2027 lo usa al momento y «Deshacer» lo deja como estaba. Con algo pendiente en el borrador, no se aplica.
+test.describe("CAT-11 · Preparar el plan de 2027 con lo real", () => {
+  for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+    test(`la línea de Plan › Mes, la hoja con «Qué ocurrirá», aplicar a la previsión y deshacer, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      test.setTimeout(120000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.clock.install({ time: new Date(2026, 10, 27, 9, 0, 0) });
+      await page.goto("/index.html#plan");
+      const entrada = page.locator("#plan2027Entrada");
+      await expect(entrada).toBeVisible({ timeout: 20000 });
+      await expect(entrada).toContainText("¿Preparamos el plan de 2027 con lo real?");
+      await page.evaluate(() => {
+        [860, 880, 850, 870].forEach((value, index) => { expenseActuals[`expense-home|2026-${String(7 + index).padStart(2, "0")}`] = value; });
+        applicationRenderRevision += 1;
+      });
+      const previsto = (mes) => page.evaluate((key) => plannedValueForRow(rowForSeriesKey("expense|expense-home"), { key }), mes);
+      // La previsión de febrero de 2027 (el mismo cálculo que pinta Plan › Previsión): gasto de ese mes.
+      const prevision = () => page.evaluate(() => {
+        const i = forecastMonths().findIndex((m) => m.key === "2027-02");
+        return planningBreakdownForForecastMonth(i, addMonths(modelStartDate(), i)).coreSpend;
+      });
+      expect(await previsto("2027-02")).toBe(750);
+      const antes = await prevision();
+
+      await entrada.locator('[data-p27="abrir"]').click();
+      const hoja = page.locator("#plan2027Dialogo");
+      await expect(hoja).toBeVisible();
+      await expect(hoja.locator("#p27Titulo")).toHaveText("Preparar 2027 con lo real");
+      await expect(hoja).toContainText("La base son 4 meses (jul–oct)");
+      const vivienda = hoja.locator(".p27-fila", { hasText: "Vivienda" });
+      await expect(vivienda).toContainText("Poca historia: todavía no se compara con el último trimestre.");
+      await expect(hoja.locator(".p27-vista")).toContainText("Cambia 1 partida.");
+      await expect(vivienda.locator('input[value="mediana"]')).toBeChecked();
+      await expect(vivienda.locator('input[value="trimestre"]')).toHaveCount(0);
+      await expect(hoja.locator(".p27-pie")).toContainText("Se escriben 12 importes de 1 partida en el plan de 2027.");
+      await expect(hoja.locator(".p27-pie")).toContainText("se puede deshacer entero");
+      expect(await previsto("2027-02"), "abrir la hoja no cambia nada").toBe(750);
+      if (viewport.width === 390) {
+        const ancho = await hoja.evaluate((el) => el.scrollWidth - el.clientWidth);
+        expect(ancho, "la hoja no desborda a 390 px").toBeLessThanOrEqual(1);
+      }
+
+      // «Dejarlo en 750» no escribe nada; volver a «Lo real».
+      await vivienda.locator('input[value="mantener"]').check();
+      await expect(hoja.locator(".p27-pie")).toContainText("No se escribe nada.");
+      await expect(hoja.locator('[data-p27="aplicar"]')).toBeDisabled();
+      await hoja.locator(".p27-fila", { hasText: "Vivienda" }).locator('input[value="mediana"]').check();
+
+      await hoja.locator('[data-p27="aplicar"]').click();
+      await expect(hoja).toBeHidden();
+      expect(await previsto("2027-01")).toBe(865);
+      expect(await previsto("2027-12")).toBe(865);
+      expect(await previsto("2026-12"), "fuera de 2027 no se toca").toBe(750);
+      expect(await previsto("2028-01"), "fuera de 2027 no se toca").toBe(750);
+      expect(await prevision(), "Previsión usa el plan aplicado").toBeGreaterThan(antes + 100);
+      await expect(entrada).toContainText("Plan de 2027 preparado con lo real el 27/11: 12 importes.");
+
+      // Con algo pendiente en el borrador, deshacer no mezcla y no hace nada.
+      await page.evaluate(() => cuadroMandosStageCell("expense|expense-services", "2027-03", 1));
+      await entrada.locator('[data-p27="deshacer"]').click();
+      expect(await previsto("2027-05")).toBe(865);
+      await page.evaluate(() => { discardVisualChanges(); });
+
+      await entrada.locator('[data-p27="deshacer"]').click();
+      await expect(entrada).toContainText("¿Preparamos el plan de 2027 con lo real?");
+      expect(await previsto("2027-05")).toBe(750);
+      expect(await prevision()).toBeCloseTo(antes, 2);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
