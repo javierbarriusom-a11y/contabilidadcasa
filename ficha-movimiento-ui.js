@@ -191,6 +191,7 @@ function renderMovementDetailDialog() {
         <span>Partida</span>
         <select id="movementDetailPartida">${movementMappingOptions(kind, mapping?.row ? seriesKeyForRow(mapping.row) : "")}</select>
       </label>
+      ${fichaMovNuevaHtml(kind)}
       ${fichaMovAlcanceHtml({ prefijo: "movementDetail", idTodos: "movementDetailRemember", todos: reglaPartida, grupo: grupoPartida, nombre, conFirmados: true })}
       <p class="ficha-mov-error" id="movementDetailError" role="alert" hidden></p>
       ${fichaMovAvisoHtml(row, "partida")}
@@ -227,11 +228,115 @@ function renderMovementDetailDialog() {
     fichaMovSincroniza(bloque);
   };
   fichaMovDivisionEscuchas();
+  fichaMovNuevaEscuchas(row, kind);
   qs("fichaMovDeshacer")?.addEventListener("click", fichaMovDeshacer);
   qs("fichaMovQuitarPatron")?.addEventListener("click", fichaMovQuitarPatron);
   qs("movementDetailViewReceipt")?.addEventListener("click", () => viewReceiptAttachment(row));
   qs("movementDetailAttachPhoto")?.addEventListener("change", (event) => handleMovementDetailAttachPhoto(event, row));
   qs("movementDetailSaveGeo")?.addEventListener("click", () => handleMovementDetailSaveGeo(row));
+}
+
+// «+ Nueva partida» en la ficha (D-N57, 27/11/2026, petición del hogar con la captura de PELAYO MUTUA): la misma de Clasificar
+// (views/clasificar-v2.js, 2/11): nombre y bloque del tipo del movimiento, nada más. Sale con previsto 0 € (no cambia el plan) en
+// todos los meses del plan desde el del movimiento (o el primero abierto, si es antes), sin los firmados, porque una partida
+// personalizada solo existe en los meses con su fila. Un nombre que ya existe elige esa en vez de duplicarla. Queda elegida en el
+// selector y «Guardar partida» hace lo de siempre (con su «¿A cuáles?» y su «Deshacer»): crear no asigna nada por sí solo.
+function fichaMovNuevaHtml(kind) {
+  const bloques = (baseData?.monthlyPlanning?.sections || []).filter((section) => section.kind === kind).map((section) => section.name);
+  if (!bloques.length) return "";
+  return `<button type="button" class="link-button ficha-mov-nueva-enlace" id="fichaMovNuevaAbrir" aria-expanded="false" aria-controls="fichaMovNueva">¿No está? + Nueva partida</button>
+      <div class="ficha-mov-nueva" id="fichaMovNueva" role="group" aria-labelledby="fichaMovNuevaTitulo" hidden>
+        <span class="ficha-mov-nueva-titulo" id="fichaMovNuevaTitulo">Nueva partida de ${kind === "income" ? "ingreso" : "gasto"}</span>
+        <label class="ficha-mov-campo"><span>Nombre</span><input id="fichaMovNuevaNombre" type="text" maxlength="60" autocomplete="off" placeholder="Ej. Seguro de vida" /></label>
+        <label class="ficha-mov-campo"><span>Bloque</span><select id="fichaMovNuevaBloque">${bloques.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("")}</select></label>
+        <p class="e19-kpi-note" id="fichaMovNuevaNota"></p>
+        <p class="ficha-mov-error" id="fichaMovNuevaError" role="alert" hidden></p>
+        <div class="ficha-mov-nueva-botones">
+          <button type="button" class="e19-btn e19-btn-secondary" id="fichaMovNuevaCancelar">Cancelar</button>
+          <button type="button" class="e19-btn e19-btn-primary" id="fichaMovNuevaCrear">Crear y elegir</button>
+        </div>
+      </div>`;
+}
+
+function fichaMovNuevaNota(kind) {
+  const bloque = qs("fichaMovNuevaBloque")?.value || "";
+  const nota = qs("fichaMovNuevaNota");
+  if (!nota) return;
+  const enBloque = availableSeriesRows(kind).filter((item) => item.sectionName === bloque).length;
+  nota.textContent = `Sale con previsto 0 € en los meses abiertos: no cambia el plan, el importe lo pones luego en Plan.${enBloque ? ` «${bloque}» ya tiene ${enBloque === 1 ? "una partida" : `${enBloque} partidas`}: mira antes si alguna sirve.` : ""}`;
+}
+
+function fichaMovNuevaAbrir(abrir, kind) {
+  const caja = qs("fichaMovNueva");
+  const enlace = qs("fichaMovNuevaAbrir");
+  if (!caja || !enlace) return;
+  caja.hidden = !abrir;
+  enlace.setAttribute("aria-expanded", String(abrir));
+  const error = qs("fichaMovNuevaError");
+  if (error) Object.assign(error, { hidden: true, textContent: "" });
+  qs("fichaMovNuevaNombre")?.removeAttribute("aria-invalid");
+  if (abrir) {
+    const actual = rowForSeriesKey(qs("movementDetailPartida")?.value || "");
+    const bloque = qs("fichaMovNuevaBloque");
+    if (bloque && actual?.sectionName && [...bloque.options].some((option) => option.value === actual.sectionName)) bloque.value = actual.sectionName;
+    fichaMovNuevaNota(kind);
+    qs("fichaMovNuevaNombre")?.focus();
+  } else {
+    if (qs("fichaMovNuevaNombre")) qs("fichaMovNuevaNombre").value = "";
+    enlace.focus();
+  }
+}
+
+function fichaMovNuevaCrear(row, kind) {
+  const nombre = qs("fichaMovNuevaNombre");
+  const label = String(nombre?.value || "").trim().replace(/\s+/g, " ");
+  const sectionName = qs("fichaMovNuevaBloque")?.value || "";
+  const error = qs("fichaMovNuevaError");
+  const fallo = (texto) => {
+    if (error) Object.assign(error, { hidden: false, textContent: texto });
+    nombre?.setAttribute("aria-invalid", "true");
+    nombre?.setAttribute("aria-describedby", "fichaMovNuevaError");
+    nombre?.focus();
+  };
+  if (!label) return fallo("Ponle un nombre a la partida.");
+  const existente = availableSeriesRows(kind).find((item) => normalizedText(displayLabelForRow(item)) === normalizedText(label));
+  let clave;
+  let mensaje;
+  if (existente) {
+    clave = seriesKeyForRow(existente);
+    mensaje = `Ya había una partida «${displayLabelForRow(existente)}» en ${existente.sectionName}: la he elegido en vez de crear otra. Pulsa «Guardar partida».`;
+  } else {
+    const months = baseData?.monthlyPlanning?.months || [];
+    const primeraAbierta = months.find((month) => !isClosedMonthKey(month.key))?.key || "";
+    const desde = [primeraAbierta, String(row.date || "").slice(0, 7)].filter(Boolean).sort()[0] || "";
+    const meses = customSeriesMonthsFrom(desde);
+    if (!sectionName || !meses.length) return fallo(sectionName ? "No hay meses abiertos en el plan donde crearla." : "No hay ningún bloque de este tipo en el plan.");
+    const id = `custom-${kind}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    meses.forEach((month) => customPlanningRows.push({ id, custom: true, kind, sectionName, label, monthKey: month.key, plannedValue: 0 }));
+    saveCustomPlanningRows();
+    clave = seriesKeyForRow({ kind, id });
+    mensaje = `Partida «${label}» creada en ${sectionName} con previsto 0 €, de ${meses[0].label || meses[0].key} a ${meses.at(-1).label || meses.at(-1).key}. Está elegida: pulsa «Guardar partida».`;
+  }
+  const select = qs("movementDetailPartida");
+  if (select) {
+    select.innerHTML = movementMappingOptions(kind, clave);
+    select.value = clave;
+  }
+  fichaMovNuevaAbrir(false, kind);
+  fichaMovSincroniza("partida");
+  select?.focus();
+  announceStatus(mensaje);
+}
+
+function fichaMovNuevaEscuchas(row, kind) {
+  qs("fichaMovNuevaAbrir")?.addEventListener("click", () => fichaMovNuevaAbrir(qs("fichaMovNueva")?.hidden, kind));
+  qs("fichaMovNuevaCancelar")?.addEventListener("click", () => fichaMovNuevaAbrir(false, kind));
+  qs("fichaMovNuevaCrear")?.addEventListener("click", () => fichaMovNuevaCrear(row, kind));
+  qs("fichaMovNuevaBloque")?.addEventListener("change", (event) => { event.stopPropagation(); fichaMovNuevaNota(kind); });
+  qs("fichaMovNuevaNombre")?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") { event.preventDefault(); fichaMovNuevaCrear(row, kind); }
+    if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); fichaMovNuevaAbrir(false, kind); }
+  });
 }
 
 // DAT-07 · «Dividir en varias partidas»: plegado dentro del bloque «Partida». Los trozos tienen que sumar el importe del movimiento

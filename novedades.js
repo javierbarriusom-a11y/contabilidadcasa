@@ -23,6 +23,18 @@
       href: "#home",
     },
     {
+      id: "2026-11-27-registrar-gasto-meses",
+      fecha: "2026-11-27",
+      texto: "Registrar gasto: partida nueva o una que ya existe, y un mes, un periodo o meses sueltos. Lo que aún no ha pasado va como previsto.",
+      href: "#home",
+    },
+    {
+      id: "2026-11-27-ficha-nueva-partida",
+      fecha: "2026-11-27",
+      texto: "Ficha de un movimiento: «¿No está? + Nueva partida» bajo el selector, como en Clasificar. Se crea con previsto 0 € y queda elegida.",
+      href: "#movements",
+    },
+    {
       id: "2026-11-26-cerrar-meses-atrasados",
       fecha: "2026-11-26",
       texto: "Cierre: los meses atrasados sin firmar se pueden cerrar ya, con los saldos de su extracto y no con los de hoy.",

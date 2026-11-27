@@ -14187,3 +14187,63 @@ test.describe("CIE-01 · Cerrar un mes atrasado", () => {
     });
   }
 });
+
+// D-N57 (27/11/2026, petición del hogar con dos capturas): «Registrar gasto» con partida existente o nueva y un mes, un periodo o
+// meses concretos (real hasta el mes de la ventana, previsto después, con «Qué ocurrirá» y «Deshacer»), y «+ Nueva partida» en
+// la ficha de un movimiento. Los datos son los de ejemplo de la app.
+test.describe("D-N57 · asignación flexible y nueva partida desde la ficha", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`Registrar gasto en meses concretos y deshacer, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#home");
+      await page.waitForFunction(() => typeof gastoFlexPreparar === "function" && !document.getElementById("homeQuickExpenseOpen")?.disabled);
+      const antes = await page.evaluate(() => ({ filas: customPlanningRows.length, reales: JSON.stringify(expenseActuals) }));
+      await abrirApuntarGasto(page);
+      const ventana = page.locator("#homeQuickExpenseDialog");
+      await expect(ventana).toBeVisible();
+      await page.fill("#homeQuickExpenseLabel", "Gasto D-N57");
+      await page.fill("#homeQuickExpenseAmount", "25");
+      await expect(page.locator("#homeQuickExpenseQueOcurrira")).toContainText("como gasto ya realizado");
+      await ventana.locator('input[name="homeQuickExpenseCuando"][value="sueltos"]').check();
+      const meses = ventana.locator("#homeQuickExpenseSueltos input");
+      expect(await meses.count()).toBeGreaterThanOrEqual(2);
+      await meses.nth(1).check();
+      await expect(page.locator("#homeQuickExpenseQueOcurrira")).toContainText("previsto");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "sin desbordar en horizontal").toBe(true);
+      await page.click("#homeQuickExpenseSubmit");
+      await expect(ventana).not.toBeVisible();
+      const despues = await page.evaluate(() => customPlanningRows.filter((row) => row.label === "Gasto D-N57").map((row) => [row.monthKey, row.plannedValue]));
+      expect(despues.length).toBe(2);
+      expect(despues.every(([, valor]) => valor === 25)).toBe(true);
+      await page.$eval("#undoToast button", (button) => button.click());
+      const deshecho = await page.evaluate(() => ({ filas: customPlanningRows.length, reales: JSON.stringify(expenseActuals) }));
+      expect(deshecho).toEqual(antes);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+
+    test(`«+ Nueva partida» en la ficha de un movimiento, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#movements");
+      const ficha = await sembrarFicha(page);
+      await ficha.locator("#fichaMovNuevaAbrir").click();
+      await expect(ficha.locator("#fichaMovNueva")).toBeVisible();
+      await expect(ficha.locator("#fichaMovNuevaNombre")).toBeFocused();
+      await ficha.locator("#fichaMovNuevaCrear").click();
+      await expect(ficha.locator("#fichaMovNuevaError")).toHaveText("Ponle un nombre a la partida.");
+      await ficha.locator("#fichaMovNuevaNombre").fill("Seguro de prueba D-N57");
+      await ficha.locator("#fichaMovNuevaNombre").press("Enter");
+      await expect(ficha.locator("#fichaMovNueva")).toBeHidden();
+      await expect(ficha.locator("#movementDetailPartida option:checked")).toContainText("Seguro de prueba D-N57");
+      await expect(ficha.locator("#movementDetailSave")).toBeEnabled();
+      const filas = await page.evaluate(() => customPlanningRows.filter((row) => row.label === "Seguro de prueba D-N57").map((row) => row.plannedValue));
+      expect(filas.length).toBeGreaterThanOrEqual(1);
+      expect(filas.every((valor) => valor === 0), "sale con previsto 0 €").toBe(true);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});

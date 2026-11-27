@@ -11494,12 +11494,13 @@ function openHomeQuickExpenseDialog(prefill = null) {
   };
   if (monthSwitch) monthSwitch.onclick = () => { month = month === earlier ? base : earlier; showMonth(); };
   showMonth();
+  globalThis.gastoFlexPreparar?.(() => month); // D-N57: partida existente o nueva, y un mes, un periodo o meses concretos (gasto-flexible-ui.js)
   Object.assign(qs("homeQuickExpenseLinkNote") || {}, { hidden: !prefill?.note, textContent: prefill?.note || "" });
   const openedAt = Date.now();
   dialog.addEventListener("close", () => {
     if (dialog.returnValue !== "confirm") return;
     globalThis.recordLegacyCaptureTime?.((Date.now() - openedAt) / 1000); // M-CAPT: el tiempo de la ventana anterior, para comparar con la hoja
-    submitHomeQuickExpense(month, sectionSelect.value, labelInput.value.trim(), amountInput.value, prefill?.date || "");
+    if (!globalThis.gastoFlexGuardar?.(month, sectionSelect.value, labelInput.value.trim(), amountInput.value, prefill?.date || "")) submitHomeQuickExpense(month, sectionSelect.value, labelInput.value.trim(), amountInput.value, prefill?.date || "");
   }, { once: true });
   dialog.showModal();
   // Desde un enlace, el foco va al primer dato que falta; si no falta nada, a «Registrar» (sin abrir el teclado).

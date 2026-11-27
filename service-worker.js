@@ -242,6 +242,7 @@ const SHELL_URLS = [
   "./canonical-data-queue.js",
   "./datos-ui.js",
   "./ficha-movimiento-ui.js",
+  "./gasto-flexible-ui.js",
   "./importar-extracto-ui.js",
   "./laboratorio-ui.js",
   "./deuda-simulador-puente.js",
