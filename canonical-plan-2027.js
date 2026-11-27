@@ -23,6 +23,12 @@
   //     cifras y el hogar elige. Nunca se elige sola la del trimestre. UMBRAL_PCT es un parámetro, no una medida;
   //   · con menos de MIN_MESES_COMPARAR meses con real, el trimestre sale de casi los mismos meses que la mediana: no se compara
   //     y se dice «poca historia»;
+  //   · no se toca lo que ya está en línea (menos de MIN_GAP_PCT % o MIN_GAP_EUR € de la mediana, los umbrales de base cero);
+  //   · si lo previsto está más cerca del último trimestre que de la mediana, el plan ya recoge un cambio reciente: por defecto
+  //     se MANTIENE (la mediana se ofrece, no se impone);
+  //   · lo que no está en el plan del año que viene (0 € todos sus meses) no se vuelve a añadir; lo que no tiene real en los
+  //     últimos tres meses cubiertos tampoco se propone (¿ha terminado?);
+  //   · solo se escriben celdas en los meses en que la partida existe (`futureMonths` de cada partida);
   //   · A PRECIOS DE HOY: la previsión ya sube los gastos con la inflación de Ajustes mes a mes (app.js, expenseMultiplier); meterla
   //     también aquí la contaría dos veces. `inflacionTexto` solo dice cuánto añadirá la previsión.
 
@@ -32,6 +38,8 @@
   const MIN_MESES_REAL = 3;
   const CUOTA_MENSUAL = 0.6;
   const MESES_TRIMESTRE = 3;
+  const MIN_GAP_PCT = zeroBase ? zeroBase.MIN_GAP_PCT : 10;
+  const MIN_GAP_EUR = zeroBase ? zeroBase.MIN_GAP_EUR : 10;
   const ELECCIONES = Object.freeze(["mediana", "trimestre", "mantener"]);
 
   const isMonth = (value) => typeof value === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
@@ -39,6 +47,11 @@
   const round2 = (value) => Math.round(Number(value) * 100) / 100;
   const euros = (value) => `${Math.round(value).toLocaleString("es-ES")} €`;
   const suma = (values) => round2(values.reduce((total, value) => total + value, 0));
+
+  function mesesDe(partida, targetKeys) {
+    const propios = Array.isArray(partida.futureMonths) ? partida.futureMonths.filter((monthKey) => targetKeys.includes(monthKey)) : [];
+    return propios.length ? propios : targetKeys;
+  }
 
   function plannedValues(partida, targetKeys) {
     return targetKeys.map((monthKey) => round2(partida.planned && known(partida.planned[monthKey]) ? Number(partida.planned[monthKey]) : 0));
@@ -62,44 +75,59 @@
     const targetKeys = targetMonths.filter(isMonth);
     if (targetKeys.length !== 12) return { calculable: false, reason: "El plan del año que viene necesita sus 12 meses." };
     const base = zeroBase.buildModel({
-      partidas: (Array.isArray(partidas) ? partidas : []).map((partida) => ({ ...partida, futureMonths: targetKeys })),
+      partidas: (Array.isArray(partidas) ? partidas : []).map((partida) => ({ ...partida, futureMonths: mesesDe(partida, targetKeys) })),
       today, windowMonths, futureMonths: targetKeys,
     });
     if (!base.calculable) return { calculable: false, reason: base.reason };
     const windowKeys = base.windowMonths;
     const covered = base.coveredMonths;
     const byKey = new Map(partidas.map((partida) => [partida.key, partida]));
+    const coveredKeys = windowKeys.filter((monthKey) => partidas.some((partida) => partida.real && known(partida.real[monthKey])));
+    const recientes = coveredKeys.slice(-MESES_TRIMESTRE);
     const items = base.items.map((item) => {
       const partida = byKey.get(item.key) || {};
       const previsto = plannedValues(partida, targetKeys);
+      const meses = mesesDe(partida, targetKeys);
       const ev = item.evidence;
-      const mensual = !item.locked && item.plannedFlat && ev.n >= MIN_MESES_REAL && ev.n >= Math.ceil(covered * CUOTA_MENSUAL);
+      const fueraDelPlan = previsto.every((value) => Math.abs(value) < 0.005);
+      const sinRealReciente = recientes.length > 0 && recientes.every((monthKey) => !(partida.real && known(partida.real[monthKey])));
+      const mensual = !item.locked && !fueraDelPlan && !sinRealReciente && item.plannedFlat && ev.n >= MIN_MESES_REAL && ev.n >= Math.ceil(covered * CUOTA_MENSUAL);
       let tipo;
       let porque;
       if (item.locked) { tipo = "bloqueada"; porque = `Su importe lo manda otra cosa (${item.locked}): sus cambios de ${targetKeys[0].slice(0, 4)} ya vienen de ahí.`; }
+      else if (fueraDelPlan) { tipo = "fuera-del-plan"; porque = `No está en el plan de ${targetKeys[0].slice(0, 4)}: no se vuelve a añadir. Si sigue, añadidla en Partidas.`; }
       else if (ev.n < MIN_MESES_REAL) { tipo = "sin-historia"; porque = ev.n === 0 ? `Sin reales en los últimos ${windowKeys.length} meses: se queda lo previsto.` : `Solo ${ev.n} ${ev.n === 1 ? "mes" : "meses"} con real: se queda lo previsto.`; }
       else if (!item.plannedFlat) { tipo = "no-mensual"; porque = "Su importe cambia de un mes a otro (¿un pago anual o pagas extra?): conserva su forma mes a mes."; }
+      else if (sinRealReciente) { tipo = "sin-real-reciente"; porque = "Sin real en los últimos tres meses con datos: ¿ha terminado? Se queda lo previsto."; }
       else if (!mensual) { tipo = "no-mensual"; porque = `Tiene real en ${ev.n} de ${covered} meses cubiertos: no es un gasto de cada mes y no se multiplica por 12.`; }
       else { tipo = "mensual"; porque = `Mediana de ${ev.n} ${ev.n === 1 ? "mes" : "meses"} con real: ${euros(ev.median)} al mes.`; }
       const mediana = mensual ? Math.round(ev.median) : null;
+      const ahora = previsto.find((value, index) => meses.includes(targetKeys[index])) ?? 0;
+      if (mensual) {
+        const gap = Math.abs(mediana - ahora);
+        const gapPct = Math.abs(ahora) >= 0.005 ? (gap / Math.abs(ahora)) * 100 : null;
+        if (gap < MIN_GAP_EUR || (gapPct !== null && gapPct < MIN_GAP_PCT)) { tipo = "en-linea"; porque = `Ya está en línea con lo real (mediana ${euros(mediana)} al mes).`; }
+      }
       let alternativa = null;
       let aviso = null;
+      let porDefecto = tipo === "mensual" ? "mediana" : "mantener";
       if (mensual) {
         if (ev.n < MIN_MESES_COMPARAR) aviso = { id: "poca-historia", texto: `Poca historia (${ev.n} meses con real): no se compara con el último trimestre.` };
         else {
           const trimestre = trimestreDe(partida, windowKeys);
           const gap = trimestre === null ? 0 : trimestre - mediana;
           const pct = mediana ? Math.round((Math.abs(gap) / Math.abs(mediana)) * 100) : null;
+          if (tipo === "mensual" && trimestre !== null && Math.abs(trimestre - ahora) < Math.abs(mediana - ahora)) porDefecto = "mantener";
           if (trimestre !== null && Math.abs(gap) >= UMBRAL_EUR && pct !== null && pct > UMBRAL_PCT) {
             alternativa = { importe: trimestre, pct, texto: `El último trimestre va a ${euros(trimestre)} al mes, un ${pct} % ${gap > 0 ? "más" : "menos"} que la mediana. ¿Ha cambiado algo?` };
           }
         }
       }
       return {
-        key: item.key, kind: item.kind, label: item.label, section: item.section, tipo, porque,
+        key: item.key, kind: item.kind, label: item.label, section: item.section, tipo, porque, porDefecto, meses,
         real12: suma(ev.months.map((month) => month.value)), mesesReal: ev.n,
         previsto, previstoAnual: suma(previsto), mediana, alternativa, aviso,
-        propuestoAnual: mensual ? round2(mediana * 12) : suma(previsto),
+        propuestoAnual: tipo === "mensual" && porDefecto === "mediana" ? round2(mediana * meses.length + suma(previsto.filter((v, i) => !meses.includes(targetKeys[i])))) : suma(previsto),
       };
     });
     const total = (kind, field) => suma(items.filter((item) => item.kind === kind).map((item) => item[field]));
@@ -124,11 +152,13 @@
     if (!model || !model.calculable) return [];
     const out = [];
     model.items.forEach((item) => {
-      if (item.tipo !== "mensual") return;
-      const eleccion = ELECCIONES.includes(elecciones[item.key]) ? elecciones[item.key] : "mediana";
+      if (item.tipo !== "mensual" && item.tipo !== "en-linea") return;
+      const eleccion = ELECCIONES.includes(elecciones[item.key]) ? elecciones[item.key] : item.porDefecto;
       if (eleccion === "mantener") return;
+      if (item.tipo === "en-linea" && !(eleccion === "trimestre" && item.alternativa)) return;
       const to = eleccion === "trimestre" && item.alternativa ? item.alternativa.importe : item.mediana;
       model.targetMonths.forEach((monthKey, index) => {
+        if (!item.meses.includes(monthKey)) return;
         const from = item.previsto[index];
         if (Math.abs(to - from) >= 0.005) out.push({ key: item.key, monthKey, from, to });
       });

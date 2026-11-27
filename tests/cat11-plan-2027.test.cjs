@@ -14,7 +14,7 @@ function partida(key, kind, planned, real, extra = {}) {
 }
 
 // Una partida mensual que «cubre» todos los meses de la ventana, para que haya meses cubiertos.
-const super12 = partida("super", "expense", cada(AÑO, 500), cada(VENTANA, (k, i) => [480, 520, 510, 490, 900, 500, 505, 495, 500, 510, 490, 500][i]));
+const super12 = partida("super", "expense", cada(AÑO, 450), cada(VENTANA, (k, i) => [480, 520, 510, 490, 900, 500, 505, 495, 500, 510, 490, 500][i]));
 
 function modelo(partidas, ventana = VENTANA) {
   return plan.buildModel({ partidas, windowMonths: ventana, targetMonths: AÑO, today: HOY });
@@ -30,6 +30,7 @@ test("una partida mensual se propone por su mediana × 12; un mes raro (900) no 
   assert.equal(it.tipo, "mensual");
   assert.equal(it.mediana, 500);
   assert.equal(it.propuestoAnual, 6000);
+  assert.equal(it.porDefecto, "mediana");
   assert.match(it.porque, /Mediana de 12 meses/);
 });
 
@@ -73,6 +74,7 @@ test("D-N46 C: si el último trimestre se aparta más de un 20 % y 10 €, se of
   const m = modelo([super12, luz]);
   const it = m.items.find((i) => i.key === "luz");
   assert.equal(it.mediana, 80);
+  assert.equal(it.tipo, "en-linea");
   assert.deepEqual([it.alternativa.importe, it.alternativa.pct], [120, 50]);
   assert.equal(m.conAviso, 1);
   // Por defecto, la mediana (que coincide con lo previsto: no cambia nada); el trimestre solo si se elige.
@@ -115,18 +117,58 @@ test("cambios: solo las celdas que cambian; «mantener» no toca nada", () => {
 test("totales: real de 12 meses, previsto y propuesto por ingresos y gastos", () => {
   const ropa = partida("ropa", "expense", cada(AÑO, 100), cada(VENTANA, 150));
   const m = modelo([super12, ropa]);
-  assert.equal(m.totales.gastos.previsto, 6000 + 1200);
+  assert.equal(m.totales.gastos.previsto, 5400 + 1200);
   assert.equal(m.totales.gastos.propuesto, 6000 + 1800);
   assert.equal(m.totales.gastos.real12, 6400 + 1800);
 });
 
 test("a precios de hoy: la inflación no se escribe en el plan; el texto dice cuánto añade la previsión", () => {
   const m = modelo([super12]);
-  assert.ok(plan.cambios(m).every((c) => c.to === 500), "las celdas, a precios de hoy");
+  assert.ok(plan.cambios(m).length === 12 && plan.cambios(m).every((c) => c.to === 500), "las celdas, a precios de hoy");
   const texto = plan.inflacionTexto(m, 2);
   assert.match(texto, /^A precios de hoy\. Con la inflación de Ajustes \(2 % al año\)/);
   // 500 €/mes en 2027, a 2-13 meses de noviembre de 2026: unos 90 € en el año.
   const extra = Number(texto.match(/unos ([\d.]+) €/)[1].replace(".", ""));
   assert.ok(extra > 70 && extra < 110, `extra ${extra}`);
   assert.equal(plan.inflacionTexto(m, 0), "");
+});
+
+test("el plan ya recoge un cambio reciente (más cerca del trimestre que de la mediana): por defecto se mantiene", () => {
+  const alquiler = partida("alquiler", "expense", cada(AÑO, 1150), cada(VENTANA, (k, i) => (i >= 9 ? 1150 : 1000)));
+  const m = modelo([super12, alquiler]);
+  const it = m.items.find((i) => i.key === "alquiler");
+  assert.equal(it.mediana, 1000);
+  assert.equal(it.porDefecto, "mantener");
+  assert.equal(it.propuestoAnual, 13800);
+  assert.deepEqual(plan.cambios(m).filter((c) => c.key === "alquiler"), [], "no arrastra el plan a 1.000");
+  assert.equal(plan.cambios(m, { alquiler: "mediana" }).filter((c) => c.key === "alquiler")[0].to, 1000, "la mediana se puede elegir");
+});
+
+test("una partida que ya no está en el plan del año que viene no se vuelve a añadir", () => {
+  const gym = partida("gym", "expense", cada(AÑO, 0), cada(VENTANA, 40));
+  const m = modelo([super12, gym]);
+  assert.equal(m.items.find((i) => i.key === "gym").tipo, "fuera-del-plan");
+  assert.deepEqual(plan.cambios(m).filter((c) => c.key === "gym"), []);
+});
+
+test("sin real en los últimos tres meses cubiertos no se propone (¿ha terminado?)", () => {
+  const cole = partida("cole", "expense", cada(AÑO, 100), cada(VENTANA.slice(0, 9), 300));
+  const m = modelo([super12, cole]);
+  assert.equal(m.items.find((i) => i.key === "cole").tipo, "sin-real-reciente");
+  assert.deepEqual(plan.cambios(m).filter((c) => c.key === "cole"), []);
+});
+
+test("una diferencia trivial (500 frente a 503) no cambia doce celdas", () => {
+  const gas = partida("gas", "expense", cada(AÑO, 500), cada(VENTANA, 503));
+  const m = modelo([super12, gas]);
+  assert.equal(m.items.find((i) => i.key === "gas").tipo, "en-linea");
+  assert.deepEqual(plan.cambios(m).filter((c) => c.key === "gas"), []);
+});
+
+test("solo escribe en los meses en que la partida existe", () => {
+  const extra = partida("extra", "expense", cada(AÑO.slice(0, 6), 100), cada(VENTANA, 200), { futureMonths: AÑO.slice(0, 6) });
+  const m = modelo([super12, extra]);
+  const c = plan.cambios(m).filter((x) => x.key === "extra");
+  assert.deepEqual(c.map((x) => x.monthKey), AÑO.slice(0, 6));
+  assert.equal(m.items.find((i) => i.key === "extra").propuestoAnual, 1200);
 });
