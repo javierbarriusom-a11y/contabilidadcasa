@@ -177,6 +177,8 @@ Recogidas en el artefacto de la séptima auditoría. Mandan sobre los prompts do
 
 **Desviación tipográfica decidida (D-N56 f, 27/11):** el sistema no tiene tamaño entre 12,5 (meta) y 15 (cuerpo); se añade un séptimo, «cuerpo compacto» de **13,5 px solo para tablas y listas densas** (Movimientos, Partidas, Contratos). El resto, los seis del PDF. Lo aplican DS-2 y lo vigila DS-1 (`docs/PROPUESTA_CON05_CON08_Y_PLAN_DISENO_2026-11-27.md` §2).
 
+**Dónde viven los tokens de escala (DS-0, 27/11):** en `design-tokens.css`, y no en `tema-v2.css` como decía el plan. El motivo: las hojas propias de cada función sirven a los dos temas. Son `--fs-*`, `--sp-*` y `--r-*`. La guardia DS-1 (`tests/ds1-guardia-diseno.test.cjs`, con la base en `docs/gobierno/ds-base.json`) impide que crezca lo que está fuera de escala; lo nuevo, solo con tokens.
+
 ## 5. Trampas técnicas ya encontradas
 
 - `styles.css` pone `min-height: 350px` a **todo** `svg`: cualquier gráfico nuevo necesita `min-height: 0`.

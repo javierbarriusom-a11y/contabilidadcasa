@@ -113,6 +113,33 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 27 de noviembre de 2026 (559): DS-0 y DS-1, los tokens de escala y la guardia de diseño (D-N56, F1)
+
+- **El hogar** (27/11, D-N56): «sí a todo», DS-0 y DS-1 en F1. Sin cambio visible: nada nuevo en Novedades.
+- **DS-0, tokens** en `design-tokens.css`: `--fs-heroe` (`clamp(32px, 9vw, 48px)`), `--fs-titulo` 32, `--fs-seccion` 19, `--fs-cuerpo` 15, `--fs-compacto` 13,5 (D-N56 b), `--fs-meta` 12,5 y `--fs-etiqueta` 11; `--sp-1`… `--sp-8` (4 a 32); `--r-control` 12, `--r-tarjeta` 16, `--r-hoja` 24 y `--r-pildora` 999. Ninguna regla los usa todavía.
+  - **Se aparta del plan**, que los ponía en `tema-v2.css`: las hojas propias de cada función (`plan-2027.css`, `prestamo-deuda.css`…) sirven a los dos temas, y un token solo del v2 no valdría en el clásico. Anotado en `docs/rediseno/ESTADO.md` §4.
+  - `design-tokens.css` a `?v=20261127ds0` (fijado en 9 pruebas).
+- **DS-1, guardia** (`tests/ds1-guardia-diseno.test.cjs`, 4 pruebas), como trinquete por fichero, igual que ARQ-4. La base está en `docs/gobierno/ds-base.json` y la guarda `node tools/ds-medida.mjs --escribir`.
+  - **Base**, medida sobre `main` 81c6da55 (tras R2), en 56 ficheros:
+    - **547** tamaños de letra, **1.614** espaciados y **286** radios fuera de escala;
+    - **138** `.toFixed(` en el código de la app.
+  - **Qué falla:**
+    - que un fichero suba (uno nuevo parte de 0, así que lo nuevo va con tokens);
+    - que baje sin guardar la base nueva en el mismo PR.
+  - **El medidor** (`tests/helpers/ds-medida.cjs`):
+    - cuenta cada declaración una vez;
+    - admite 1 px en el espaciado (filetes y texto para lectores de pantalla);
+    - no cuenta `var()`, em, %, custom properties ni comentarios.
+  - **Dos datos de la base:**
+    - `styles.css` (el clásico, que se retira en F3) lleva 357 de los 547 tamaños;
+    - `tema-v2.css` lleva 148 de sus 222 `font-size`.
+  - `plan-2027.css` (CAT-11) sale con 0: confirma que se puede escribir una hoja nueva dentro de la escala.
+- **Lo que queda de DS-1:** las dos comprobaciones e2e (un botón primario por vista y control segmentado de 4 como máximo) y «Sin datos» como titular. Necesitan la batería y una base propia; van en un PR aparte.
+- **Validación** (sobre `claude/zen-franklin-e1r1l2` con `main` 81c6da55):
+  - `npm test` **7.078/7.078**;
+  - `lint` y `typecheck` en verde.
+  - Sin batería ni mobile-overflow: no cambia ninguna pantalla, porque los tokens nuevos no los usa ninguna regla.
+
 ## Cierre de sesión — 27 de noviembre de 2026 (558): CAT-11, preparar el plan de 2027 con lo real (D-N46, opción C con la ventana de la opción 3)
 
 - **El hogar** (27/11): «D-N46, C y aplicar ya como previsión»; tras ver que la historia era corta, «opción 3»; permiso para la copia del motor en una rama sin PR.

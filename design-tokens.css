@@ -87,6 +87,29 @@
   --e19-radius-pill: 999px;
   --e19-shadow-card: 0 1px 3px rgba(11, 18, 32, 0.06);
   --e19-shadow-pop: 0 2px 8px rgba(11, 18, 32, 0.08);
+
+  /* DS-0 (plan de diseño, docs/PROPUESTA_CON05_CON08_Y_PLAN_DISENO_2026-11-27.md §2.2): la escala del sistema v2 (PDF «Finanzas
+     Casa · Rediseño», p. 1). Aquí y no en tema-v2.css porque las hojas propias de cada función (plan-2027.css, prestamo-deuda.css…)
+     sirven a los dos temas. No cambian nada visible: ninguna regla las usa todavía. Las reglas nuevas, solo con estos tokens; la
+     guardia DS-1 (tests/ds1-guardia-diseno.test.cjs) impide que lo de fuera de escala crezca. */
+  --fs-heroe: clamp(32px, 9vw, 48px); /* 48 en el escritorio; fluida para que «−12.345 €» no corte a 390 px (§2.3, mejora 1) */
+  --fs-titulo: 32px;
+  --fs-seccion: 19px;
+  --fs-cuerpo: 15px;
+  --fs-compacto: 13.5px; /* D-N56 (b): solo tablas y listas densas; desviación anotada en docs/rediseno/ESTADO.md §4 */
+  --fs-meta: 12.5px;
+  --fs-etiqueta: 11px;
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --r-control: 12px;
+  --r-tarjeta: 16px;
+  --r-hoja: 24px;
+  --r-pildora: 999px;
 }
 
 /* T8 (BACKLOG_CONTABILIDADCASA_2_0.md): mismo criterio que el bloque equivalente de styles.css —
