@@ -125,13 +125,13 @@ test("totales: real de 12 meses, previsto y propuesto por ingresos y gastos", ()
 test("a precios de hoy: la inflación no se escribe en el plan; el texto dice cuánto añade la previsión", () => {
   const m = modelo([super12]);
   assert.ok(plan.cambios(m).length === 12 && plan.cambios(m).every((c) => c.to === 500), "las celdas, a precios de hoy");
-  const texto = plan.inflacionTexto(m, 2, "2026-07");
+  const texto = plan.inflacionTexto(m, 2, "2026-11");
   assert.match(texto, /^A precios de hoy\. Con la inflación de Ajustes \(2 % al año\)/);
-  // Como la previsión, desde el primer mes del plan (julio de 2026): 500 €/mes en 2027, a 6-17 meses (media 11,5): unos 115 € en el año.
+  // Como la previsión, desde el mes en que empieza (noviembre de 2026): 500 €/mes en 2027, a 2-13 meses (media 7,5): unos 75 € en el año.
   const extra = Number(texto.match(/unos ([\d.]+) €/)[1].replace(".", ""));
-  assert.ok(extra >= 105 && extra <= 125, `extra ${extra}`);
-  assert.equal(plan.inflacionTexto(m, 0, "2026-07"), "");
-  assert.equal(plan.inflacionTexto(m, 2), "", "sin el primer mes del plan no se adivina");
+  assert.ok(extra >= 65 && extra <= 85, `extra ${extra}`);
+  assert.equal(plan.inflacionTexto(m, 0, "2026-11"), "");
+  assert.equal(plan.inflacionTexto(m, 2), "", "sin el inicio de la previsión no se adivina");
 });
 
 test("el plan ya recoge un cambio reciente (más cerca del trimestre que de la mediana): por defecto se mantiene", () => {
@@ -181,4 +181,11 @@ test("H-38 (marzo): los meses ya cerrados no se tocan y se cuentan aparte", () =
   const c = plan.cambios(m, {}, { mesesCerrados: cerrados });
   assert.ok(c.every((x) => !cerrados.includes(x.monthKey)));
   assert.deepEqual(plan.aplicable(m, {}, cerrados), { celdas: 20, saltadas: 4, partidas: 2 });
+});
+
+test("una partida sin ningún mes en el año que viene no se escribe en ninguno", () => {
+  const vieja = partida("vieja", "expense", {}, cada(VENTANA, 90), { futureMonths: [] });
+  const m = modelo([super12, vieja]);
+  assert.equal(m.items.find((i) => i.key === "vieja").tipo, "fuera-del-plan");
+  assert.deepEqual(plan.cambios(m).filter((c) => c.key === "vieja"), []);
 });

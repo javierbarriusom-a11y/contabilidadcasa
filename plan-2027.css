@@ -1,0 +1,256 @@
+/* CAT-11 · «Preparar el plan de 2027 con lo real» (D-N46, 27/11/2026; plan-2027-ui.js). Hoja propia; solo tokens --e19-* (valen en
+   los dos temas, en claro y en oscuro). Del sistema de diseño (PDF p. 1, y D-N56): 19 sección · 15 cuerpo · 13,5 compacto (listas) ·
+   12,5 meta; radios 24 hoja · 16 tarjeta · 12 control; espacio de 4 en 4. Hoja inferior en el móvil y panel derecho en el escritorio,
+   como «Ajustar el plan» de Deuda. Verde sólido solo en «Aplicar»; las conclusiones, en tarjeta clara teñida. */
+.p27-entrada {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--e19-border);
+  border-radius: 16px;
+  background: var(--e19-surface);
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--e19-ink);
+}
+
+.p27-entrada[hidden] {
+  display: none;
+}
+
+.p27-entrada .link-button {
+  min-height: 44px;
+}
+
+dialog.p27 {
+  position: fixed;
+  inset: auto 0 0 0;
+  width: 100%;
+  max-width: none;
+  max-height: min(90vh, 760px);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 24px 24px 0 0;
+  background: var(--e19-surface);
+  color: var(--e19-ink);
+  box-shadow: 0 -8px 32px rgba(17, 24, 20, 0.18);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+dialog.p27::backdrop {
+  background: rgba(17, 24, 20, 0.42);
+}
+
+@media (min-width: 1024px) {
+  dialog.p27 {
+    inset: 0 0 0 auto;
+    width: 480px;
+    max-height: none;
+    height: 100vh;
+    border-radius: 24px 0 0 24px;
+    box-shadow: -8px 0 32px rgba(17, 24, 20, 0.18);
+  }
+}
+
+.p27-in {
+  display: grid;
+  gap: 12px;
+  padding: 0 20px 24px;
+  box-sizing: border-box;
+}
+
+.p27-cabeza {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 -20px;
+  padding: 16px 20px 12px;
+  background: var(--e19-surface);
+  border-bottom: 1px solid var(--e19-border);
+}
+
+.p27-cabeza h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 650;
+  line-height: 1.25;
+  color: var(--e19-heading, var(--e19-ink));
+}
+
+.p27-kicker {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--e19-muted);
+}
+
+.p27-cerrar {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.p27-vista {
+  margin: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--e19-accent-soft);
+  font-size: 15px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+
+.p27-historia {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--e19-muted);
+}
+
+.p27-grupo {
+  padding-top: 12px;
+  border-top: 1px solid var(--e19-border);
+}
+
+.p27-grupo h3,
+.p27-grupo > summary {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--e19-heading, var(--e19-ink));
+}
+
+.p27-grupo > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.p27-lista {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.p27-fila {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--e19-border);
+  border-radius: 12px;
+}
+
+.p27-fila-titulo {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: baseline;
+  font-size: 15px;
+}
+
+.p27-fila-titulo span {
+  font-size: 12.5px;
+  color: var(--e19-muted);
+}
+
+.p27-fila-nota {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--e19-muted);
+}
+
+.p27-fila-aviso {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--e19-warning-soft);
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--e19-ink);
+}
+
+.p27-opciones {
+  display: grid;
+  gap: 4px;
+  margin: 4px 0 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.p27-opciones legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.p27-opciones label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.p27-opciones input {
+  width: 20px;
+  height: 20px;
+  min-height: 0;
+  flex: none;
+  margin: 0;
+}
+
+.p27-pie {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--e19-border);
+}
+
+.p27-pie > p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.p27-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.p27-acciones .e19-btn {
+  min-height: 44px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  dialog.p27[open] {
+    animation: p27-entra 200ms ease-out;
+  }
+}
+
+@keyframes p27-entra {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}

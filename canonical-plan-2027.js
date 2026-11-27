@@ -30,8 +30,8 @@
   //     últimos tres meses cubiertos tampoco se propone (¿ha terminado?);
   //   · solo se escriben celdas en los meses en que la partida existe (`futureMonths` de cada partida);
   //   · A PRECIOS DE HOY: la previsión ya sube los gastos con la inflación de Ajustes mes a mes (app.js, expenseMultiplier); meterla
-  //     también aquí la contaría dos veces. `inflacionTexto` solo dice cuánto añadirá la previsión, contando desde el PRIMER MES
-  //     DEL PLAN (baseModelStartDate en app.js), que es desde donde la previsión la compone;
+  //     también aquí la contaría dos veces. `inflacionTexto` solo dice cuánto añadirá la previsión, contando desde el mes en que
+  //     empieza la previsión (modelStartDate en app.js, el mes en curso), que es desde donde simulateHistoricalReference la compone;
   //   · los meses ya cerrados no se tocan (en marzo, H-38, enero y febrero lo estarán): `cambios` los salta y `aplicable` los cuenta.
 
   const UMBRAL_PCT = 20;
@@ -51,8 +51,8 @@
   const suma = (values) => round2(values.reduce((total, value) => total + value, 0));
 
   function mesesDe(partida, targetKeys) {
-    const propios = Array.isArray(partida.futureMonths) ? partida.futureMonths.filter((monthKey) => targetKeys.includes(monthKey)) : [];
-    return propios.length ? propios : targetKeys;
+    // Sin `futureMonths`, la partida está en todos los meses; con una lista (aunque vacía), solo en esos.
+    return Array.isArray(partida.futureMonths) ? partida.futureMonths.filter((monthKey) => targetKeys.includes(monthKey)) : targetKeys;
   }
 
   function plannedValues(partida, targetKeys) {
@@ -87,6 +87,7 @@
     const coveredKeys = windowKeys.filter((monthKey) => partidas.some((partida) => partida.real && known(partida.real[monthKey])));
     const recientes = coveredKeys.slice(-MESES_TRIMESTRE);
     const items = base.items.map((item) => {
+      /** @type {any} */
       const partida = byKey.get(item.key) || {};
       const previsto = plannedValues(partida, targetKeys);
       const meses = mesesDe(partida, targetKeys);
@@ -177,7 +178,7 @@
   }
 
   /** Cuánto añadirá la previsión a los gastos propuestos con la inflación de Ajustes (no se escribe en el plan). */
-  // Como la previsión: cada mes, (1 + p)^(meses desde el primer mes del plan / 12).
+  // Como la previsión: cada mes, (1 + p)^(meses desde el inicio de la previsión / 12).
   function inflacionTexto(model, inflacionAnualPct, inicioPlan) {
     const pct = Number(inflacionAnualPct);
     if (!model || !model.calculable || !Number.isFinite(pct) || pct === 0 || !isMonth(String(inicioPlan || ""))) return "";
