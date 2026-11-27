@@ -335,6 +335,7 @@ gana cada criterio.
 | **D-N55** (27/11) | CON-01 a CON-04 | **Decidida el 27/11:** CON-01 en **F1** (no en F0: agosto y septiembre se firman con CIE-01), CON-04 en **F1**; CON-02 y CON-03 al catálogo (§6) | Hecho (decisión) |
 | **D-N56** (27/11) | CON-05 a CON-08 y el plan de diseño (`docs/PROPUESTA_CON05_CON08_Y_PLAN_DISENO_2026-11-27.md` §4) | **Decidida el 27/11, sí a todo:** CON-05 dentro de CAT-03; CON-06 y CON-07 en F2 (CON-07 antes de WP-54); CON-08 al catálogo con FX-25; DS-0 y DS-1 en F1; tipografía (b), «cuerpo compacto» 13,5 solo en tablas; regla 8 de §7 | Hecho (decisión) |
 | **D-N57** (27/11) | Con varios meses en «Registrar gasto», ¿repetir o repartir el importe? | **Decidida el 27/11: las dos, eligiendo.** Repetir, hecho (PROJECT_STATE 559); repartir con provisión, PR propio en F1 (`docs/PROPUESTA_DN57_ASIGNACION_FLEXIBLE_2026-11-27.md` §3). Cuatro propuestas nuevas en §4 de ese documento, sin adoptar | Hecho (decisión) |
+| **D-N58** (27/11) | Las cuatro propuestas del 27/11 (P1 repartir y apartar, P2 un solo «Elegir partida», P3 errores en su campo, P4 sin partida por gasto) | **Decidida el 27/11: sí a las cuatro**, en F1: P3 → P4 (a) → P2 (con DS-1) → P1 (`docs/PROPUESTA_DN57_ASIGNACION_FLEXIBLE_2026-11-27.md` §4) | Hecho (decisión) |
 | D-N45 | Versiones anteriores fuera del menú | Sí | 14/12 |
 | D-N51 | La tira de cinco cifras fuera de todo el tema v2 | Sí | 14/12 |
 | D-N52 | Tres puertas de datos fuera del menú con el «+» | Sí | 14/12 |

@@ -57,6 +57,8 @@ pruebas de cuadre con meses firmados. **Antes de construirla, medir:** cuántos 
 
 El prompt pedía 6-10; manda la regla 8 (D-N56 g, decisión del propio hogar). Buscadas antes en `capacidades.json` (regla 4).
 
+**D-N58 (27/11, decisión del hogar): «Sí a las 4 propuestas».** P1 a P4 adoptadas, en F1 (antes de la congelación del 14/1). Orden recomendado: P3 (pequeña, quita un error real) → P4 (a) → P2 (con DS-1) → P1 (la más delicada: toca Cierre), cada una en su PR y midiendo antes lo que se dice en cada una (P1: pagos no mensuales en 12 meses; P4: partidas de un solo gasto).
+
 ### P1 · La fase 2 de arriba: repartir y apartar (F1, sustituye los picos de la previsión)
 Ver §3. Se apoya en WP-49 (mapa de pagos) y DAT-05 (traspasos); no añade pantalla, añade una opción a dos que ya existen.
 
