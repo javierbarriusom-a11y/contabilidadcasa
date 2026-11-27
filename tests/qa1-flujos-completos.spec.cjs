@@ -4862,6 +4862,9 @@ test.describe("WP-38 · aviso del plan B en Cierre", () => {
   const openCierre = async (page) => {
     await page.goto("/index.html#cierre");
     await expect(page.locator("#cierreVersions")).toBeAttached({ timeout: 15000 });
+    // #cierreVersions está en index.html desde el principio: no dice que views/cierre.js (renderCierre) se haya cargado. Con la máquina
+    // cargada, la siembra llamaba a renderCierre antes (batería de R2, 27/11/2026).
+    await page.waitForFunction(() => typeof renderCierre === "function", null, { timeout: 15000 });
   };
   const aviso = (page) => page.locator("#planBAviso");
 
@@ -5080,6 +5083,9 @@ test.describe("WP-41 · aviso de deuda en la sombra en Cierre", () => {
   const abrirCierre = async (page) => {
     await page.goto("/index.html#cierre");
     await expect(page.locator("#cierreVersions")).toBeAttached({ timeout: 15000 });
+    // #cierreVersions está en index.html desde el principio: no dice que views/cierre.js (renderCierre) se haya cargado. Con la máquina
+    // cargada, la siembra llamaba a renderCierre antes (batería de R2, 27/11/2026).
+    await page.waitForFunction(() => typeof renderCierre === "function", null, { timeout: 15000 });
   };
 
   test("sin extracto no sale nada; con compromisos los cuenta sin darlos de alta; con extracto viejo avisa de que no puede mirar; el botón lleva a Contratos", async ({ page }) => {
@@ -5244,6 +5250,9 @@ test.describe("WP-43 · aviso del puente en Cierre", () => {
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
     await page.reload();
     await expect(page.locator("#cierreVersions")).toBeAttached({ timeout: 15000 });
+    // #cierreVersions está en index.html desde el principio: no dice que views/cierre.js (renderCierre) se haya cargado. Con la máquina
+    // cargada, la siembra llamaba a renderCierre antes (batería de R2, 27/11/2026).
+    await page.waitForFunction(() => typeof renderCierre === "function", null, { timeout: 15000 });
   };
 
   test("sin puente no sale nada; un cambio pequeño tampoco; un cambio relevante dice la dirección y la frase; el botón lleva a Previsión; sin diálogos ni desbordes", async ({ page }) => {
@@ -5309,6 +5318,9 @@ test.describe("WP-44 · aviso de calma en Cierre", () => {
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
     await page.reload();
     await expect(page.locator("#cierreVersions")).toBeAttached({ timeout: 15000 });
+    // #cierreVersions está en index.html desde el principio: no dice que views/cierre.js (renderCierre) se haya cargado. Con la máquina
+    // cargada, la siembra llamaba a renderCierre antes (batería de R2, 27/11/2026).
+    await page.waitForFunction(() => typeof renderCierre === "function", null, { timeout: 15000 });
   };
 
   test("sin serie no sale nada; una caída por debajo del primer nivel tampoco; una de nivel 2 dice la cifra y la falta de política; el botón lleva a la tarjeta; sin diálogos ni desbordes", async ({ page }) => {
