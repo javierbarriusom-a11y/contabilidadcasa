@@ -6,7 +6,7 @@
 >
 > Manda `docs/PROPUESTA_FINAL_NOVIEMBRE_2026.md` (destino de todo lo pendiente, §3 y §6) y, para pantallas, `docs/rediseno/ESTADO.md`.
 >
-> **Decisión que pide: D-N56** (§4). Ninguna de las ocho piezas entra en una fase hasta que el hogar la adopte.
+> **D-N56 decidida el 27/11: sí a todo, con la tipografía (b).** Las fases, en la Propuesta final §4; la regla de las cuatro propuestas, en su §7.
 
 ## 0. Lo que no quiero callar
 
@@ -96,10 +96,8 @@ DEX5 de primeros pasos (`app.js`).
     - **Ir** (a la pantalla exacta);
     - **Posponer** (hasta mañana, hasta el próximo cierre o hasta una fecha);
     - **No aplica** (con el motivo en un toque: «ya pagado», «no es nuestro», «lo sabemos»).
-- **Encaje con CON-04.** CON-04 mete las decisiones del hogar en «Decidir esta semana». Con CON-06, esas decisiones son **un
-  productor más de la misma cola**, no otra lista.
-  - Si el hogar adopta las dos, CON-06 va primero como motor, en un PR sin pantalla.
-  - Después, CON-04 escribe en la cola.
+- **Encaje con CON-04** (corregido el 27/11). CON-04 es pequeño y va solo en F1. Cuando llegue CON-06 en F2, las decisiones del
+  hogar pasan a ser **una fuente más de la misma cola**, no otra lista. No hace falta que CON-06 vaya antes.
 - **Retira.**
   - Los avisos sueltos dentro de cada pantalla pasan a ser una línea con su enlace a la cola.
   - «Lo que la app te pide» se convierte en un filtro de la cola («datos que faltan») en vez de una tarjeta aparte.
@@ -256,7 +254,7 @@ Recomiendo la **(b)**: la densidad de las tablas es una función, no un descuido
 | Pieza | Encaja en | No duplica |
 |---|---|---|
 | CON-05 | Dentro de CAT-03 (F1) | La ficha del movimiento (es de un movimiento, no de un comercio), el kit de entidad (es de deuda) |
-| CON-06 | Motor en F2, antes de CON-04 si se adoptan las dos | FX-41 y XDA-01: los absorbe como productores |
+| CON-06 | Motor en F2; CON-04 (F1) pasa a ser una de sus fuentes | FX-41 y XDA-01: los absorbe como productores |
 | CON-07 | F2, detrás de R2; antes de WP-54 | TRE-09 / CAT-08 (Hoy en el iPhone), DEX5 (lo retira) |
 | CON-08 | Catálogo, con FX-25 | «Me lo puedo permitir», los escenarios |
 | DS-0, DS-1 | F1, con R1 parte 2 | La auditoría de diseño (pone el orden de las pantallas, no la guardia) |

@@ -172,6 +172,8 @@ Recogidas en el artefacto de la séptima auditoría. Mandan sobre los prompts do
 | «Puedes deshacerla aquí o en Ajustes › Reglas» | Se deshace con el aviso de 10 s o en el resumen de la tanda; después, cambiando la partida en el detalle del movimiento | No existe una pantalla de reglas; crearla no es de esta fase |
 | Fase 0 (desalojo de `app.js`) antes que nada | A1-A3 sin desalojo | Cada fase añadió como mucho 1 línea a `app.js` (37.454 de 37.495). **La siguiente pantalla que necesite lógica en `app.js` no cabía: el desalojo es requisito de lo que sigue** (PR-1 del 20/10: 34.977 de 35.107; PR-2 del 21/10: 33.129 de 33.259) |
 
+**Desviación tipográfica decidida (D-N56 f, 27/11):** el sistema no tiene tamaño entre 12,5 (meta) y 15 (cuerpo); se añade un séptimo, «cuerpo compacto» de **13,5 px solo para tablas y listas densas** (Movimientos, Partidas, Contratos). El resto, los seis del PDF. Lo aplican DS-2 y lo vigila DS-1 (`docs/PROPUESTA_CON05_CON08_Y_PLAN_DISENO_2026-11-27.md` §2).
+
 ## 5. Trampas técnicas ya encontradas
 
 - `styles.css` pone `min-height: 350px` a **todo** `svg`: cualquier gráfico nuevo necesita `min-height: 0`.

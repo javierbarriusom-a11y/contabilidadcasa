@@ -240,12 +240,15 @@ gana cada criterio.
 | Orden | Paquete | Nota |
 |---|---|---|
 | 1 | **CAT-05:** R1 parte 2 (cabecera única) + **CAT-15** (sus medidas en el CI) | Criterio C2 |
-| 2 | **CAT-11 / TRE-12:** Plan 2027 desde lo real de 2026 | Necesita D-N46 antes del 10/12 |
+| 2 | **CAT-11 / TRE-12:** Plan 2027 desde lo real de 2026 | D-N46 decidida el 27/11 (C); se adelanta, en cuanto #694 despliegue |
 | 3 | **WP-23:** acciones de la campaña fiscal antes del 31/12 (H-14) | Dinero en juego con fecha fija |
 | 4 | **Revisión trimestral del 14/12** (D-N38): graduar o retirar; **D-N45** (Versiones anteriores fuera del menú), **D-N52** y **D-N53** | Con datos del medidor, no con hipótesis |
-| 5 | **CAT-03:** recibos y suscripciones (reaprovecha A16-3 + P8) | Alimenta el Plan 2027 |
+| 5 | **CAT-03:** recibos y suscripciones (reaprovecha A16-3 + P8), **con CON-05**, la ficha del comercio o recibo (D-N56) | Alimenta el Plan 2027 |
 | 6 | **CAT-12 / TRE-14:** reglas de clasificación | Acorta el cierre de diciembre |
 | 7 | **CAT-17:** la versión de `app.js` | Pequeño; quita un riesgo de caché. **Hecho el 27/11** (PROJECT_STATE 556) |
+| 8 | **CON-04:** decisiones y tareas del hogar en «Decidir esta semana» (D-N55) | Pequeño; acorta lo que tardan las decisiones |
+| 9 | **CON-01:** mapa de meses y extractos en Cierre (D-N55) | Para el cierre de diciembre |
+| 10 | **DS-0 y DS-1:** tokens de escala y guardia de diseño en el CI (D-N56) | Con CAT-05; pequeño |
 
 - **Del hogar:** H-26 (tres tiempos de carga en el iPhone), H-12 (política de inversión y plan B, 18/12) y H-13 (5 personas para
   WP-54, antes del 15/12).
@@ -264,6 +267,9 @@ gana cada criterio.
 | 1 | **CAT-06 / R2 / FX-60:** 5 destinos y barra inferior con «+» | D-N50 decidida; criterio C4 |
 | 2 | **CAT-07:** el «+» para meter datos | Criterio C5; D-N52 |
 | 3 | **CAT-02 / TRE-02:** «Buscar o hacer» que encuentra acciones | Sobre CAT-01 |
+| 3b | **CON-06:** una sola cola de avisos (D-N56); CON-04 pasa a ser una fuente más | Motor primero, en un PR sin pantalla |
+| 3c | **CON-07:** el primer plan con tres extractos (D-N56) | Antes de WP-54 |
+| 3d | **DS-2 a DS-4:** tipografía, espaciado, radios y componentes únicos, con cada pantalla (D-N56) | — |
 | 4 | **Inversión (TRE-22 / RD-D2 / UND-05)** con INV-03 e INV-06 | Con el componente de fichas de TRE-23 |
 | 5 | **Patrimonio (RD-D1)** con la serie de WP-46 | `Patrimonio.png` |
 | 6 | **Decidir (Escenarios)** con el diseño nuevo | Escenarios, Asesor y Segunda opinión en una pantalla con su pregunta |
@@ -322,22 +328,31 @@ gana cada criterio.
 
 | Decisión | Qué | Recomendación | Para |
 |---|---|---|---|
-| **D-N46** | Base del Plan 2027: mediana de 12 meses o último trimestre × 4 | Mediana de 12 meses | **10/12** (si no, no llega el 31/12) |
+| **D-N46** | Base del Plan 2027 | **Decidida el 27/11: C** (abajo) y aplicarlo ya a la previsión | Hecho (decisión) |
 | H8 | A5-1/A5-4: activar o archivar | Archivar hasta tener servidor | 30/11 |
 | H10 | Excepción XGO-01 de Cierre | — | 4/12 |
 | **D-N54** (nueva) | Adoptar este documento: la 1.0 el 1/3/2027, los criterios de §2 y la congelación del 14/1 | **Sí** | 4/12 |
-| **D-N55** (nueva, 27/11) | CON-01 (mapa de meses y extractos) en F0 y CON-04 (decisiones en la app) en F1; CON-02 y CON-03 al catálogo (§10) | **Sí a CON-01 y CON-04** | 4/12 |
-| **D-N56** (nueva, 27/11) | CON-05 dentro de CAT-03; CON-06 (cola de avisos) y CON-07 (arranque con tres extractos, antes de WP-54) en F2; CON-08 al catálogo con FX-25; DS-0 y DS-1 (tokens de escala y guardia de diseño en el CI) en F1; «cuerpo compacto» de 13,5 para tablas; 4 propuestas como máximo por conversación (`docs/PROPUESTA_CON05_CON08_Y_PLAN_DISENO_2026-11-27.md`) | **Sí a todo; (b) en la tipografía** | 4/12 |
+| **D-N55** (27/11) | CON-01 a CON-04 | **Decidida el 27/11:** CON-01 en **F1** (no en F0: agosto y septiembre se firman con CIE-01), CON-04 en **F1**; CON-02 y CON-03 al catálogo (§6) | Hecho (decisión) |
+| **D-N56** (27/11) | CON-05 a CON-08 y el plan de diseño (`docs/PROPUESTA_CON05_CON08_Y_PLAN_DISENO_2026-11-27.md` §4) | **Decidida el 27/11, sí a todo:** CON-05 dentro de CAT-03; CON-06 y CON-07 en F2 (CON-07 antes de WP-54); CON-08 al catálogo con FX-25; DS-0 y DS-1 en F1; tipografía (b), «cuerpo compacto» 13,5 solo en tablas; regla 8 de §7 | Hecho (decisión) |
 | D-N45 | Versiones anteriores fuera del menú | Sí | 14/12 |
 | D-N51 | La tira de cinco cifras fuera de todo el tema v2 | Sí | 14/12 |
 | D-N52 | Tres puertas de datos fuera del menú con el «+» | Sí | 14/12 |
-| D-N53 | Sin funciones nuevas ni auditorías hasta las fechas de §4 | Sí | 14/12 |
+| D-N53 | Sin funciones nuevas ni auditorías hasta las fechas de §4 | Sí. **Sigue abierta;** lo adoptado el 27/11 en D-N55 y D-N56 entra como excepción explícita del hogar (CON-01, CON-04, CON-05 dentro de CAT-03, CON-06, CON-07, DS-0/DS-1) | 14/12 |
 | D-N48 | Menú del escritorio con desplazamiento propio | Lo resuelve R2 (cinco entradas); se retira | 14/12 |
 | D-N41 | Las tres herramientas heredadas de Contratos (dos listas de orden y simulador de consolidación) | Retirar tras la revisión | 14/12 |
 | D-N47 | Dividir solo en meses sin firmar | Sí (DAT-07 ya existe: confirmar la regla) | 14/12 |
 | D-N43 | El plan por titular | No bloquea; Post | Sin fecha |
 | DUO-05, DUO-02, UND-21 | Barra inferior (la absorbe R2), DUO-02 y UND-21 (D-N11) | DUO-05 se cierra con R2 | 14/12 |
 | FX-21 resto | Qué otras pruebas de estrés | Elegir dos | 2/1 |
+
+**D-N46, opción C (decidida el 27/11): cómo se calcula el Plan 2027.**
+- **La base es la mediana de los últimos 12 meses** con real, por partida (el cálculo de base cero, WP-34, reutilizado).
+- **Solo se aplana lo que es mensual.** Una partida cuyo importe cambia de un mes a otro (un seguro anual, las pagas extra) conserva su forma mes a mes. Una partida con real solo en pocos de los meses cubiertos no se multiplica por 12. Las que manda otra cosa (fórmula, contrato de deuda, tarjeta, asignación personal) no se tocan: sus cambios de 2027 ya vienen de su contrato.
+- **Aviso por partida:** si el último trimestre se aparta de la mediana más de un **20 %** y más de **10 €** al mes, se enseñan las dos cifras y el hogar elige. Nunca se elige sola la del trimestre. **El 20 % es un parámetro, no una medida.**
+- **Con poca historia no se compara:** hacen falta al menos 6 meses con real para que el trimestre sea distinto del resto. Con menos, la partida dice «poca historia» y se queda con la mediana. Hoy, con agosto-noviembre aún por clasificar (H-37), muchas partidas estarán así.
+- **Inflación:** la de Ajustes › Supuestos, solo en gastos; los ingresos no suben solos.
+- **«Aplicar ya como previsión»:** lo aceptado se escribe en las partidas de 2027 del plan, que es lo que lee Previsión, tras «Qué ocurrirá» y con deshacer entero (decisión 6 de `ESTADO.md` §3). No espera a diciembre. La app no lo aplica sola: lo hace el hogar.
+- **Queda fuera** lo que depende de piezas sin hacer: «los recibos que suben» (CAT-03).
 
 ### 5.2 Tareas del hogar con fecha (las que mueven la 1.0)
 
@@ -366,7 +381,7 @@ Nada se pierde: cada cosa espera a su disparador, no a una fecha.
 | **6 meses de ingresos** | FX-34 / XPR-10 (probabilidad de los ingresos inciertos) |
 | **El primer escenario aplicado** | FX-26 (diario de decisiones) |
 | **Tras FX-20 y D-N6 (febrero)** | FX-25 (un solo motor de escenarios), redirigir el laboratorio E13 |
-| **El hogar lo pide** | FX-24, FX-64, XIN-07, TRE-16 (etiquetas), PRV-07, PRV-08, DEC-32, UND-18, DUO-08; el catálogo P3 (27) |
+| **El hogar lo pide** | CON-02, CON-03 (D-N55); CON-08 con FX-25 (D-N56); FX-24, FX-64, XIN-07, TRE-16 (etiquetas), PRV-07, PRV-08, DEC-32, UND-18, DUO-08; el catálogo P3 (27) |
 | **El medidor dice que se usa** | XUX-02, XDA-01 PR-2, Cola B, UX-P1…P7 |
 | **Una cuenta que solo da PDF** | XDA-03 nivel 2 (pdf.js) |
 | **Contratar PSD2 (O-6)** | DAT-02, WP-05 (PSD2), ND-12 |
@@ -402,6 +417,7 @@ Propuesta; vigentes si el hogar adopta D-N54.
 
    Nunca en rojo ni relajando pruebas.
 7. **Cada fase cerrada** actualiza este documento (§3 y §4), `ESTADO.md` §2 y `PROJECT_STATE.md`.
+8. **Cuatro propuestas como máximo por conversación** (D-N56 g, 27/11): cada una sustituye algo o tiene fecha. Lo que se pida de más va a «mejoras de diseño», que no añaden superficie. Aunque un prompt de arranque pida 6-10 funciones, manda esta regla.
 
 ---
 

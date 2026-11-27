@@ -60,6 +60,20 @@ test("cada línea de Novedades está en el inventario una sola vez (capacidad o 
   assert.deepEqual(huerfanas, [], "El inventario apunta a líneas de Novedades que ya no existen.");
 });
 
+test("cada ruta de «donde» existe en la app (superficie.json o index.html): CAT-02 navegará por ellas", () => {
+  const html = fs.readFileSync(path.join(raiz, "index.html"), "utf8");
+  const superficie = JSON.parse(fs.readFileSync(path.join(raiz, "docs", "gobierno", "superficie.json"), "utf8"));
+  const rutas = new Set(Object.keys(superficie.rutas).map((r) => r.split(" ")[0]));
+  const rotas = [];
+  for (const c of inventario.capacidades) {
+    for (const ruta of c.donde.match(/#[a-z0-9-]+/g) || []) {
+      const id = ruta.slice(1);
+      if (!rutas.has(ruta) && !html.includes(`id="${id}"`) && !html.includes(`href="${ruta}"`) && !html.includes(`"${ruta}"`)) rotas.push(`${c.id}: ${ruta}`);
+    }
+  }
+  assert.deepEqual(rotas, [], "Rutas de «donde» que no existen en la app.");
+});
+
 test("lo que la decimocuarta auditoría no encontraba (§2.1) se encuentra por sus palabras", () => {
   const buscar = (palabra) => {
     const p = palabra.toLocaleLowerCase("es");
