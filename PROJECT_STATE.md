@@ -183,6 +183,7 @@ el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entrad
 - **Lo pendiente de los backlogs anteriores** sigue en la Propuesta final §3 (destino F0-F4) y §6 (disparador posterior a la 1.0); no se ha perdido nada.
 - **CIE-01:** lo llevaba otra sesión en paralelo, que es quien abrió #695. Esta se retiró de esa rama para no reiniciar su CI. Sobre el mismo código, con `main` `5cb9c75` dentro, la batería **completa** e2e + a11y + perf-screens en Chromium dio **605/605** (32,8 min); además, `npm test` 7.039/7.039 y `test:mobile-overflow` con 415 visitas sin nada cortado.
 - **Validación de este PR** (solo documentos): sobre `main` `5cb9c75`, `npm run verify` en verde con `npm test` **7.036/7.036**; con `main` `d55436a` dentro, `npm test` **7.039/7.039**.
+- **Traspaso (27/11, 10:00 UTC):** `docs/traspasos/2026-11-27_traspaso-2.md`. #696 desplegado (45949733528) y availability en verde (45959086326, 45965042987); esta sesión no deja nada pendiente. El único PR abierto, #694 (555), es de otra sesión.
 - **Operativo:** rama `claude/zen-ritchie-a6e7u4`, con `main` `d55436a` dentro (#695, CIE-01, fusionado por la otra sesión a las ~04:25 UTC). Se fusiona cuando acabe el despliegue de `d55436a`, para no cancelarlo.
 ## Cierre de sesión — 26 de noviembre de 2026 (552): CIE-01, cerrar los meses atrasados (agosto y septiembre) con los saldos de su extracto
 
