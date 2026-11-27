@@ -2723,9 +2723,12 @@ for (const scheme of ["light", "dark"]) {
         await expect(page.locator("#durabilityStatus")).toBeVisible();
         await page.mouse.move(0, 0);
         const fmt = (results) => results.violations.flatMap((violation) => violation.nodes.map((node) => `${violation.id}: ${node.target.join(" ")} ${node.any[0]?.data?.contrastRatio ?? ""}`));
-        const cabecera = await new AxeBuilder({ page }).include(".topbar").analyze();
+        // R1, segunda parte: en el móvil el punto es la insignia de la marca FC; se analiza con la cabecera.
+        const cabecera = await new AxeBuilder({ page }).include(".topbar").include(".sidebar .brand-mark").analyze();
         expect(fmt(cabecera), fmt(cabecera).slice(0, 5).join("\n")).toEqual([]);
         await page.keyboard.press("Escape");
+        // En el móvil, «Guía» va en la franja, que sale al abrir el punto (R1, segunda parte).
+        if (viewport.width === 390) await page.locator("#estadoPunto").click();
         await page.locator("#topbarGuia").click();
         await expect(page.locator("#e17FlowGuideContexto")).toBeVisible();
         const guia = await new AxeBuilder({ page }).include("#e17FlowGuideDialog").analyze();
