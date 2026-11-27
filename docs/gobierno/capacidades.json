@@ -1840,6 +1840,10 @@
     {
       "novedad": "2026-11-22-ajustes-areas",
       "porque": "Reorganización de Ajustes en el móvil"
+    },
+    {
+      "novedad": "2026-11-27-cinco-destinos",
+      "porque": "Reorganización de la navegación (R2, D-N50): las mismas pantallas, en cinco destinos y una barra inferior en el móvil"
     }
   ]
 }
