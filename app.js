@@ -4414,6 +4414,7 @@ function setActiveView(viewId = viewFromHash(), { focus = false, announce = true
   renderDataNatureBadge(viewId);
   renderTopbarStatusStrip(viewId);
   renderE17ViewGuide(viewId);
+  globalThis.renderNavegacionV2?.(viewId); // R2 (D-N50): los cinco destinos del tema v2 marcan dónde se está (views/navegacion-v2.js)
   if (viewChanged) window.scrollTo({ top: 0, behavior: "instant" });
   if (focus && viewChanged && viewTitle) pendingViewFocusId = viewId;
   if (announce && viewChanged) announceStatus(`${copy.title} abierta.`);

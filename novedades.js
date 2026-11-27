@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-27-cinco-destinos",
+      fecha: "2026-11-27",
+      texto: "Menú en cinco destinos con su pregunta (Hoy, Movimientos, Plan, Patrimonio, Decidir) y, en el móvil, una barra abajo. Nada se ha quitado.",
+      href: "#home",
+    },
+    {
       id: "2026-11-26-cerrar-meses-atrasados",
       fecha: "2026-11-26",
       texto: "Cierre: los meses atrasados sin firmar se pueden cerrar ya, con los saldos de su extracto y no con los de hoy.",
