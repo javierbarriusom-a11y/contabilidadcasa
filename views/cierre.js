@@ -401,7 +401,7 @@ function cierreStep1Html(accountRows) {
     .map(
       (row) => `<tr role="row">
         <td role="cell"><strong>${escapeHtml(row.label)}</strong></td>
-        <td role="cell" data-label="Declarado">${money(row.declared, true)}</td>
+        <td role="cell" data-label="Declarado">${row.declared === null ? "—" : money(row.declared, true)}</td>
         <td role="cell" data-label="Calculado">${row.calculated === null ? "—" : money(row.calculated, true)}</td>
         <td role="cell" data-label="Diferencia">${row.diff === null ? "—" : money(row.diff, true)}</td>
         <td role="cell" data-label="Estado"><span class="e19-badge ${statusBadge[row.status]}">${statusLabel[row.status]}</span>${
@@ -1329,8 +1329,41 @@ function cierreTargetHtml(target) {
   const other = target.alternative
     ? ` <button type="button" class="e19-btn e19-btn-secondary" id="cierreTargetSwitch" data-month="${escapeHtml(target.alternative)}">Cerrar ${escapeHtml(ledgerMonthLabel(target.alternative))} en su lugar</button>`
     : "";
-  if (isSignedClosedMonthKey(target.monthKey)) return `Mes cerrado: <strong>${escapeHtml(label)}</strong>.${other}`;
-  return `Mes que se cierra: <strong>${escapeHtml(label)}</strong> (${escapeHtml(target.reason)}).${other}`;
+  // CIE-01 (26/11/2026): los meses atrasados sin firmar, el más antiguo primero; se cierran con los saldos de su extracto.
+  const atrasados = (target.pending || []).filter((key) => key !== target.monthKey);
+  const pending = atrasados.length
+    ? `<span class="cierre-atrasados"> Sin firmar de antes: ${atrasados.map((key) => `<button type="button" class="e19-btn e19-btn-secondary" data-cierre-mes-atrasado="${escapeHtml(key)}">Cerrar ${escapeHtml(ledgerMonthLabel(key))}</button>`).join(" ")}</span>`
+    : "";
+  if (isSignedClosedMonthKey(target.monthKey)) return `Mes cerrado: <strong>${escapeHtml(label)}</strong>.${other}${pending}`;
+  return `Mes que se cierra: <strong>${escapeHtml(label)}</strong> (${escapeHtml(target.reason)}).${other}${pending}`;
+}
+
+// CIE-01: los saldos de cierre de un mes atrasado, del extracto (el saldo tras el último movimiento del banco de ese mes en cada
+// cuenta), nunca los de hoy. Lo que falte, se dice al firmar; el efectivo no tiene extracto y no se guarda para un mes atrasado.
+function cierreSaldosMesAtrasado(monthKey, closedAt = "") {
+  const engine = window.FinanceCanonicalMonthCloseBalances;
+  if (!engine?.balancesAtMonthEnd) return null;
+  const snapshot = typeof refreshCanonicalLedger === "function" ? refreshCanonicalLedger("cierre-saldos-atrasado") : null;
+  const saldos = engine.balancesAtMonthEnd({ monthKey, entries: snapshot?.entries || [] });
+  if (!Object.keys(saldos.accounts).length || !saldos.date) return null;
+  try {
+    const entry = engine.buildEntry({ monthKey, accounts: saldos.accounts, date: saldos.date, mode: "manual", closedAt });
+    return { ...entry, late: true, missing: saldos.missing, ambiguous: saldos.ambiguous, dates: saldos.dates };
+  } catch {
+    return null;
+  }
+}
+globalThis.cierreSaldosMesAtrasado = cierreSaldosMesAtrasado;
+
+// CIE-01: las filas de cuentas de un mes atrasado. El saldo de cierre es el del extracto (no hay otro que comparar), así que una cuenta
+// con saldo ese mes queda conciliada y una sin movimientos con saldo, «sin conciliar» y sin cifra (no la de hoy).
+function cierreCuentasMesAtrasado(monthKey) {
+  const entry = cierreSaldosMesAtrasado(monthKey);
+  return Object.entries(CIERRE_ACCOUNT_LABELS).map(([accountId, label]) => {
+    const value = entry?.accounts?.[accountId];
+    if (value === undefined) return { id: accountId, label, declared: null, calculated: null, diff: null, status: "sin-conciliar", latestDate: null };
+    return { id: accountId, label, declared: value, calculated: value, diff: 0, status: "cuadra", latestDate: entry.dates?.[accountId] || entry.date };
+  });
 }
 
 function handleCierreTargetSwitch(monthKey) {
@@ -1354,6 +1387,8 @@ const CIERRE_CONTINUITY_TEXT = {
 function cierreBalancesHtml(entry, entries, monthKey) {
   const engine = window.FinanceCanonicalMonthCloseBalances;
   if (!engine) return "";
+  const atrasado = monthKey < engine.previousMonthKey(isoLocalDate(new Date()).slice(0, 7));
+  if (!entry && atrasado) return `<p class="e19-kpi-note is-warn">No hay ningún movimiento con saldo en el extracto de ${escapeHtml(ledgerMonthLabel(monthKey))}: el cierre se firmará sin saldos (no se usan los de hoy). Importad el extracto de ese mes antes de firmar.</p>`;
   if (!entry) return `<p class="e19-kpi-note is-warn">No hay saldos con fecha válida: el cierre se firmará sin saldos. Actualízalos en Registrar antes de firmar.</p>`;
   const accounts = Object.entries(entry.accounts).map(([id, value]) => `${escapeHtml(CIERRE_BALANCE_ACCOUNT_LABELS[id] || id)} ${money(value, true)}`).join(" · ");
   const previous = engine.previousEntry(loadMonthCloseBalances(), monthKey);
@@ -1365,7 +1400,11 @@ function cierreBalancesHtml(entry, entries, monthKey) {
   }).join("");
   const warn = entry.mode === "auto" || entry.offsetDays !== 0;
   const sentence = engine.describeDate(entry);
-  return `<p class="e19-kpi-note${warn ? " is-warn" : ""}">${escapeHtml(sentence.charAt(0).toUpperCase() + sentence.slice(1))}: ${accounts}.</p>${rows ? `<ul class="cierre-effects-list">${rows}</ul>` : ""}`;
+  // CIE-01: en un mes atrasado los saldos son los del extracto; se dice de dónde salen y qué falta.
+  const tarde = entry.late
+    ? `<p class="e19-kpi-note" data-cierre-saldos-atrasado>Mes atrasado: los saldos salen del extracto de ${escapeHtml(ledgerMonthLabel(monthKey))} (el saldo tras su último movimiento), no de los de hoy.${(entry.missing || []).length ? ` <strong>Falta el de ${escapeHtml(entry.missing.map((id) => CIERRE_BALANCE_ACCOUNT_LABELS[id] || id).join(" y "))}</strong>: sin movimientos con saldo ese mes, se firmará sin él.` : ""}${(entry.ambiguous || []).length ? ` El último día de ${escapeHtml(entry.ambiguous.map((id) => CIERRE_BALANCE_ACCOUNT_LABELS[id] || id).join(" y "))} no encadena sus saldos: comprobad el de cierre.` : ""}</p>`
+    : "";
+  return `${tarde}<p class="e19-kpi-note${warn ? " is-warn" : ""}">${escapeHtml(sentence.charAt(0).toUpperCase() + sentence.slice(1))}: ${accounts}.</p>${rows ? `<ul class="cierre-effects-list">${rows}</ul>` : ""}`;
 }
 
 function renderCierre() {
@@ -1420,7 +1459,8 @@ function renderCierre() {
   const porMes = cierreTaskSourcesByMonth({ unclassified, differences, balanceGaps, debtCapitalMismatches }, entries, currentMonthKey);
   const tasks = E11bInbox ? E11bInbox.reconciliationTasks(porMes.mes) : [];
   const otherTasks = E11bInbox ? E11bInbox.reconciliationTasks(porMes.otros) : [];
-  const accountRows = cierreAccountReconciliation(entries);
+  // CIE-01: en un mes atrasado, las cuentas se comprueban con el extracto a fin de ESE mes, no con los saldos declarados hoy.
+  const accountRows = target.late ? cierreCuentasMesAtrasado(currentMonthKey) : cierreAccountReconciliation(entries);
   const countersEl = qs("cierreCounters");
   if (countersEl) countersEl.innerHTML = cierreCountersHtml(accountRows, tasks, porMes.mes.unclassified.length);
   const otrosEl = qs("cierreOtrosMeses");

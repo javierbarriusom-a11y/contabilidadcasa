@@ -241,8 +241,8 @@ const VIEW_CHUNKS = {
   "inversion-fiscal": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-fiscal" },
   "inversion-jubilacion": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-jubilacion" },
   "inversion-apalancamiento": { src: "views/inversion.js?v=20260917i1a1", rootId: "inversion-apalancamiento" },
-  cierre: { src: "views/cierre.js?v=20261125firma", rootId: "cierre" },
-  conciliar: { src: "views/cierre.js?v=20261125firma", rootId: "conciliar" },
+  cierre: { src: "views/cierre.js?v=20261126cie01", rootId: "cierre" },
+  conciliar: { src: "views/cierre.js?v=20261126cie01", rootId: "conciliar" },
   analisis: { src: "views/analisis.js?v=20260922per4a1", rootId: "analisis" },
   "escenario-simular": { src: "views/escenarios.js?v=20261116xda10", rootId: "escenario-simular" },
   "escenario-aplicar": { src: "views/escenarios.js?v=20261116xda10", rootId: "escenario-aplicar" },
@@ -4926,11 +4926,12 @@ function closeTargetInfo() {
   const today = isoLocalDate(new Date());
   if (!closeBalancesEngine()) return { monthKey: openMonthCutoffKey(), alternative: null, isDefault: true, reason: "mes en curso" };
   const hasActivity = (key) => ((typeof baseData === "undefined" ? null : baseData)?.transactions || []).some((row) => String(row?.month || row?.date || "").slice(0, 7) === key); // 4/11/2026: el mes anterior sin firmar va primero
-  return closeBalancesEngine().closeTarget({ today, isSigned: isSignedClosedMonthKey, hasActivity, choice: closeTargetChoice.day === today ? closeTargetChoice.monthKey : "" });
+  const pastMonths = [...new Set(((typeof baseData === "undefined" ? null : baseData)?.transactions || []).map((row) => String(row?.month || row?.date || "").slice(0, 7)))]; // CIE-01: los atrasados sin firmar
+  return closeBalancesEngine().closeTarget({ today, isSigned: isSignedClosedMonthKey, hasActivity, choice: closeTargetChoice.day === today ? closeTargetChoice.monthKey : "", pastMonths });
 }
 function closeTargetMonthKey() { return closeTargetInfo().monthKey; }
 function loadMonthCloseBalances() { try { return closeBalancesEngine().normalizeStore(JSON.parse(storageGet(storageKey("month-close-balances"), "null"))); } catch { return { months: {} }; } }
-function pendingMonthCloseBalances(monthKey, closedAt = "") { const b = accountBalancesFromState(); try { return closeBalancesEngine().buildEntry({ monthKey, accounts: { caixabank: b.caixa, mediolanum: b.mediolanum, efectivo: efectivoBalanceValue() }, date: String(state?.balanceDate || defaultBalanceDate()).slice(0, 10), mode: state?.balanceMode, closedAt }); } catch { return null; } }
+function pendingMonthCloseBalances(monthKey, closedAt = "") { if (closeBalancesEngine() && monthKey < closeBalancesEngine().previousMonthKey(isoLocalDate(new Date()).slice(0, 7))) return globalThis.cierreSaldosMesAtrasado?.(monthKey, closedAt) || null; /* CIE-01: un mes atrasado, con los saldos de su extracto, nunca los de hoy */ const b = accountBalancesFromState(); try { return closeBalancesEngine().buildEntry({ monthKey, accounts: { caixabank: b.caixa, mediolanum: b.mediolanum, efectivo: efectivoBalanceValue() }, date: String(state?.balanceDate || defaultBalanceDate()).slice(0, 10), mode: state?.balanceMode, closedAt }); } catch { return null; } }
 function recordMonthCloseBalances(monthKey, closedAt) { const entry = pendingMonthCloseBalances(monthKey, closedAt); if (entry) storageSet(storageKey("month-close-balances"), JSON.stringify(closeBalancesEngine().recordEntry(loadMonthCloseBalances(), entry))); return entry; }
 
 // Cierre cierra el mes que enseña (closeTargetMonthKey); Conciliación y la pantalla heredada pasan el mes en curso,
@@ -31414,6 +31415,7 @@ async function init() {
     if (event.target.closest("[data-cierre-por-clasificar-deshacer]")) { handleCierrePorClasificarDeshacer(); return; }
     if (event.target.id === "cierreSignButton") handleCierreSign(event.target); // el pulsado: hay dos (el de siempre y el nuevo)
     if (event.target.id === "cierreTargetSwitch") handleCierreTargetSwitch(event.target.dataset.month);
+    if (event.target.closest("[data-cierre-mes-atrasado]")) handleCierreTargetSwitch(event.target.closest("[data-cierre-mes-atrasado]").dataset.cierreMesAtrasado); // CIE-01
     if (event.target.id === "cierreDownloadCsv") handleCierreDownload("csv");
     if (event.target.id === "cierreDownloadPdf") handleCierreDownload("pdf");
     if (event.target.closest("[data-gob13-mark-done]")) markGob13AnnualReviewDone();

@@ -14145,3 +14145,45 @@ test.describe("R1 · El título arriba", () => {
     });
   }
 });
+
+// CIE-01 (26/11/2026, petición del hogar: cerrar agosto, que sigue abierto): Cierre ofrece los meses atrasados sin firmar y, elegido
+// uno, enseña los saldos que guardaría la firma: los de SU extracto (CaixaBank, del arranque en caliente) y «sin saldo en el extracto»
+// donde no hay movimientos con saldo ese mes (Mediolanum), nunca los de hoy. Firmar necesita la nube y no se prueba aquí.
+test.describe("CIE-01 · Cerrar un mes atrasado", () => {
+  const { arrancarEnCaliente } = require("./helpers/arranque-en-caliente.cjs");
+  for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+    const etiqueta = viewport.width === 390 ? " @safari" : "";
+    test(`los atrasados sin firmar, elegir el más antiguo y sus saldos del extracto, y volver al mes por defecto, a ${viewport.width} px${etiqueta}`, async ({ page }) => {
+      test.setTimeout(120000);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await arrancarEnCaliente(page, { viewport });
+      await page.evaluate(() => { location.hash = "cierre"; });
+      const objetivo = page.locator("#cierreTarget");
+      await expect(objetivo).toContainText("Sin firmar de antes", { timeout: 20000 });
+      const atrasados = objetivo.locator("[data-cierre-mes-atrasado]");
+      expect(await atrasados.count()).toBeGreaterThanOrEqual(1);
+      const mes = await atrasados.first().getAttribute("data-cierre-mes-atrasado");
+      const claves = await atrasados.evaluateAll((els) => els.map((el) => el.dataset.cierreMesAtrasado));
+      expect([...claves].sort()).toEqual(claves); // el más antiguo primero
+      await atrasados.first().click();
+      await expect(objetivo).toContainText("elegido: cerrar tarde un mes atrasado");
+      // Lo que guardaría la firma: CaixaBank con el saldo de su extracto a fin de ese mes; Mediolanum, sin saldo (no el de hoy).
+      const esperado = await page.evaluate((k) => {
+        const r = FinanceCanonicalMonthCloseBalances.balancesAtMonthEnd({ monthKey: k, entries: refreshCanonicalLedger("prueba-cie01").entries });
+        return { caixa: money(r.accounts.caixabank, true), hoy: money(accountBalancesFromState().caixa, true), falta: r.missing };
+      }, mes);
+      expect(esperado.falta).toEqual(["mediolanum"]);
+      const guarda = page.locator(".cierre-v2-guarda");
+      await expect(guarda).toContainText(esperado.caixa);
+      await expect(guarda).toContainText("sin saldo en el extracto");
+      expect(esperado.caixa).not.toBe(esperado.hoy); // el del extracto de ese mes no es el de hoy
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "sin desbordar en horizontal").toBe(true);
+      // Volver al mes por defecto, en un toque.
+      await page.locator("#cierreTargetSwitch").click();
+      await expect(objetivo).toContainText("Sin firmar de antes");
+      await expect(objetivo).not.toContainText("mes atrasado");
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
