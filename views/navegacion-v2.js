@@ -156,11 +156,14 @@
   const alTocar = () => { tocadoHasta = Date.now() + 700; };
   function alDesplazar() {
     const y = root.scrollY || 0;
+    // Al final de la pantalla vuelve siempre, llegue como llegue (un desplazamiento suave acaba después del gesto): lo último queda
+    // por encima de ella, porque el cuerpo deja libre su alto.
+    const alFinal = y + (root.innerHeight || 0) >= (doc().documentElement.scrollHeight || 0) - 2;
+    if (alFinal) { ocultarBarra(false); ultimoY = y; return; }
     if (Date.now() < quietoHasta || Date.now() > tocadoHasta) { ultimoY = y; return; }
     const delta = y - ultimoY;
     if (Math.abs(delta) < 6) return;
-    const alFinal = y + (root.innerHeight || 0) >= (doc().documentElement.scrollHeight || 0) - 2;
-    ocultarBarra(delta > 0 && y > 80 && !alFinal);
+    ocultarBarra(delta > 0 && y > 80);
     ultimoY = y;
   }
   const escribiendo = (el) => Boolean(el?.matches?.('input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]), textarea, select, [contenteditable="true"]'));
