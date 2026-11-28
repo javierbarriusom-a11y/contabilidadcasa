@@ -113,6 +113,26 @@ Las sesiones del 11 de septiembre al 8 de octubre de 2026 (de la 166b a la 303) 
 resumir, a [`docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md`](docs/historial/PROJECT_STATE_2026-09-11_a_2026-10-08.md)
 el 30 de octubre de 2026 (sesión 379): el documento había llegado a 281 entradas y unas 9.300 líneas.
 
+## Cierre de sesión — 28 de noviembre de 2026 (560): la barra inferior de R2 se comía el toque; `main` en rojo tras #700
+
+- **Qué pasó.** El despliegue de R2 en `main` (81c6da55, run 46077958587) falló en Safari a 390 px y el sitio se quedó en f854b874. Fallaron cinco pruebas: UND-01, DUO-D1, las dos de Ruta y TRE-D5b. Cuatro pasaron al repetirse y una no.
+  - Todas con el mismo síntoma: tras pegar contratos y pulsar «Dar de alta», el aviso «N contratos dados de alta» seguía vacío.
+  - La captura del fallo (registro del CI) lo confirma: el texto seguía en el campo, así que el toque no llegó al botón.
+  - El CI de #702, con el mismo código salvo los tokens, había pasado Safari una hora antes. Por eso no era un fallo fijo, sino una carrera.
+- **Causa, reproducida en Chromium** (390 px, movimiento reducido):
+  - con el teclado fuera, la barra de cinco destinos se esconde (`data-escribiendo`);
+  - al pulsar un botón, el campo pierde el foco en el `pointerdown` y la barra vuelve a subir;
+  - a los 150 ms ya tapa la franja inferior, y el `pointerup` cae en un enlace de la barra, así que no hay clic.
+  - Le puede pasar a una persona en el iPhone: basta con que el botón quede abajo y el dedo tarde un poco en soltar.
+- **Arreglo** en `views/navegacion-v2.js` (a `?v=20261128r2c`):
+  - mientras hay un puntero pulsado, la barra no vuelve;
+  - vuelve al soltarlo, después del clic, y solo si el foco no ha pasado a otro campo (antes parpadeaba al saltar de un campo a otro).
+- **Prueba nueva:** e2e «R2 · La barra inferior no se come el toque» (390 px `@safari`). Deja el botón en la franja de la barra, pulsa, espera 150 ms y suelta.
+  - Sin el arreglo falla 2 de 2; con él pasa 3 de 3.
+  - Las cinco pruebas que fallaron y la de R2, en Chromium móvil con movimiento reducido: 7/7.
+- **Validación:** `npm test` **7.078/7.078** y `lint` en verde. Batería Chromium y mobile-overflow: abajo, al terminar.
+- **Va en #702**, con DS-0 y DS-1, para que `main` vuelva a verde con un solo despliegue. Siguiente PROJECT_STATE libre: **561** («Lo hemos firmado»).
+
 ## Cierre de sesión — 27 de noviembre de 2026 (559): DS-0 y DS-1, los tokens de escala y la guardia de diseño (D-N56, F1)
 
 - **El hogar** (27/11, D-N56): «sí a todo», DS-0 y DS-1 en F1. Sin cambio visible: nada nuevo en Novedades.

@@ -176,7 +176,20 @@
     for (const tipo of ["wheel", "touchmove"]) root.addEventListener?.(tipo, alTocar, { passive: true });
     d.addEventListener("keydown", (event) => { if (["ArrowDown", "ArrowUp", "PageDown", "PageUp", " ", "End", "Home"].includes(event.key)) alTocar(); });
     d.addEventListener("focusin", (event) => { if (escribiendo(event.target)) $("barraDestinosV2")?.toggleAttribute("data-escribiendo", true); });
-    d.addEventListener("focusout", () => $("barraDestinosV2")?.removeAttribute("data-escribiendo"));
+    // Al tocar un botón con el teclado fuera, el campo pierde el foco al bajar el dedo (pointerdown). Si la barra volviera ahí, en
+    // 150 ms ya tapaba lo que había debajo y el «soltar» caía en ella: el toque no llegaba al botón («Dar de alta» en Deuda ›
+    // Contratos, 28/11/2026, en el CI de Safari tras R2). Vuelve cuando se suelta, después del clic, y solo si no se sigue escribiendo.
+    let pulsando = false;
+    let volverAlSoltar = false;
+    const volverSiNoEscribe = () => {
+      volverAlSoltar = false;
+      root.setTimeout(() => { if (!escribiendo(doc().activeElement)) $("barraDestinosV2")?.removeAttribute("data-escribiendo"); }, 0);
+    };
+    d.addEventListener("pointerdown", () => { pulsando = true; }, true);
+    for (const tipo of ["pointerup", "pointercancel"]) {
+      d.addEventListener(tipo, () => { pulsando = false; if (volverAlSoltar) root.setTimeout(volverSiNoEscribe, 0); }, true);
+    }
+    d.addEventListener("focusout", () => { if (pulsando) volverAlSoltar = true; else volverSiNoEscribe(); });
     root.addEventListener?.("hashchange", () => { ocultarBarra(false); render(); });
     // El pie dice el guardado de ahora: cambia sin navegar.
     const sello = [$("durabilityBadge"), $("durabilityTime")].filter(Boolean);

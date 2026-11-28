@@ -14395,3 +14395,37 @@ test.describe("CAT-11 · Preparar el plan de 2027 con lo real", () => {
     });
   }
 });
+
+// R2 · la barra inferior no se come el toque (28/11/2026). El despliegue de R2 (81c6da55) falló en Safari a 390 px: con el teclado
+// fuera, al pulsar «Dar de alta» el campo perdía el foco, la barra volvía a subir y el «soltar» caía en ella, así que el toque no
+// llegaba al botón. Se reproduce en Chromium dejando el botón en la franja de la barra y soltando 150 ms después de pulsar.
+test.describe("R2 · La barra inferior no se come el toque", () => {
+  test("pulsar un botón en la franja de la barra con el teclado fuera llega al botón, y la barra vuelve al soltar, a 390 px @safari", async ({ page }) => {
+    test.setTimeout(90000);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/index.html#deuda-contratos");
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* sin almacenamiento */ } });
+    await page.reload();
+    await abrirAltaVarios(page);
+    await page.fill("#deudaContratosVarios", "Banco FICTICIO; tarjeta; 2.400; 21,9; 90\nCaja FICTICIA; préstamo; 5.100; 9,5; 160");
+    const barra = page.locator("#barraDestinosV2");
+    await expect(barra).toHaveAttribute("data-escribiendo", "");
+    const boton = page.locator("#deudaContratosDetectados [data-deuda-varios-alta]");
+    await page.evaluate(() => {
+      const r = document.querySelector("#deudaContratosDetectados [data-deuda-varios-alta]").getBoundingClientRect();
+      window.scrollTo({ top: window.scrollY + r.bottom - (window.innerHeight - 8), behavior: "instant" });
+    });
+    // El desplazamiento se asienta antes de medir (si no, la caja es la de antes y el toque cae encima del botón).
+    await expect.poll(async () => (await boton.boundingBox()).y, { timeout: 5000 }).toBeGreaterThan(700);
+    await page.waitForTimeout(300);
+    const caja = await boton.boundingBox();
+    const barraArriba = await page.evaluate(() => window.innerHeight - document.getElementById("barraDestinosV2").offsetHeight);
+    expect(caja.y + caja.height / 2, "el botón queda en la franja de la barra").toBeGreaterThan(barraArriba);
+    await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(150);
+    await page.mouse.up();
+    await expect(page.locator("#deudaVariosAviso")).toContainText("2 contratos dados de alta");
+    await expect(barra).not.toHaveAttribute("data-escribiendo", "");
+  });
+});

@@ -74,7 +74,7 @@ test("R2 · cableado: contenedores, script, la llamada de setActiveView y los es
   assert.match(html, /<nav class="nav-destinos-v2" id="navDestinosV2" aria-label="Destinos" hidden><\/nav>\s*<nav class="side-nav"/);
   assert.match(html, /<nav class="nav-pie-v2" id="navPieV2" aria-label="Ajustes y ayuda" hidden><\/nav>/);
   assert.match(html, /<\/aside>\s*<!--[^]*?-->\s*<nav class="barra-destinos-v2" id="barraDestinosV2" aria-label="Destinos" hidden><\/nav>/);
-  assert.match(html, /<script defer src="views\/navegacion-v2\.js\?v=20261127r2"><\/script>/);
+  assert.match(html, /<script defer src="views\/navegacion-v2\.js\?v=20261128r2c"><\/script>/);
   assert.match(app, /renderE17ViewGuide\(viewId\);\n  globalThis\.renderNavegacionV2\?\.\(viewId\);/);
   // El menú de siempre solo se esconde cuando los destinos se han pintado (si el script falla, se ve entero).
   assert.match(css, /\.sidebar:has\(> #navDestinosV2:not\(\[hidden\]\)\) \.side-nav > :is\(\.nav-section-label, \.nav-primary-link, \.e17-nav-actions\) \{\s*display: none;/);
