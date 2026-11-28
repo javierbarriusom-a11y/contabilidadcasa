@@ -7,6 +7,8 @@
 // aquí se cancela el globo, se escribe el error bajo el campo (con `aria-invalid` y `aria-describedby`) y el foco va al primero
 // que falla. El formulario sigue sin enviarse, como antes: no cambia qué se valida, solo dónde se dice. Al corregir el campo, el
 // error se va. Sirve también para los formularios que se pintan después (Deuda, objetivos, CIRBE…) sin tocar ninguno.
+// El error lleva el id `<campo>-campo-error`, distinto del aviso de importe de WP-11 (`<campo>-error`, ux-shell.js), que se quita al salir del
+// campo: con el mismo id, se llevaba también este y el formulario se movía bajo el dedo (CI de #704).
 // `mostrarError(campo, texto)` es para las comprobaciones propias (un importe que no se entiende), con el mismo aspecto.
 (function attachErroresCampo(root) {
   "use strict";
@@ -39,7 +41,7 @@
 
   function idDelError(campo) {
     if (!campo.id) campo.id = `campo-${Math.random().toString(36).slice(2, 9)}`;
-    return `${campo.id}-error`;
+    return `${campo.id}-campo-error`;
   }
 
   function mostrarError(campo, texto) {
@@ -60,7 +62,7 @@
 
   function quitarError(campo) {
     if (!campo?.id) return;
-    const id = `${campo.id}-error`;
+    const id = `${campo.id}-campo-error`;
     doc.getElementById(id)?.remove();
     if (campo.getAttribute("aria-invalid") === "true") campo.removeAttribute("aria-invalid");
     const resto = (campo.getAttribute("aria-describedby") || "").split(/\s+/).filter((item) => item && item !== id);
@@ -83,17 +85,22 @@
 
   function alCorregir(event) {
     const campo = event.target;
-    if (!campo?.id || campo.getAttribute("aria-invalid") !== "true" || !doc.getElementById(`${campo.id}-error`)) return;
+    if (!campo?.id || !doc.getElementById(`${campo.id}-campo-error`)) return; // sin mirar aria-invalid: WP-11 lo quita al salir de un importe
     if (campo.validity?.valid !== false) quitarError(campo);
   }
 
   if (doc && !doc.__erroresCampo) {
     doc.__erroresCampo = true;
     doc.addEventListener("invalid", alInvalido, true); // `invalid` no burbujea: en captura
+    // Solo al escribir o elegir (`input`, que también dan los desplegables y las casillas), nunca al salir del campo (`change`): quitar el
+    // error al perder el foco movía el formulario entre apoyar y levantar el dedo, y el toque en «Cancelar» se perdía (CI de #704).
     doc.addEventListener("input", alCorregir, true);
-    doc.addEventListener("change", alCorregir, true);
     // Al cerrar un diálogo o vaciar un formulario, los errores de la vez anterior no se quedan para la siguiente.
-    const limpiar = (event) => event.target?.querySelectorAll?.('[aria-invalid="true"]').forEach(quitarError);
+    const limpiar = (event) => event.target?.querySelectorAll?.(`.${CLASE}`).forEach((nota) => {
+      const campo = doc.getElementById(nota.id.replace(/-campo-error$/, ""));
+      if (campo) quitarError(campo);
+      else nota.remove();
+    });
     doc.addEventListener("close", limpiar, true);
     doc.addEventListener("reset", limpiar, true);
   }

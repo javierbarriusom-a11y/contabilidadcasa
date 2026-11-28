@@ -14476,29 +14476,32 @@ test.describe("P3 · errores en su campo", () => {
       await page.click("#homeQuickExpenseSubmit");
       expect(await globo, "sin el globo del navegador").toBe(true);
       await expect(ventana, "no se envía").toBeVisible();
-      await expect(page.locator("#homeQuickExpenseLabel-error")).toHaveText("Falta «Concepto».");
+      await expect(page.locator("#homeQuickExpenseLabel-campo-error")).toHaveText("Falta «Concepto».");
       await expect(page.locator("#homeQuickExpenseLabel")).toBeFocused();
       await expect(page.locator("#homeQuickExpenseLabel")).toHaveAttribute("aria-invalid", "true");
       await page.fill("#homeQuickExpenseLabel", "Gasto P3");
-      await expect(page.locator("#homeQuickExpenseLabel-error"), "corregido, se va").toHaveCount(0);
+      await expect(page.locator("#homeQuickExpenseLabel-campo-error"), "corregido, se va").toHaveCount(0);
       await page.fill("#homeQuickExpenseAmount", "0");
       await page.click("#homeQuickExpenseSubmit");
-      await expect(page.locator("#homeQuickExpenseAmount-error")).toHaveText("Escribe un importe mayor que 0, p. ej. 12,50.");
+      await expect(page.locator("#homeQuickExpenseAmount-campo-error")).toHaveText("Escribe un importe mayor que 0, p. ej. 12,50.");
       await expect(page.locator("#homeQuickExpenseAmount")).toBeFocused();
+      // Salir del campo sin escribir no quita el error: si lo quitara, el formulario se movería bajo el dedo al pulsar «Cancelar» (CI de #704).
+      await page.locator("#homeQuickExpenseLabel").focus();
+      await expect(page.locator("#homeQuickExpenseAmount-campo-error")).toHaveText("Escribe un importe mayor que 0, p. ej. 12,50.");
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "sin desbordar en horizontal").toBe(true);
       await page.click('#homeQuickExpenseDialog button[value="cancel"]');
       await expect(ventana).not.toBeVisible();
       await abrirApuntarGasto(page);
-      await expect(page.locator("#homeQuickExpenseAmount-error"), "al volver a abrir, sin los errores de antes").toHaveCount(0);
+      await expect(page.locator("#homeQuickExpenseAmount-campo-error"), "al volver a abrir, sin los errores de antes").toHaveCount(0);
       await page.click('#homeQuickExpenseDialog button[value="cancel"]');
 
       await page.evaluate(() => { location.hash = "deuda-contratos"; });
       const alta = page.locator("#deudaContratosAddForm");
       await alta.evaluate((form) => { form.closest("details")?.setAttribute("open", ""); form.scrollIntoView(); });
       await alta.locator('button[type="submit"]').click();
-      await expect(page.locator("#deudaContratosAddEntity-error")).toHaveText("Falta «Entidad».");
+      await expect(page.locator("#deudaContratosAddEntity-campo-error")).toHaveText("Falta «Entidad».");
       await expect(page.locator("#deudaContratosAddEntity")).toBeFocused();
-      await expect(page.locator("#deudaContratosAddPrincipal-error")).toContainText("Capital pendiente");
+      await expect(page.locator("#deudaContratosAddPrincipal-campo-error")).toContainText("Capital pendiente");
       expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
     });
   }

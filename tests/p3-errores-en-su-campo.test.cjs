@@ -32,7 +32,8 @@ test("P3 · el texto del error, en lenguaje del hogar y con el nombre del campo"
 test("P3 · un solo oyente para toda la app: `invalid` en captura (no burbujea), y se corrige al escribir; al cerrar o vaciar, se limpia", () => {
   const { oyentes } = cargar();
   assert.equal(oyentes.invalid?.captura, true);
-  assert.ok(oyentes.input && oyentes.change, "al corregir el campo, el error se va");
+  assert.ok(oyentes.input, "al corregir el campo, el error se va");
+  assert.equal(oyentes.change, undefined, "no al salir del campo: el formulario se movería bajo el dedo");
   assert.ok(oyentes.close && oyentes.reset, "los errores de la vez anterior no se quedan");
   assert.match(fuente, /event\.preventDefault\(\); \/\/ sin globo/);
   assert.match(fuente, /setAttribute\("aria-invalid", "true"\)/);
