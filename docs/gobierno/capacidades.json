@@ -1119,10 +1119,12 @@
       "donde": "#home › + Registrar gasto",
       "origen": [
         "FLU-2",
-        "D-N57"
+        "D-N57",
+        "P4"
       ],
       "novedades": [
-        "2026-11-27-registrar-gasto-meses"
+        "2026-11-27-registrar-gasto-meses",
+        "2026-11-28-registrar-partida-del-concepto"
       ]
     },
     {

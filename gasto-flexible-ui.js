@@ -37,7 +37,30 @@ function gastoFlexMesesElegibles() {
   return (baseData?.monthlyPlanning?.months || []).filter((month) => !isClosedMonthKey(month.key));
 }
 
-let gastoFlexEstado = null; // { mes: () => month } de la ventana abierta
+let gastoFlexEstado = null; // { mes: () => month, aMano } de la ventana abierta; aMano: el hogar ya ha elegido partida
+
+// P4 (a) (D-N58, 28/11/2026): la partida de entrada es la que ya usa ese concepto (la regla de Movimientos: la del concepto, la de
+// cualquier mes, la de palabras o la partida que se llama igual), y «Partida nueva» solo si no hay ninguna. Hasta hoy cada gasto
+// apuntado a mano creaba una partida con su concepto y el plan se llenaba de partidas de un solo mes. Mientras el hogar no elija
+// otra a mano, la propuesta sigue al concepto que escribe; elegida a mano, ya no se toca.
+function gastoFlexPropuesta(concepto) {
+  const texto = String(concepto || "").trim();
+  if (texto.length < 3 || typeof mappingForMovement !== "function") return null;
+  const hoy = isoLocalDate(new Date());
+  const mapping = mappingForMovement({ amount: -1, movement: texto, details: "", date: hoy, valueDate: hoy, month: hoy.slice(0, 7) });
+  return mapping?.kind === "expense" && mapping.row ? mapping.row : null;
+}
+
+function gastoFlexAplicarPropuesta() {
+  if (!gastoFlexEstado || gastoFlexEstado.aMano) return;
+  const select = qs("homeQuickExpensePartida");
+  const pista = qs("homeQuickExpensePartidaPista");
+  const row = gastoFlexPropuesta(qs("homeQuickExpenseLabel")?.value);
+  const clave = row ? seriesKeyForRow(row) : GASTO_FLEX_NUEVA;
+  if (select && [...select.options].some((option) => option.value === clave)) select.value = clave;
+  if (pista) Object.assign(pista, { hidden: !row, textContent: row ? `Propuesta: «${displayLabelForRow(row)}», la partida que ya usa este concepto. Puedes elegir otra.` : "" });
+  gastoFlexPintarCuando();
+}
 
 function gastoFlexModo() {
   return document.querySelector('input[name="homeQuickExpenseCuando"]:checked')?.value || "uno";
@@ -120,7 +143,7 @@ function gastoFlexPintarCuando() {
 
 // La abre openHomeQuickExpenseDialog (app.js) con el mes de la ventana, que puede cambiar con «¿Era de …?».
 function gastoFlexPreparar(mesDeLaVentana) {
-  gastoFlexEstado = { mes: mesDeLaVentana };
+  gastoFlexEstado = { mes: mesDeLaVentana, aMano: false };
   const base = mesDeLaVentana();
   const elegibles = gastoFlexMesesElegibles();
   const partida = qs("homeQuickExpensePartida");
@@ -153,8 +176,15 @@ function gastoFlexPreparar(mesDeLaVentana) {
     form.addEventListener("change", gastoFlexPintarCuando);
     form.addEventListener("input", gastoFlexPintarResumen);
     qs("homeQuickExpenseMonthSwitch")?.addEventListener("click", () => window.setTimeout(gastoFlexPintarCuando, 0));
+    qs("homeQuickExpenseLabel")?.addEventListener("input", gastoFlexAplicarPropuesta);
+    // Solo el cambio del hogar (el de la propuesta se hace por código y no dispara `change`).
+    qs("homeQuickExpensePartida")?.addEventListener("change", () => {
+      if (gastoFlexEstado) gastoFlexEstado.aMano = true;
+      const pista = qs("homeQuickExpensePartidaPista");
+      if (pista) Object.assign(pista, { hidden: true, textContent: "" });
+    });
   }
-  gastoFlexPintarCuando();
+  gastoFlexAplicarPropuesta(); // con un concepto ya escrito (un enlace de registro), su partida desde el principio
 }
 
 // Al confirmar la ventana. Devuelve true si lo ha registrado (y app.js no hace lo de siempre); false si es el caso de siempre

@@ -79,6 +79,7 @@ falta). Primero «Registrar gasto», la hoja de captura y Contratos. **Sustituye
 traducir ni colocar.
 
 ### P4 · Que «Registrar gasto» deje de crear una partida por gasto (F1, sustituye partidas sueltas)
+**(a) hecho el 28/11** (PROJECT_STATE 559, adenda). **(b) pendiente:** hay que medir en el navegador del hogar cuántas partidas de un solo gasto hay, y juntarlas quita partidas, así que necesita su visto bueno (CLAUDE.md).
 Hasta hoy cada gasto apuntado a mano creaba **una partida nueva con su concepto** («Farmacia», «Gasolina 12/11»…): el plan se
 llena de partidas de un solo mes que nadie revisa. Con D-N57 ya se puede elegir una existente, pero el defecto sigue siendo
 «nueva». **Propuesta:** (a) el defecto pasa a ser **la partida que propone la regla del concepto** (la misma de Movimientos,

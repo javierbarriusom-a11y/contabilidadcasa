@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-28-registrar-partida-del-concepto",
+      fecha: "2026-11-28",
+      texto: "Registrar gasto: propone la partida que ya usa ese concepto en vez de crear una nueva por cada gasto. Podéis elegir otra.",
+      href: "#home",
+    },
+    {
       id: "2026-11-28-errores-en-su-campo",
       fecha: "2026-11-28",
       texto: "Formularios: si falta algo o no se entiende, lo dice debajo de ese campo y lleva el cursor allí, en vez del globo del navegador.",

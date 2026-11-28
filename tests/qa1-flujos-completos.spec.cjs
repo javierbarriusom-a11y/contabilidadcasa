@@ -14506,3 +14506,35 @@ test.describe("P3 · errores en su campo", () => {
     });
   }
 });
+
+// P4 (a) (D-N58, 28/11/2026): «Registrar gasto» propone la partida que ya usa ese concepto (la regla de Movimientos o la partida que se
+// llama igual) en vez de crear una nueva por cada gasto; elegida otra a mano, la propuesta ya no la cambia. Datos de ejemplo de la app.
+test.describe("P4 · la partida que ya usa el concepto", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`Registrar gasto propone la partida del concepto y respeta la elegida a mano, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#home");
+      await page.waitForFunction(() => typeof gastoFlexPropuesta === "function" && !document.getElementById("homeQuickExpenseOpen")?.disabled);
+      const partida = await page.evaluate(() => { const row = availableSeriesRows("expense").find((item) => displayLabelForRow(item).length >= 4); return { clave: seriesKeyForRow(row), nombre: displayLabelForRow(row) }; });
+      await abrirApuntarGasto(page);
+      const select = page.locator("#homeQuickExpensePartida");
+      await expect(select, "sin concepto, «Partida nueva»").toHaveValue("");
+      await page.fill("#homeQuickExpenseLabel", partida.nombre);
+      await expect(select).toHaveValue(partida.clave);
+      await expect(page.locator("#homeQuickExpensePartidaPista")).toContainText(`Propuesta: «${partida.nombre}»`);
+      await page.fill("#homeQuickExpenseLabel", "Concepto que no existe P4");
+      await expect(select, "otro concepto sin partida: vuelve a «Partida nueva»").toHaveValue("");
+      await expect(page.locator("#homeQuickExpensePartidaPista")).toBeHidden();
+      await page.fill("#homeQuickExpenseLabel", partida.nombre);
+      await expect(select).toHaveValue(partida.clave);
+      await select.selectOption("");
+      await page.fill("#homeQuickExpenseLabel", `${partida.nombre} `);
+      await expect(select, "elegida a mano, no se toca").toHaveValue("");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "sin desbordar en horizontal").toBe(true);
+      await page.click('#homeQuickExpenseDialog button[value="cancel"]');
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
