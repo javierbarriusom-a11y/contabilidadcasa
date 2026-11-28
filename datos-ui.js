@@ -578,7 +578,7 @@ function renderMovementImportReview() {
                 <td>${item.kind === "income" ? "Ingreso" : "Gasto"}</td>
                 <td><strong>${escapeHtml(item.label)}</strong><small>${item.count} mov.; ejemplo ${escapeHtml(formatIsoDate(item.examples[0]?.date))}</small></td>
                 <td>${money(item.total, true)}</td>
-                <td><select data-movement-map-key="${escapeHtml(item.key)}" data-movement-map-kind="${escapeHtml(item.kind)}">${movementMappingOptions(item.kind)}</select></td>
+                <td><select data-elegir-partida data-movement-map-key="${escapeHtml(item.key)}" data-movement-map-kind="${escapeHtml(item.kind)}">${movementMappingOptions(item.kind)}</select></td>
               </tr>`,
             )
             .join("")}

@@ -121,11 +121,11 @@ test("integración · el motor se carga antes que Clasificar y app.js, y va en l
   assert.ok(at > 0 && at < html.indexOf('<script defer src="views/clasificar-v2.js') && at < html.indexOf('<script defer src="app.js'));
   assert.ok(read("service-worker.js").includes('"./canonical-pattern-rules.js"'));
   assert.ok(read("tools/build-public-site.mjs").includes('"canonical-pattern-rules.js"'));
-  assert.ok(html.includes("datos-ui.js?v=20261116cla1"));
+  assert.ok(/datos-ui\.js\?v=(?:20261116cla1|20261128p2)/.test(html));
   // La ficha pasó a 20261119dat07 con «Dividir en varias partidas» (DAT-07).
-  assert.ok(/ficha-movimiento-ui\.js\?v=(?:20261119dat07|20261127dn57)/.test(html)); // y a 20261127dn57 con «+ Nueva partida» (D-N57)
+  assert.ok(/ficha-movimiento-ui\.js\?v=(?:20261119dat07|20261127dn57|20261128p2)/.test(html)); // y a 20261127dn57 con «+ Nueva partida» (D-N57)
   // Clasificar pasó a 20261118dec18 con la meta del 95 % en la bandeja (DEC-18, clasV2Meta).
-  assert.ok(html.includes("views/clasificar-v2.js?v=20261120dec14"));
+  assert.ok(/views\/clasificar-v2\.js\?v=(?:20261120dec14|20261128p2)/.test(html));
 });
 
 test("CLA-03 · propone la partida del movimiento ya clasificado que más se parece, y dice cuánto se fía", () => {

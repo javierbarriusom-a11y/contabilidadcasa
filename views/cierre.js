@@ -294,7 +294,7 @@ function cierreClassifyModalHtml(entry, mode) {
   const existingSection = `<div class="cierre-classify-existing">
       <label>
         <span>Partida</span>
-        <select id="cierreClassifyPartida">${movementMappingOptions(entry.kind, selected)}</select>
+        <select id="cierreClassifyPartida" data-elegir-partida>${movementMappingOptions(entry.kind, selected)}</select>
       </label>
       <button type="button" class="e19-btn e19-btn-primary" id="cierreClassifySave">Clasificar</button>
       <button type="button" class="cierre-classify-switch" id="cierreClassifySwitchToNew">¿No existe esa partida? Créala aquí.</button>

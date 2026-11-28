@@ -246,6 +246,7 @@ const files = [
   "ficha-movimiento-ui.js",
   "gasto-flexible-ui.js",
   "errores-campo.js",
+  "elegir-partida.js",
   "importar-extracto-ui.js",
   "laboratorio-ui.js",
   "deuda-simulador-puente.js",

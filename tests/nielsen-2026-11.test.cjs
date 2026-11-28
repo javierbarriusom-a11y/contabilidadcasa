@@ -49,7 +49,7 @@ test("los dos diálogos afectados siguen con «Cancelar» delante y ux-shell.js 
   assert.match(ux, /api\.mountDialogEnter\(document\);/);
   // Esc deja «cancel»: WebKit conservaba el «confirm» del cierre anterior (la e2e lo comprueba en Safari).
   assert.match(ux, /doc\.addEventListener\(\s*"cancel",[\s\S]{0,260}dialog\.returnValue = "cancel"/);
-  assert.ok(html.includes('src="ux-shell.js?v=20261121dec45"')); // FX-41 cambió ux-shell.js (novedades con fecha futura): sello nuevo; DEC-45, «¿te sirve?»
+  assert.ok(/src="ux-shell\.js\?v=(?:20261121dec45|20261128p2)"/.test(html)); // FX-41 cambió ux-shell.js (novedades con fecha futura): sello nuevo; DEC-45, «¿te sirve?»
 });
 
 // Misma revisión (heurísticos 1 y 2): Registrar › «Frescura de tus datos» decía «Todo al día» sin ningún dato, con las
@@ -60,7 +60,7 @@ test("«Todo al día» solo cuando no queda ninguna tarea sin estimar; si falta 
   assert.match(rama, /const sinEstimar = queue\.unestimated\.some\(\(task\) => task\.id !== "pending"\);/);
   assert.match(rama, /sinEstimar\s*\?\s*`<p class="dat-plan"><strong>Aún no se puede ordenar por euros\.<\/strong>/);
   assert.ok(rama.indexOf("Aún no se puede ordenar") < rama.lastIndexOf("<strong>Todo al día.</strong>"), "con tareas sin estimar, nunca «Todo al día»");
-  assert.ok(fs.readFileSync(path.join(root, "index.html"), "utf8").includes('src="datos-ui.js?v=20261116cla1"'));
+  assert.ok(/src="datos-ui\.js\?v=(?:20261116cla1|20261128p2)"/.test(fs.readFileSync(path.join(root, "index.html"), "utf8")));
 });
 
 // T25 (decisión del hogar del 5/11/2026): la reserva protegida se mide con toda la liquidez en todas partes. Hoy la medía

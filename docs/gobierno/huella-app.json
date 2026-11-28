@@ -32,6 +32,10 @@
     {
       "version": "20261128p3",
       "sha256": "3909d5fdc0522b00ea343b32fd1022774350ae29ed01fc0cbf075c79a4b6138b"
+    },
+    {
+      "version": "20261128p2b",
+      "sha256": "6c7b02e3fd0440f55ab3e30ca25463305d23cbd386b51fb9e52900a18ac7636d"
     }
   ]
 }

@@ -1893,6 +1893,10 @@
     {
       "novedad": "2026-11-28-errores-en-su-campo",
       "porque": "Mejora de diseño (P3, D-N58): dónde se dice el error de un formulario, sin capacidad nueva"
+    },
+    {
+      "novedad": "2026-11-28-elegir-partida",
+      "porque": "Mejora de diseño (P2, D-N58): cómo se elige una partida en las pantallas que ya lo hacían, sin capacidad nueva"
     }
   ]
 }

@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-28-elegir-partida",
+      fecha: "2026-11-28",
+      texto: "Elegir partida: un buscador en vez de la lista larga. Escribid unas letras; arriba, la propuesta y las últimas que habéis usado.",
+      href: "#movements",
+    },
+    {
       id: "2026-11-28-registrar-partida-del-concepto",
       fecha: "2026-11-28",
       texto: "Registrar gasto: propone la partida que ya usa ese concepto en vez de crear una nueva por cada gasto. Podéis elegir otra.",
