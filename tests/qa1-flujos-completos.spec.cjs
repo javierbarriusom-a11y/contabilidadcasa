@@ -14353,6 +14353,9 @@ test.describe("R2 · Cinco destinos", () => {
     await campo.focus();
     await expect(barra).toHaveAttribute("data-escribiendo", "");
     await campo.blur();
+    // 28/11/2026: no vuelve en el mismo instante en que el campo pierde el foco (el toque que lo quita caería en ella: el alta de
+    // varios contratos en Safari, CI de main); vuelve en cuanto el toque ha terminado.
+    expect(await barra.evaluate((el) => el.hasAttribute("data-escribiendo")), "sigue fuera justo al dejar el campo").toBe(true);
     await expect(barra).not.toHaveAttribute("data-escribiendo", "");
     // Con el menú abierto, tampoco; el menú lleva los mismos destinos.
     await page.locator("#mobileNavToggle").click();
