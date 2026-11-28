@@ -14458,3 +14458,48 @@ test.describe("CAT-11 · Preparar el plan de 2027 con lo real", () => {
     });
   }
 });
+
+// P3 (D-N58, 28/11/2026): el error de un formulario, debajo de su campo, con el foco en él y sin el globo del navegador (la captura del
+// hogar enseñaba «Completa este campo» sobre «Bloque», que estaba bien). En «Registrar gasto» y en el alta de un contrato.
+test.describe("P3 · errores en su campo", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`Registrar gasto y Deuda › Contratos dicen el error junto al campo, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#home");
+      await page.waitForFunction(() => globalThis.FinanceErroresCampo && !document.getElementById("homeQuickExpenseOpen")?.disabled);
+      await abrirApuntarGasto(page);
+      const ventana = page.locator("#homeQuickExpenseDialog");
+      await expect(ventana).toBeVisible();
+      const globo = page.evaluate(() => new Promise((resolve) => document.addEventListener("invalid", (e) => setTimeout(() => resolve(e.defaultPrevented), 0), { once: true, capture: true })));
+      await page.click("#homeQuickExpenseSubmit");
+      expect(await globo, "sin el globo del navegador").toBe(true);
+      await expect(ventana, "no se envía").toBeVisible();
+      await expect(page.locator("#homeQuickExpenseLabel-error")).toHaveText("Falta «Concepto».");
+      await expect(page.locator("#homeQuickExpenseLabel")).toBeFocused();
+      await expect(page.locator("#homeQuickExpenseLabel")).toHaveAttribute("aria-invalid", "true");
+      await page.fill("#homeQuickExpenseLabel", "Gasto P3");
+      await expect(page.locator("#homeQuickExpenseLabel-error"), "corregido, se va").toHaveCount(0);
+      await page.fill("#homeQuickExpenseAmount", "0");
+      await page.click("#homeQuickExpenseSubmit");
+      await expect(page.locator("#homeQuickExpenseAmount-error")).toHaveText("Escribe un importe mayor que 0, p. ej. 12,50.");
+      await expect(page.locator("#homeQuickExpenseAmount")).toBeFocused();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "sin desbordar en horizontal").toBe(true);
+      await page.click('#homeQuickExpenseDialog button[value="cancel"]');
+      await expect(ventana).not.toBeVisible();
+      await abrirApuntarGasto(page);
+      await expect(page.locator("#homeQuickExpenseAmount-error"), "al volver a abrir, sin los errores de antes").toHaveCount(0);
+      await page.click('#homeQuickExpenseDialog button[value="cancel"]');
+
+      await page.evaluate(() => { location.hash = "deuda-contratos"; });
+      const alta = page.locator("#deudaContratosAddForm");
+      await alta.evaluate((form) => { form.closest("details")?.setAttribute("open", ""); form.scrollIntoView(); });
+      await alta.locator('button[type="submit"]').click();
+      await expect(page.locator("#deudaContratosAddEntity-error")).toHaveText("Falta «Entidad».");
+      await expect(page.locator("#deudaContratosAddEntity")).toBeFocused();
+      await expect(page.locator("#deudaContratosAddPrincipal-error")).toContainText("Capital pendiente");
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});

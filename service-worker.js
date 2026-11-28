@@ -246,6 +246,7 @@ const SHELL_URLS = [
   "./datos-ui.js",
   "./ficha-movimiento-ui.js",
   "./gasto-flexible-ui.js",
+  "./errores-campo.js",
   "./importar-extracto-ui.js",
   "./laboratorio-ui.js",
   "./deuda-simulador-puente.js",

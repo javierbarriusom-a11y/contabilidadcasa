@@ -14041,3 +14041,16 @@ input[data-amount-input][aria-invalid="true"] {
   margin: 6px 0 0;
   padding-left: 18px;
 }
+
+/* P3 (28/11/2026): el error de un campo, debajo de él, en los dos temas (errores-campo.js). */
+.campo-error {
+  display: block;
+  margin-top: 4px;
+  color: var(--e19-danger, var(--red));
+  font-size: 14px;
+  font-weight: 700;
+}
+
+:where(input, select, textarea)[aria-invalid="true"] {
+  border-color: var(--e19-danger, var(--red));
+}
