@@ -79,3 +79,12 @@ test("D-N57 · la ficha de un movimiento trae «¿No está? + Nueva partida» ba
   assert.match(ficha, /normalizedText\(displayLabelForRow\(item\)\) === normalizedText\(label\)/, "un nombre que ya existe elige esa partida");
   assert.match(ficha, /fichaMovSincroniza\("partida"\)/, "queda elegida y «Guardar partida» se enciende");
 });
+
+test("P4 (a) · la partida de entrada es la del concepto (mappingForMovement), con su pista, y la elegida a mano no se toca", () => {
+  const fuente = fs.readFileSync(path.join(root, "gasto-flexible-ui.js"), "utf8");
+  assert.match(fuente, /function gastoFlexPropuesta\(concepto\)/);
+  assert.match(fuente, /mappingForMovement\(\{ amount: -1, movement: texto/);
+  assert.match(fuente, /if \(!gastoFlexEstado \|\| gastoFlexEstado\.aMano\) return;/);
+  assert.match(fuente, /qs\("homeQuickExpenseLabel"\)\?\.addEventListener\("input", gastoFlexAplicarPropuesta\)/);
+  assert.match(html, /<p class="e19-kpi-note" id="homeQuickExpensePartidaPista" role="status" hidden><\/p>/);
+});

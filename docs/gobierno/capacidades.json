@@ -1119,10 +1119,12 @@
       "donde": "#home › + Registrar gasto",
       "origen": [
         "FLU-2",
-        "D-N57"
+        "D-N57",
+        "P4"
       ],
       "novedades": [
-        "2026-11-27-registrar-gasto-meses"
+        "2026-11-27-registrar-gasto-meses",
+        "2026-11-28-registrar-partida-del-concepto"
       ]
     },
     {
@@ -1887,6 +1889,10 @@
     {
       "novedad": "2026-11-27-cinco-destinos",
       "porque": "Reorganización de la navegación (R2, D-N50): las mismas pantallas, en cinco destinos y una barra inferior en el móvil"
+    },
+    {
+      "novedad": "2026-11-28-errores-en-su-campo",
+      "porque": "Mejora de diseño (P3, D-N58): dónde se dice el error de un formulario, sin capacidad nueva"
     }
   ]
 }

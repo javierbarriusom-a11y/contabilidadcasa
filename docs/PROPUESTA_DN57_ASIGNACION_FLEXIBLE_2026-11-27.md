@@ -71,6 +71,7 @@ hoy, una sola implementación en vez de dos). Accesible como `combobox` (ARIA 1.
 selectores y las dos copias de «Nueva partida» (Clasificar y ficha): menos código, no más.
 
 ### P3 · Errores en su campo en todos los formularios (F1, mejora de diseño sin superficie)
+**Hecho el 28/11** (PROJECT_STATE 559, adenda): un oyente común (`errores-campo.js`) para todos los formularios con `required`, no solo los tres primeros.
 La captura lo enseña: el globo nativo «Completa este campo» de Safari salía sobre «Bloque», que estaba bien; lo que faltaba era
 el concepto. La ficha y Clasificar ya dicen el error junto al campo (3/11); las ventanas de diálogo, no.
 **Propuesta:** `novalidate` en los diálogos y el patrón de la ficha (texto bajo el campo, `aria-invalid`, foco al primero que
@@ -78,6 +79,7 @@ falta). Primero «Registrar gasto», la hoja de captura y Contratos. **Sustituye
 traducir ni colocar.
 
 ### P4 · Que «Registrar gasto» deje de crear una partida por gasto (F1, sustituye partidas sueltas)
+**(a) hecho el 28/11** (PROJECT_STATE 559, adenda). **(b) pendiente:** hay que medir en el navegador del hogar cuántas partidas de un solo gasto hay, y juntarlas quita partidas, así que necesita su visto bueno (CLAUDE.md).
 Hasta hoy cada gasto apuntado a mano creaba **una partida nueva con su concepto** («Farmacia», «Gasolina 12/11»…): el plan se
 llena de partidas de un solo mes que nadie revisa. Con D-N57 ya se puede elegir una existente, pero el defecto sigue siendo
 «nueva». **Propuesta:** (a) el defecto pasa a ser **la partida que propone la regla del concepto** (la misma de Movimientos,

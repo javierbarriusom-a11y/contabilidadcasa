@@ -14458,3 +14458,83 @@ test.describe("CAT-11 · Preparar el plan de 2027 con lo real", () => {
     });
   }
 });
+
+// P3 (D-N58, 28/11/2026): el error de un formulario, debajo de su campo, con el foco en él y sin el globo del navegador (la captura del
+// hogar enseñaba «Completa este campo» sobre «Bloque», que estaba bien). En «Registrar gasto» y en el alta de un contrato.
+test.describe("P3 · errores en su campo", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`Registrar gasto y Deuda › Contratos dicen el error junto al campo, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#home");
+      await page.waitForFunction(() => globalThis.FinanceErroresCampo && !document.getElementById("homeQuickExpenseOpen")?.disabled);
+      await abrirApuntarGasto(page);
+      const ventana = page.locator("#homeQuickExpenseDialog");
+      await expect(ventana).toBeVisible();
+      const globo = page.evaluate(() => new Promise((resolve) => document.addEventListener("invalid", (e) => setTimeout(() => resolve(e.defaultPrevented), 0), { once: true, capture: true })));
+      await page.click("#homeQuickExpenseSubmit");
+      expect(await globo, "sin el globo del navegador").toBe(true);
+      await expect(ventana, "no se envía").toBeVisible();
+      await expect(page.locator("#homeQuickExpenseLabel-campo-error")).toHaveText("Falta «Concepto».");
+      await expect(page.locator("#homeQuickExpenseLabel")).toBeFocused();
+      await expect(page.locator("#homeQuickExpenseLabel")).toHaveAttribute("aria-invalid", "true");
+      await page.fill("#homeQuickExpenseLabel", "Gasto P3");
+      await expect(page.locator("#homeQuickExpenseLabel-campo-error"), "corregido, se va").toHaveCount(0);
+      await page.fill("#homeQuickExpenseAmount", "0");
+      await page.click("#homeQuickExpenseSubmit");
+      await expect(page.locator("#homeQuickExpenseAmount-campo-error")).toHaveText("Escribe un importe mayor que 0, p. ej. 12,50.");
+      await expect(page.locator("#homeQuickExpenseAmount")).toBeFocused();
+      // Salir del campo sin escribir no quita el error: si lo quitara, el formulario se movería bajo el dedo al pulsar «Cancelar» (CI de #704).
+      await page.locator("#homeQuickExpenseLabel").focus();
+      await expect(page.locator("#homeQuickExpenseAmount-campo-error")).toHaveText("Escribe un importe mayor que 0, p. ej. 12,50.");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "sin desbordar en horizontal").toBe(true);
+      await page.click('#homeQuickExpenseDialog button[value="cancel"]');
+      await expect(ventana).not.toBeVisible();
+      await abrirApuntarGasto(page);
+      await expect(page.locator("#homeQuickExpenseAmount-campo-error"), "al volver a abrir, sin los errores de antes").toHaveCount(0);
+      await page.click('#homeQuickExpenseDialog button[value="cancel"]');
+
+      await page.evaluate(() => { location.hash = "deuda-contratos"; });
+      const alta = page.locator("#deudaContratosAddForm");
+      await alta.evaluate((form) => { form.closest("details")?.setAttribute("open", ""); form.scrollIntoView(); });
+      await alta.locator('button[type="submit"]').click();
+      await expect(page.locator("#deudaContratosAddEntity-campo-error")).toHaveText("Falta «Entidad».");
+      await expect(page.locator("#deudaContratosAddEntity")).toBeFocused();
+      await expect(page.locator("#deudaContratosAddPrincipal-campo-error")).toContainText("Capital pendiente");
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
+
+// P4 (a) (D-N58, 28/11/2026): «Registrar gasto» propone la partida que ya usa ese concepto (la regla de Movimientos o la partida que se
+// llama igual) en vez de crear una nueva por cada gasto; elegida otra a mano, la propuesta ya no la cambia. Datos de ejemplo de la app.
+test.describe("P4 · la partida que ya usa el concepto", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`Registrar gasto propone la partida del concepto y respeta la elegida a mano, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#home");
+      await page.waitForFunction(() => typeof gastoFlexPropuesta === "function" && !document.getElementById("homeQuickExpenseOpen")?.disabled);
+      const partida = await page.evaluate(() => { const row = availableSeriesRows("expense").find((item) => displayLabelForRow(item).length >= 4); return { clave: seriesKeyForRow(row), nombre: displayLabelForRow(row) }; });
+      await abrirApuntarGasto(page);
+      const select = page.locator("#homeQuickExpensePartida");
+      await expect(select, "sin concepto, «Partida nueva»").toHaveValue("");
+      await page.fill("#homeQuickExpenseLabel", partida.nombre);
+      await expect(select).toHaveValue(partida.clave);
+      await expect(page.locator("#homeQuickExpensePartidaPista")).toContainText(`Propuesta: «${partida.nombre}»`);
+      await page.fill("#homeQuickExpenseLabel", "Concepto que no existe P4");
+      await expect(select, "otro concepto sin partida: vuelve a «Partida nueva»").toHaveValue("");
+      await expect(page.locator("#homeQuickExpensePartidaPista")).toBeHidden();
+      await page.fill("#homeQuickExpenseLabel", partida.nombre);
+      await expect(select).toHaveValue(partida.clave);
+      await select.selectOption("");
+      await page.fill("#homeQuickExpenseLabel", `${partida.nombre} `);
+      await expect(select, "elegida a mano, no se toca").toHaveValue("");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "sin desbordar en horizontal").toBe(true);
+      await page.click('#homeQuickExpenseDialog button[value="cancel"]');
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+  }
+});
