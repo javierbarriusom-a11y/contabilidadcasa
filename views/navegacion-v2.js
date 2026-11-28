@@ -166,6 +166,8 @@
     ocultarBarra(delta > 0 && y > 80);
     ultimoY = y;
   }
+  const BARRA_VUELVE_MS = 450;
+  let volverTras = 0;
   const escribiendo = (el) => Boolean(el?.matches?.('input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]), textarea, select, [contenteditable="true"]'));
 
   function cablear() {
@@ -176,7 +178,13 @@
     for (const tipo of ["wheel", "touchmove"]) root.addEventListener?.(tipo, alTocar, { passive: true });
     d.addEventListener("keydown", (event) => { if (["ArrowDown", "ArrowUp", "PageDown", "PageUp", " ", "End", "Home"].includes(event.key)) alTocar(); });
     d.addEventListener("focusin", (event) => { if (escribiendo(event.target)) $("barraDestinosV2")?.toggleAttribute("data-escribiendo", true); });
-    d.addEventListener("focusout", () => $("barraDestinosV2")?.removeAttribute("data-escribiendo"));
+    // Al dejar el campo, la barra no vuelve en el mismo instante: tocar «Dar de alta» justo después de escribir quita el foco al apoyar
+    // el dedo, y si la barra reaparecía ya, el toque caía en ella y no en el botón (Safari a 390 px, CI de main del 28/11/2026: el alta
+    // de varios contratos se quedaba sin hacer). Vuelve cuando el toque ha terminado y ningún campo tiene el foco.
+    d.addEventListener("focusout", () => {
+      clearTimeout(volverTras);
+      volverTras = setTimeout(() => { if (!escribiendo(d.activeElement)) $("barraDestinosV2")?.removeAttribute("data-escribiendo"); }, BARRA_VUELVE_MS);
+    });
     root.addEventListener?.("hashchange", () => { ocultarBarra(false); render(); });
     // El pie dice el guardado de ahora: cambia sin navegar.
     const sello = [$("durabilityBadge"), $("durabilityTime")].filter(Boolean);
