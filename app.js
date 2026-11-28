@@ -31636,7 +31636,7 @@ async function init() {
   qs("homeHorizon")?.addEventListener("change", renderHomeDashboard);
   qs("homeQuickExpenseOpen")?.addEventListener("click", () => { if (!globalThis.openCapturaHoja?.()) openHomeQuickExpenseDialog(); }); // WP-30: con tarjetas, la hoja (captura-ui.js)
   // WP-25: el importe es texto (WP-11); uno que no se entiende no cierra la ventana como si se hubiera registrado.
-  qs("homeQuickExpenseForm")?.addEventListener("submit", (event) => { if (event.submitter?.value === "confirm" && !(parseAmountField(qs("homeQuickExpenseAmount")?.value) > 0)) event.preventDefault(); });
+  qs("homeQuickExpenseForm")?.addEventListener("submit", (event) => { if (event.submitter?.value === "confirm" && !(parseAmountField(qs("homeQuickExpenseAmount")?.value) > 0)) { event.preventDefault(); globalThis.FinanceErroresCampo?.mostrarError(qs("homeQuickExpenseAmount"), "Escribe un importe mayor que 0, p. ej. 12,50."); qs("homeQuickExpenseAmount")?.focus(); } }); // P3: el error, en su campo
   qs("homeMeetingModeToggle")?.addEventListener("click", toggleMeetingMode);
   qs("meetingModePrev")?.addEventListener("click", () => meetingModeGo(-1));
   qs("meetingModeNext")?.addEventListener("click", () => meetingModeGo(1));

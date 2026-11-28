@@ -23,6 +23,12 @@
       href: "#home",
     },
     {
+      id: "2026-11-28-errores-en-su-campo",
+      fecha: "2026-11-28",
+      texto: "Formularios: si falta algo o no se entiende, lo dice debajo de ese campo y lleva el cursor allí, en vez del globo del navegador.",
+      href: "#home",
+    },
+    {
       id: "2026-11-27-registrar-gasto-meses",
       fecha: "2026-11-27",
       texto: "Registrar gasto: partida nueva o una que ya existe, y un mes, un periodo o meses sueltos. Lo que aún no ha pasado va como previsto.",
