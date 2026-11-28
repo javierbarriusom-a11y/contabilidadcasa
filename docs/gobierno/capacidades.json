@@ -1106,12 +1106,33 @@
       ]
     },
     {
+      "id": "registrar-gasto",
+      "verbo": "Registrar un gasto a mano en un mes, un periodo o meses concretos",
+      "sinonimos": [
+        "registrar gasto",
+        "anotar gasto",
+        "gasto a mano",
+        "varios meses",
+        "periodo",
+        "previsto"
+      ],
+      "donde": "#home › + Registrar gasto",
+      "origen": [
+        "FLU-2",
+        "D-N57"
+      ],
+      "novedades": [
+        "2026-11-27-registrar-gasto-meses"
+      ]
+    },
+    {
       "id": "ficha-movimiento",
       "verbo": "Cambiar la partida o el tipo de un movimiento",
       "sinonimos": [
         "ficha",
         "partida de un movimiento",
-        "tipo de acción"
+        "tipo de acción",
+        "nueva partida"
       ],
       "donde": "#movements › ficha del movimiento",
       "origen": [
@@ -1119,7 +1140,8 @@
         "M-7"
       ],
       "novedades": [
-        "2026-11-03-ficha-movimiento"
+        "2026-11-03-ficha-movimiento",
+        "2026-11-27-ficha-nueva-partida"
       ]
     },
     {

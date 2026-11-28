@@ -13961,3 +13961,83 @@ input[data-amount-input][aria-invalid="true"] {
   border-color: #f59e0b;
   color: #fde68a;
 }
+
+/* D-N57 (27/11/2026): «+ Nueva partida» en la ficha de un movimiento y la ventana de «Registrar gasto» con partida y meses. */
+.ficha-mov-nueva-enlace {
+  justify-self: start;
+}
+
+.ficha-mov-nueva {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+
+.ficha-mov-nueva[hidden],
+.gasto-flex-periodo[hidden],
+.gasto-flex-sueltos[hidden] {
+  display: none;
+}
+
+.ficha-mov-nueva-titulo {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ficha-mov-nueva-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gasto-flex-cuando,
+.gasto-flex-sueltos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.gasto-flex-cuando legend,
+.gasto-flex-sueltos legend {
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 0;
+  font-weight: 700;
+}
+
+.gasto-flex-cuando label,
+.gasto-flex-mes {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+}
+
+.gasto-flex-mes {
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.gasto-flex-periodo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.gasto-flex-resumen:empty {
+  display: none;
+}
+
+.gasto-flex-lista {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}

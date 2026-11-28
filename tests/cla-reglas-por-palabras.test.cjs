@@ -123,7 +123,7 @@ test("integración · el motor se carga antes que Clasificar y app.js, y va en l
   assert.ok(read("tools/build-public-site.mjs").includes('"canonical-pattern-rules.js"'));
   assert.ok(html.includes("datos-ui.js?v=20261116cla1"));
   // La ficha pasó a 20261119dat07 con «Dividir en varias partidas» (DAT-07).
-  assert.ok(html.includes("ficha-movimiento-ui.js?v=20261119dat07"));
+  assert.ok(/ficha-movimiento-ui\.js\?v=(?:20261119dat07|20261127dn57)/.test(html)); // y a 20261127dn57 con «+ Nueva partida» (D-N57)
   // Clasificar pasó a 20261118dec18 con la meta del 95 % en la bandeja (DEC-18, clasV2Meta).
   assert.ok(html.includes("views/clasificar-v2.js?v=20261120dec14"));
 });
