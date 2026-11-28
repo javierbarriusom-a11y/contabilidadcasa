@@ -53,7 +53,7 @@ test("D-N57 · meses repetidos o vacíos no se cuentan dos veces; sin meses, nad
 test("D-N57 · la ventana trae partida, «¿Qué meses?» (tres opciones), periodo, meses sueltos y «Qué ocurrirá»", () => {
   const inicio = html.indexOf('id="homeQuickExpenseDialog"');
   const dialogo = html.slice(inicio, html.indexOf("</dialog>", inicio));
-  assert.match(dialogo, /<select id="homeQuickExpensePartida"><option value="">Partida nueva con este concepto<\/option><\/select>/);
+  assert.match(dialogo, /<select id="homeQuickExpensePartida" data-elegir-partida><option value="">Partida nueva con este concepto<\/option><\/select>/);
   ["uno", "periodo", "sueltos"].forEach((valor) => assert.match(dialogo, new RegExp(`name="homeQuickExpenseCuando" value="${valor}"`)));
   assert.match(dialogo, /value="uno" checked/, "de entrada, solo este mes: lo de siempre");
   assert.match(dialogo, /id="homeQuickExpenseDesde"/);

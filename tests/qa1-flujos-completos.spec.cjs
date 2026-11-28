@@ -14538,3 +14538,59 @@ test.describe("P4 · la partida que ya usa el concepto", () => {
     });
   }
 });
+
+// P2 (D-N58, 28/11/2026): «Elegir partida» con buscador sobre el <select> de siempre. En la ficha de un movimiento: escribir unas letras
+// filtra, flechas e Intro eligen (el <select> recibe el valor y su change: «Guardar partida» se enciende), Esc cierra sin cambiar y
+// «+ Nueva partida» abre el formulario de la ficha. En «Registrar gasto», Intro en el buscador elige y no envía la ventana.
+test.describe("P2 · Elegir partida con buscador", () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    test(`buscar, elegir con el teclado, Esc y «+ Nueva partida», a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(String(error)));
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#movements");
+      const ficha = await sembrarFicha(page);
+      const select = ficha.locator("#movementDetailPartida");
+      const campo = ficha.locator("#movementDetailPartida + .ep .ep-campo");
+      await expect(campo).toBeVisible();
+      await expect(campo).toHaveAttribute("role", "combobox");
+      const objetivo = await select.evaluate((el) => { const o = [...el.options].find((x) => x.value && x.value !== el.value); return { valor: o.value, nombre: o.textContent.split(" · ").slice(1).join(" · ") || o.textContent }; });
+      await campo.click();
+      await expect(campo).toHaveAttribute("aria-expanded", "true");
+      await campo.fill(objetivo.nombre.slice(0, 4));
+      const opcion = ficha.locator("#movementDetailPartida + .ep [role=option]", { hasText: objetivo.nombre }).first();
+      await expect(opcion).toBeVisible();
+      // Esc cierra sin cambiar nada.
+      await campo.press("Escape");
+      await expect(campo).toHaveAttribute("aria-expanded", "false");
+      await expect(ficha, "Esc no cierra la ficha").toBeVisible();
+      await campo.fill(objetivo.nombre);
+      await campo.press("Enter");
+      await expect(select).toHaveValue(objetivo.valor);
+      await expect(campo).toHaveValue(objetivo.nombre.trim());
+      await expect(ficha.locator("#movementDetailSave"), "el change de siempre: Guardar se enciende").toBeEnabled();
+      // «+ Nueva partida» desde el buscador abre el formulario de la ficha.
+      await campo.click();
+      await ficha.locator("#movementDetailPartida + .ep .ep-nueva").dispatchEvent("pointerdown");
+      await expect(ficha.locator("#fichaMovNueva")).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "sin desbordar en horizontal").toBe(true);
+      expect(pageErrors, `errores de página: ${pageErrors.join(" | ")}`).toEqual([]);
+    });
+
+    test(`en «Registrar gasto», Intro en el buscador elige y no envía la ventana, a ${viewport.width} px`, enSafari(viewport), async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.goto("/index.html#home");
+      await page.waitForFunction(() => globalThis.FinanceElegirPartida && !document.getElementById("homeQuickExpenseOpen")?.disabled);
+      await abrirApuntarGasto(page);
+      const ventana = page.locator("#homeQuickExpenseDialog");
+      const campo = ventana.locator(".ep-campo");
+      const nombre = await page.evaluate(() => displayLabelForRow(availableSeriesRows("expense")[0]));
+      await campo.click();
+      await campo.fill(nombre);
+      await campo.press("Enter");
+      await expect(ventana, "Intro eligió la partida y no envió").toBeVisible();
+      await expect(ventana.locator("#homeQuickExpensePartida")).not.toHaveValue("");
+      await page.click('#homeQuickExpenseDialog button[value="cancel"]');
+    });
+  }
+});

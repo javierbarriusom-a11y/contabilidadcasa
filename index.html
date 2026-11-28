@@ -42,7 +42,7 @@
          nativo de PWA (criterio de instalabilidad exige al menos un icono) y la pestaña mostraba el
          icono en blanco por defecto. `icon.svg` es el mismo icono para las dos cosas. -->
     <link rel="icon" href="icon.svg?v=20260919t11a1" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=20261128p3" />
+    <link rel="stylesheet" href="styles.css?v=20261128p2" />
     <link rel="stylesheet" href="p2.css?v=20260918t7a1" />
     <link rel="stylesheet" href="design-tokens.css?v=20261120dec38b" />
     <link rel="stylesheet" href="fiscal-campana.css?v=20261120dec38b" />
@@ -8118,7 +8118,7 @@
               </div>
               <label class="movements-bulk-field">
                 <span>Partida</span>
-                <select id="movementsBulkPartida"></select>
+                <select id="movementsBulkPartida" data-elegir-partida></select>
               </label>
               <!-- DEX10: segundo campo opcional, independiente de la partida — igual que en el
                    detalle individual (P-1), asignar partida y tipo de acción son dos puertas de
@@ -8315,7 +8315,7 @@
         </label>
         <label>
           <span>Partida</span>
-          <select id="homeQuickExpensePartida"><option value="">Partida nueva con este concepto</option></select>
+          <select id="homeQuickExpensePartida" data-elegir-partida><option value="">Partida nueva con este concepto</option></select>
         </label>
         <p class="e19-kpi-note" id="homeQuickExpensePartidaPista" role="status" hidden></p>
         <label>
@@ -8538,8 +8538,8 @@
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
     <script defer src="ux-settings.js?v=20261119priv4"></script>
-    <script defer src="novedades.js?v=20261128p3"></script>
-    <script defer src="ux-shell.js?v=20261121dec45"></script>
+    <script defer src="novedades.js?v=20261128p2"></script>
+    <script defer src="ux-shell.js?v=20261128p2"></script>
     <script defer src="canonical-finding-test.js?v=20261003wp02a1"></script>
     <script defer src="finding-test-ui.js?v=20261003wp03a1"></script>
     <script defer src="usage-panel.js?v=20261125tre10"></script>
@@ -8631,13 +8631,15 @@
     <script defer src="canonical-calm-coverage.js?v=20261014wp44b2"></script>
     <script defer src="calma-ui.js?v=20261014wp44b2"></script>
     <script defer src="canonical-data-queue.js?v=20261010wp45a1"></script>
-    <script defer src="datos-ui.js?v=20261116cla1"></script>
+    <script defer src="datos-ui.js?v=20261128p2"></script>
     <!-- 3/11/2026: la ficha de un movimiento (partida, tipo de acción, a cuáles), en su propio fichero; mismo ámbito, se carga antes que la app. -->
     <!-- P3 (28/11/2026): el error de un formulario, en su campo y no en el globo del navegador. -->
     <script defer src="errores-campo.js?v=20261128p3b"></script>
-    <script defer src="ficha-movimiento-ui.js?v=20261127dn57"></script>
+    <!-- P2 (28/11/2026): un solo «Elegir partida» con buscador sobre los <select> de partida de siempre. -->
+    <script defer src="elegir-partida.js?v=20261128p2"></script>
+    <script defer src="ficha-movimiento-ui.js?v=20261128p2"></script>
     <script defer src="gasto-flexible-ui.js?v=20261128p4"></script>
-    <script defer src="importar-extracto-ui.js?v=20261119dec12"></script>
+    <script defer src="importar-extracto-ui.js?v=20261128p2"></script>
     <script defer src="laboratorio-ui.js?v=20261118dec40"></script>
     <!-- SVD-1 (17/11/2026): el puente con el simulador visual de deuda, en su propio fichero; mismo ámbito, se carga antes que la app. -->
     <script defer src="deuda-simulador-puente.js?v=20261121dn23"></script>
@@ -8667,7 +8669,7 @@
     <script defer src="views/navegacion-v2.js?v=20261128barra"></script>
     <script defer src="views/movimientos-v2.js?v=20261119dat07"></script>
     <script defer src="views/importar-v2.js?v=20261116xda04b"></script>
-    <script defer src="views/clasificar-v2.js?v=20261120dec14"></script>
+    <script defer src="views/clasificar-v2.js?v=20261128p2"></script>
     <script defer src="views/huella-extracto.js?v=20261118dec13"></script>
     <script defer src="views/repaso-v2.js?v=20261121foco2"></script>
     <script defer src="views/copia-aviso.js?v=20261118dec41"></script>
@@ -8690,7 +8692,7 @@
     <script defer src="siguiente-paso-ui.js?v=20261028wp17"></script>
     <script defer src="cierre-guia-ui.js?v=20261104cierreC3"></script>
     <script defer src="antes-de-decidir-ui.js?v=20261113xda10pr3"></script>
-    <script defer src="app.js?v=20261128p3"></script>
+    <script defer src="app.js?v=20261128p2b"></script>
     <script defer src="p2-ui.js?v=20261119priv4"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

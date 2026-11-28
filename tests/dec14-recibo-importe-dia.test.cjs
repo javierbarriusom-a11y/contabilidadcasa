@@ -59,5 +59,5 @@ test("DEC-14 · en Clasificar: después de CLA-03 y solo si este no da confianza
   // Solo propone: el motor de reglas no mira el día (las reglas guardadas siguen igual).
   assert.doesNotMatch(read("canonical-pattern-rules.js").slice(0, read("canonical-pattern-rules.js").indexOf("function recurring(")), /\.day\b/);
   assert.ok(read("index.html").includes('src="canonical-pattern-rules.js?v=20261120dec14"'));
-  assert.ok(read("index.html").includes('src="views/clasificar-v2.js?v=20261120dec14"'));
+  assert.ok(/src="views\/clasificar-v2\.js\?v=(?:20261120dec14|20261128p2)"/.test(read("index.html")));
 });

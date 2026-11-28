@@ -189,7 +189,7 @@ function renderMovementDetailDialog() {
       <p class="ficha-mov-ahora">${fichaMovAhoraPartida(mapping)}</p>
       <label class="ficha-mov-campo">
         <span>Partida</span>
-        <select id="movementDetailPartida">${movementMappingOptions(kind, mapping?.row ? seriesKeyForRow(mapping.row) : "")}</select>
+        <select id="movementDetailPartida" data-elegir-partida data-elegir-nueva="#fichaMovNuevaAbrir">${movementMappingOptions(kind, mapping?.row ? seriesKeyForRow(mapping.row) : "")}</select>
       </label>
       ${fichaMovNuevaHtml(kind)}
       ${fichaMovAlcanceHtml({ prefijo: "movementDetail", idTodos: "movementDetailRemember", todos: reglaPartida, grupo: grupoPartida, nombre, conFirmados: true })}
@@ -382,7 +382,7 @@ function fichaMovDivisionHtml(row, kind, mapping) {
   const firmado = typeof isSignedClosedMonthKey === "function" && isSignedClosedMonthKey(String(row.month || row.date || "").slice(0, 7));
   const filas = borrador.parts.map((part, index) => `
       <div class="ficha-mov-pareja" data-ficha-dividir-fila="${index}">
-        <label class="ficha-mov-campo"><span>Partida ${index + 1}</span><select data-ficha-dividir-partida="${index}">${movementMappingOptions(kind, part.rowKey)}</select></label>
+        <label class="ficha-mov-campo"><span>Partida ${index + 1}</span><select data-ficha-dividir-partida="${index}" data-elegir-partida>${movementMappingOptions(kind, part.rowKey)}</select></label>
         <label class="ficha-mov-campo"><span>Importe (€)</span><input type="text" inputmode="decimal" autocomplete="off" data-ficha-dividir-importe="${index}" value="${escapeHtml(part.amount)}" /></label>
         ${borrador.parts.length > motor.MIN_PARTES ? `<button type="button" class="link-button" data-ficha-dividir="quitar-fila" data-indice="${index}">Quitar este trozo</button>` : ""}
       </div>`).join("");

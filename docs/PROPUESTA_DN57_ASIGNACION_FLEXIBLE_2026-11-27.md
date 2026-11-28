@@ -63,6 +63,7 @@ El prompt pedía 6-10; manda la regla 8 (D-N56 g, decisión del propio hogar). B
 Ver §3. Se apoya en WP-49 (mapa de pagos) y DAT-05 (traspasos); no añade pantalla, añade una opción a dos que ya existen.
 
 ### P2 · Un solo «Elegir partida» en toda la app (F1, con DS-1; sustituye cinco selectores nativos)
+**Hecho el 28/11** (PROJECT_STATE 559, adenda): eran ocho selectores, no cinco. «+ Nueva partida» se abre desde el buscador, pero cada pantalla conserva su formulario (la unificación del formulario queda para cuando se toque DS-1).
 Hoy elegir partida es un `<select>` nativo con todas las partidas «Bloque · Partida» (cien y pico opciones) en **cinco** sitios:
 Clasificar («Otra…»), la ficha, Dividir, Registrar gasto y Cierre. En el iPhone es una rueda imposible de recorrer.
 **Propuesta:** un componente único: buscador con teclado (escribir «pel» encuentra «Seguro de previsión»), arriba la

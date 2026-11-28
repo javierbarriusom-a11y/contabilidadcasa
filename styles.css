@@ -14054,3 +14054,101 @@ input[data-amount-input][aria-invalid="true"] {
 :where(input, select, textarea)[aria-invalid="true"] {
   border-color: var(--e19-danger, var(--red));
 }
+
+/* P2 (28/11/2026): «Elegir partida», el buscador sobre el <select> de partida (elegir-partida.js), en los dos temas. */
+html body select.ep-nativo {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  border: 0;
+  white-space: nowrap;
+}
+
+.ep {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.ep-campo {
+  width: 100%;
+  min-height: 44px;
+  padding-right: 36px;
+  font-weight: 600;
+}
+
+.ep-flecha {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+.ep-lista {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  max-height: min(50vh, 320px);
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+}
+
+.ep-lista[hidden] {
+  display: none;
+}
+
+.ep-grupo {
+  padding: 8px 14px 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ep-lista [role="option"] {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 14px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.ep-lista [role="option"].is-activa,
+.ep-lista [role="option"]:hover {
+  background: var(--surface-soft);
+}
+
+.ep-lista [role="option"][aria-selected="true"] {
+  font-weight: 700;
+}
+
+.ep-nueva {
+  border-top: 1px solid var(--line);
+  color: var(--e19-accent, var(--teal));
+  font-weight: 700;
+}
+
+.ep-vacio {
+  padding: 12px 14px;
+  color: var(--muted);
+}

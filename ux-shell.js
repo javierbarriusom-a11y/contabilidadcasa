@@ -441,6 +441,7 @@
     const form = field?.form;
     if (!form || String(form.getAttribute?.("method") || "").toLowerCase() !== "dialog") return null;
     if (String(field.tagName || "").toUpperCase() !== "INPUT" || !DIALOG_ENTER_TYPES.has(String(field.getAttribute?.("type") || "").toLowerCase())) return null;
+    if (field.getAttribute?.("role") === "combobox") return null; // P2: en «Elegir partida», Intro elige la partida, no envía el diálogo
     const submits = [...form.querySelectorAll("button, input[type=submit]")].filter((b) => String(b.getAttribute?.("type") || "submit").toLowerCase() === "submit");
     if (!submits.length || submits[0].value !== "cancel") return null;
     return submits.find((b) => b.value !== "cancel" && !b.disabled && !b.hidden) || null;

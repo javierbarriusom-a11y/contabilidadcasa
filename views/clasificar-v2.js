@@ -453,7 +453,7 @@ function clasV2OtherSelect(group) {
     })
     .join("");
   return `<label class="clas-v2-otra"><span class="clas-v2-meta">Elige la partida</span>
-    <select id="clasificarV2Otra" data-clas-v2-otra-select><option value="">Elige una partida…</option>${options}</select></label>
+    <select id="clasificarV2Otra" data-clas-v2-otra-select data-elegir-partida data-elegir-nueva="[data-clas-v2-nueva]"><option value="">Elige una partida…</option>${options}</select></label>
     <button type="button" class="clas-v2-nueva-enlace" data-clas-v2-nueva>¿No está? + Nueva partida</button>`;
 }
 

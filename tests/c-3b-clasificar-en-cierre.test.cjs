@@ -127,7 +127,7 @@ test("C-3b · modo «existing» muestra el desplegable de partidas con la sugere
   });
   const out = context.cierreClassifyModalHtml(sampleEntry(), "existing");
   assert.match(out, /id="cierreClassifyTitle">Amazon · Cargo tarjeta</);
-  assert.match(out, /<select id="cierreClassifyPartida"><option value="expense\|light"/);
+  assert.match(out, /<select id="cierreClassifyPartida" data-elegir-partida><option value="expense\|light"/);
   assert.match(out, /id="cierreClassifySave">Clasificar</);
   assert.match(out, /id="cierreClassifySwitchToNew"/);
   // La sección "nueva partida" sigue en el DOM, oculta, para alternar sin volver a pedir el modal.

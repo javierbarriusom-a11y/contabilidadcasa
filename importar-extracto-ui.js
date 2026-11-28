@@ -639,7 +639,7 @@ function datosImportarClassifyRowMarkup(row) {
     <td>${row.suggestion ? escapeHtml(displayLabelForRow(row.suggestion)) : "Sin sugerencia"}</td>
     <td class="datos-importar-row-actions">
       ${row.suggestion ? `<button type="button" class="e19-btn e19-btn-secondary${decided?.tipo === "aceptar-sugerencia" ? " is-active" : ""}" data-datos-importar-classify="aceptar-sugerencia" data-datos-importar-row-id="${escapeHtml(row.rowId)}">Aceptar sugerencia</button>` : ""}
-      <select data-datos-importar-otra-select data-datos-importar-row-id="${escapeHtml(row.rowId)}">${movementMappingOptions(kind, decided?.tipo === "otra-partida" ? decided.rowKey : "")}</select>
+      <select data-elegir-partida data-datos-importar-otra-select data-datos-importar-row-id="${escapeHtml(row.rowId)}">${movementMappingOptions(kind, decided?.tipo === "otra-partida" ? decided.rowKey : "")}</select>
       <button type="button" class="e19-btn e19-btn-secondary${decided?.tipo === "ignorar" ? " is-active" : ""}" data-datos-importar-classify="ignorar" data-datos-importar-row-id="${escapeHtml(row.rowId)}">Ignorar</button>
     </td>
   </tr>`;
